@@ -123,11 +123,13 @@ Each result shows the symbol, file and lines, and a permalink to the exact lines
 **Evaluate** retrieval and answers, and reproduce the model choices:
 
 ```bash
-uv run code-assistant eval retrieval     # embedding models → eval/results/retrieval.md
-uv run code-assistant eval search        # vector / hybrid / reranked → eval/results/search.md
-uv run code-assistant eval answers       # LLMs + judge       → eval/results/answers.md
-uv run code-assistant eval review        # blind human check of the judge (then: eval agreement)
+uv run code-assistant eval retrieval       # embedding models          → eval/results/retrieval.md
+uv run code-assistant eval search --facts  # search strategies + judge → eval/results/search.md
+uv run code-assistant eval answers         # LLMs + judge              → eval/results/answers.md
+uv run code-assistant eval review          # blind human check of the answer judge (then: eval agreement)
 ```
+
+`eval search --facts` also writes a blind review sheet for the fact judge (`eval/results/fact_review.md`). Tick it, then run `uv run code-assistant eval agreement --sheet eval/results/fact_review.md --results eval/results/facts.jsonl`.
 
 The vectors of all four candidate embedding models are shipped in `embeddings/`, so `eval retrieval` only embeds the 40 questions: the full comparison took 105 s on the author's laptop, CPU only (plus downloading each model, ~2.5 GB in total). Without them (e.g. after deleting the folder to recompute), the first run takes minutes on a GPU and hours on CPU for the larger models. Use `--model BAAI/bge-small-en-v1.5` to evaluate only the default model.
 
