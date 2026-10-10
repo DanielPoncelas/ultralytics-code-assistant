@@ -29,6 +29,17 @@ relevant = [
     "ultralytics/engine/trainer.py::BaseTrainer.check_resume",
     "ultralytics/engine/trainer.py::BaseTrainer.resume_training",
 ]
+key_facts = [
+    "Resume with model.train(resume=True) (or resume='path/to/last.pt'), which reloads the run's last.pt checkpoint.",
+    "check_resume restores the original training arguments from the checkpoint; only a small whitelist (e.g. imgsz, batch, device, workers) can be overridden.",
+    "Training restarts at the saved epoch + 1, with the optimizer state, EMA weights and best fitness restored from the checkpoint.",
+]
+evidence = [
+    "ultralytics/engine/model.py:877-886",
+    "ultralytics/engine/trainer.py:1020-1065",
+    "ultralytics/engine/trainer.py:1067-1082",
+    "ultralytics/engine/trainer.py:1124-1141",
+]
 
 [[question]]
 id = "train-optimizer-auto"
@@ -37,6 +48,15 @@ category = "training"
 source = "https://github.com/ultralytics/ultralytics/issues/3360"
 mentions_symbol = true
 relevant = ["ultralytics/engine/trainer.py::BaseTrainer.build_optimizer"]
+key_facts = [
+    "With optimizer='auto' the user's lr0 is ignored and the optimizer and learning rate are chosen automatically.",
+    "MuSGD (lr=0.01, momentum=0.9) is chosen when the planned training iterations exceed 10,000; otherwise AdamW.",
+    "For AdamW the learning rate is lr_fit = round(0.002 * 5 / (4 + nc), 6), where nc is the number of classes.",
+]
+evidence = [
+    "ultralytics/engine/trainer.py:1173-1182",
+    "ultralytics/engine/trainer.py:323-332",
+]
 
 [[question]]
 id = "train-lr-schedule"
@@ -45,6 +65,14 @@ category = "training"
 source = "https://github.com/ultralytics/ultralytics/issues/2849"
 mentions_symbol = true
 relevant = ["ultralytics/engine/trainer.py::BaseTrainer._setup_scheduler"]
+key_facts = [
+    "lr0 is the initial learning rate and lrf the final learning rate as a fraction of lr0 (final lr = lr0 * lrf).",
+    "The decay is linear by default, lf(x) = max(1 - x/epochs, 0) * (1 - lrf) + lrf; a cosine (one-cycle) schedule is used only with cos_lr=True.",
+]
+evidence = [
+    "ultralytics/engine/trainer.py:268-274",
+    "ultralytics/engine/trainer.py:325-333",
+]
 
 [[question]]
 id = "train-warmup-bias"
@@ -56,6 +84,14 @@ relevant = [
     "ultralytics/engine/trainer.py::BaseTrainer.build_optimizer",
     "ultralytics/engine/trainer.py::BaseTrainer._do_train",
 ]
+key_facts = [
+    "build_optimizer sets warmup_bias_lr = 0.0 when optimizer='auto' (code comment: 'no higher than 0.01 for Adam'), since auto may pick AdamW.",
+    "During warmup the bias parameter group's learning rate is interpolated from warmup_bias_lr up to the scheduled learning rate.",
+]
+evidence = [
+    "ultralytics/engine/trainer.py:1173-1182",
+    "ultralytics/engine/trainer.py:519-533",
+]
 
 [[question]]
 id = "train-freeze"
@@ -64,6 +100,13 @@ category = "training"
 source = "https://github.com/ultralytics/ultralytics/issues/2375"
 mentions_symbol = false
 relevant = ["ultralytics/engine/trainer.py::BaseTrainer._setup_train"]
+key_facts = [
+    "Use the freeze training argument: an integer N freezes the first N layers, a list freezes the given layer indices.",
+    "In _setup_train the matching parameters get requires_grad=False (the DFL layer is always frozen).",
+]
+evidence = [
+    "ultralytics/engine/trainer.py:379-407",
+]
 
 [[question]]
 id = "train-grad-accum"
@@ -76,6 +119,15 @@ relevant = [
     "ultralytics/engine/trainer.py::BaseTrainer._do_train",
     "ultralytics/engine/trainer.py::BaseTrainer.optimizer_step",
 ]
+key_facts = [
+    "Yes: gradients are accumulated over accumulate = max(round(nbs / batch_size), 1) batches before each optimizer step.",
+    "nbs (nominal batch size) acts as the effective batch size; weight decay is scaled by batch_size * accumulate / nbs.",
+]
+evidence = [
+    "ultralytics/engine/trainer.py:321-322",
+    "ultralytics/engine/trainer.py:598-600",
+    "ultralytics/engine/trainer.py:905-916",
+]
 
 [[question]]
 id = "train-close-mosaic"
@@ -86,6 +138,15 @@ mentions_symbol = true
 relevant = [
     "ultralytics/engine/trainer.py::BaseTrainer._do_train",
     "ultralytics/engine/trainer.py::BaseTrainer._close_dataloader_mosaic",
+]
+key_facts = [
+    "close_mosaic is the number of final epochs trained without mosaic: it switches off once epoch >= epochs - close_mosaic.",
+    "_close_dataloader_mosaic disables mosaic (and copy_paste, mixup, cutmix) in the dataset and rebuilds its transforms.",
+]
+evidence = [
+    "ultralytics/engine/trainer.py:486-490",
+    "ultralytics/engine/trainer.py:1143-1149",
+    "ultralytics/data/dataset.py:386-396",
 ]
 
 [[question]]
@@ -98,6 +159,16 @@ relevant = [
     "ultralytics/engine/trainer.py::BaseTrainer.train",
     "ultralytics/engine/trainer.py::BaseTrainer._setup_ddp",
 ]
+key_facts = [
+    "Pass several devices, e.g. device='0,1'; with more than one device training uses DistributedDataParallel (DDP).",
+    "train() launches the DDP workers in a subprocess using a command built by generate_ddp_command.",
+    "Each worker's _setup_ddp selects its GPU by LOCAL_RANK and calls dist.init_process_group (NCCL, with Gloo as fallback).",
+]
+evidence = [
+    "ultralytics/engine/trainer.py:186-193",
+    "ultralytics/engine/trainer.py:236-259",
+    "ultralytics/engine/trainer.py:281-299",
+]
 
 [[question]]
 id = "train-epoch-lag"
@@ -106,6 +177,14 @@ category = "training"
 source = "https://github.com/ultralytics/ultralytics/issues/509"
 mentions_symbol = false
 relevant = ["ultralytics/data/build.py::InfiniteDataLoader"]
+key_facts = [
+    "build_dataloader returns an InfiniteDataLoader, which wraps its batch sampler in a _RepeatSampler that repeats forever.",
+    "Its worker iterator is created once and reused across epochs, so DataLoader workers are not re-created every epoch.",
+]
+evidence = [
+    "ultralytics/data/build.py:45-107",
+    "ultralytics/data/build.py:110-127",
+]
 
 [[question]]
 id = "train-autobatch"
@@ -117,6 +196,16 @@ relevant = [
     "ultralytics/engine/trainer.py::BaseTrainer.auto_batch",
     "ultralytics/models/yolo/detect/train.py::DetectionTrainer.auto_batch",
 ]
+key_facts = [
+    "A batch below 1 (e.g. batch=-1) makes the trainer call auto_batch() to choose the batch size automatically, only on a single GPU (DDP raises an error).",
+    "DetectionTrainer.auto_batch builds the training dataset to pass the maximum number of objects per image (x4 for mosaic) to the batch-size estimation.",
+]
+evidence = [
+    "ultralytics/engine/trainer.py:245-249",
+    "ultralytics/engine/trainer.py:448-451",
+    "ultralytics/engine/trainer.py:707-718",
+    "ultralytics/models/yolo/detect/train.py:245-256",
+]
 
 [[question]]
 id = "train-plot-augmented"
@@ -127,6 +216,15 @@ mentions_symbol = false
 relevant = [
     "ultralytics/models/yolo/detect/train.py::DetectionTrainer.plot_training_samples",
     "ultralytics/engine/trainer.py::BaseTrainer.plot_training_samples",
+]
+key_facts = [
+    "With plots=True the trainer calls plot_training_samples for the first training batches (plot_idx starts as [0, 1, 2]).",
+    "DetectionTrainer.plot_training_samples draws the augmented images with their labels and saves them as train_batch{ni}.jpg in the run directory.",
+]
+evidence = [
+    "ultralytics/engine/trainer.py:220",
+    "ultralytics/engine/trainer.py:625-626",
+    "ultralytics/models/yolo/detect/train.py:225-237",
 ]
 
 [[question]]
@@ -141,6 +239,17 @@ relevant = [
     "ultralytics/engine/tuner.py::Tuner.__call__",
     "ultralytics/engine/model.py::Model.tune",
 ]
+key_facts = [
+    "It is not a grid search: Tuner evolves hyperparameters by mutating the best previous results with Gaussian noise (evolutionary search).",
+    "Mutations are clipped to a search space of (min, max) bounds for hyperparameters such as lr0, lrf, momentum and augmentation settings.",
+    "Each iteration trains with the mutated hyperparameters and records its fitness; the best set is saved to best_hyperparameters.yaml.",
+]
+evidence = [
+    "ultralytics/engine/tuner.py:87-115",
+    "ultralytics/engine/tuner.py:354-458",
+    "ultralytics/engine/tuner.py:503-544",
+    "ultralytics/engine/tuner.py:606-614",
+]
 
 # --- Data -----------------------------------------------------------------------------
 
@@ -152,6 +261,16 @@ source = "https://github.com/ultralytics/ultralytics/issues/2412"
 mentions_symbol = false
 example = true
 relevant = ["ultralytics/data/augment.py::v8_transforms"]
+key_facts = [
+    "Training uses v8_transforms: Mosaic, CopyPaste and RandomPerspective (rotation, translation, scale, shear) as pre-transforms.",
+    "It then applies MixUp, CutMix, Albumentations, RandomHSV colour jitter and random horizontal/vertical flips.",
+    "Each augmentation's probability or strength comes from a hyperparameter (e.g. mosaic, mixup, hsv_h, fliplr).",
+]
+evidence = [
+    "ultralytics/data/augment.py:2870-2892",
+    "ultralytics/data/augment.py:2902-2912",
+    "ultralytics/data/dataset.py:333-341",
+]
 
 [[question]]
 id = "data-albumentations"
@@ -160,6 +279,17 @@ category = "data"
 source = "https://github.com/ultralytics/ultralytics/issues/7339"
 mentions_symbol = true
 relevant = ["ultralytics/data/augment.py::Albumentations", "ultralytics/data/augment.py::Albumentations.__init__"]
+key_facts = [
+    "Albumentations is applied automatically when the albumentations package is installed; if it is not installed the transform is skipped.",
+    "The default transforms are light: Blur, MedianBlur, ToGray and CLAHE with p=0.01.",
+    "Custom transforms can be passed with the augmentations training argument, which replaces the defaults.",
+]
+evidence = [
+    "ultralytics/data/augment.py:2145-2151",
+    "ultralytics/data/augment.py:2165-2177",
+    "ultralytics/data/augment.py:2907",
+    "ultralytics/engine/trainer.py:143-151",
+]
 
 [[question]]
 id = "data-rect"
@@ -168,6 +298,16 @@ category = "data"
 source = "https://github.com/ultralytics/ultralytics/issues/9022"
 mentions_symbol = true
 relevant = ["ultralytics/data/base.py::BaseDataset.set_rectangle"]
+key_facts = [
+    "rect=True groups images with similar aspect ratios into the same batch (set_rectangle sorts images by aspect ratio).",
+    "Each batch gets its own shape: the long side is imgsz and the short side follows the batch's aspect ratio, rounded up to a stride multiple, so images are not square.",
+    "With rect, mosaic/mixup/cutmix are disabled and shuffling is turned off.",
+]
+evidence = [
+    "ultralytics/data/base.py:409-432",
+    "ultralytics/data/dataset.py:334-336",
+    "ultralytics/models/yolo/detect/train.py:93-96",
+]
 
 [[question]]
 id = "data-cache"
@@ -178,6 +318,16 @@ mentions_symbol = true
 relevant = [
     "ultralytics/data/base.py::BaseDataset.cache_images",
     "ultralytics/data/base.py::BaseDataset.check_cache_ram",
+]
+key_facts = [
+    "cache='ram' (or True) keeps decoded, resized images in memory; cache='disk' saves each image as a .npy file and loads it with np.load.",
+    "check_cache_ram estimates the RAM needed from a sample of images, with a safety margin, and compares it with the available memory.",
+    "If there is not enough memory (or disk space), caching is disabled with a warning.",
+]
+evidence = [
+    "ultralytics/data/base.py:174-184",
+    "ultralytics/data/base.py:323-349",
+    "ultralytics/data/base.py:351-407",
 ]
 
 [[question]]
@@ -191,6 +341,16 @@ relevant = [
     "ultralytics/data/dataset.py::YOLODataset.cache_labels",
     "ultralytics/data/utils.py::img2label_paths",
 ]
+key_facts = [
+    "img2label_paths derives each label path by replacing /images/ with /labels/ in the image path and the extension with .txt.",
+    "Labels are scanned into a labels .cache file that is reused only if its hash of the image and label files matches; otherwise they are rescanned.",
+    "If no valid labels are found, training fails with 'No labels found'.",
+]
+evidence = [
+    "ultralytics/data/utils.py:132-144",
+    "ultralytics/data/dataset.py:120-185",
+    "ultralytics/data/dataset.py:273-304",
+]
 
 [[question]]
 id = "data-not-found"
@@ -199,6 +359,16 @@ category = "data"
 source = "https://github.com/ultralytics/ultralytics/issues/13789"
 mentions_symbol = false
 relevant = ["ultralytics/data/utils.py::check_det_dataset"]
+key_facts = [
+    "check_det_dataset loads the YAML and requires train and val entries plus class names (names or nc).",
+    "Relative train/val/test paths are resolved against the YAML's path entry (the dataset root).",
+    "If the val (or requested split) images are missing, it raises 'images not found, missing path' unless the YAML has a download entry.",
+]
+evidence = [
+    "ultralytics/data/utils.py:744-779",
+    "ultralytics/data/utils.py:785-799",
+    "ultralytics/data/utils.py:802-827",
+]
 
 [[question]]
 id = "data-coco-convert"
@@ -207,6 +377,16 @@ category = "data"
 source = "https://github.com/ultralytics/ultralytics/issues/16363"
 mentions_symbol = false
 relevant = ["ultralytics/data/converter.py::convert_coco"]
+key_facts = [
+    "Use convert_coco(labels_dir, save_dir, use_segments=False, use_keypoints=False, cls91to80=True) from ultralytics.data.converter, which reads the COCO JSON files.",
+    "Boxes are converted from COCO top-left x, y, width, height to YOLO normalized center x, y, width, height; crowd annotations are skipped.",
+    "With cls91to80=True the 91 COCO category ids are mapped to the 80 class indices.",
+]
+evidence = [
+    "ultralytics/data/converter.py:245-252",
+    "ultralytics/data/converter.py:274-286",
+    "ultralytics/data/converter.py:305-358",
+]
 
 [[question]]
 id = "data-mask-convert"
@@ -215,6 +395,15 @@ category = "data"
 source = "https://github.com/ultralytics/ultralytics/issues/3085"
 mentions_symbol = false
 relevant = ["ultralytics/data/converter.py::convert_segment_masks_to_yolo_seg"]
+key_facts = [
+    "Yes: convert_segment_masks_to_yolo_seg(masks_dir, output_dir, classes) converts mask images into YOLO segmentation .txt labels.",
+    "Each pixel value v is mapped to class v - 1 (0 is background).",
+    "The contours of each class (cv2.findContours) are written as normalized polygon coordinates.",
+]
+evidence = [
+    "ultralytics/data/converter.py:377",
+    "ultralytics/data/converter.py:412-452",
+]
 
 [[question]]
 id = "data-letterbox-auto"
@@ -223,6 +412,14 @@ category = "data"
 source = "https://github.com/ultralytics/ultralytics/issues/9366"
 mentions_symbol = true
 relevant = ["ultralytics/data/augment.py::LetterBox", "ultralytics/data/augment.py::LetterBox.__call__"]
+key_facts = [
+    "LetterBox resizes keeping the aspect ratio (scale r = min(new_h/h, new_w/w)) and pads the remaining space.",
+    "With auto=True the padding is reduced to dw % stride and dh % stride: the smallest rectangle with stride-multiple sides instead of the full new_shape.",
+]
+evidence = [
+    "ultralytics/data/augment.py:1701-1711",
+    "ultralytics/data/augment.py:1790-1811",
+]
 
 [[question]]
 id = "data-multi-rtsp"
@@ -231,6 +428,16 @@ category = "data"
 source = "https://github.com/ultralytics/ultralytics/issues/1387"
 mentions_symbol = false
 relevant = ["ultralytics/data/loaders.py::LoadStreams", "ultralytics/data/loaders.py::LoadStreams.__init__"]
+key_facts = [
+    "Put the stream URLs in a text file with the .streams extension (one per line) and pass that file as the source.",
+    "LoadStreams opens one cv2.VideoCapture and one reader thread per stream.",
+    "Each iteration returns a batch with the latest frame from every stream, so all cameras are processed together.",
+]
+evidence = [
+    "ultralytics/data/build.py:453",
+    "ultralytics/data/loaders.py:114-156",
+    "ultralytics/data/loaders.py:209-234",
+]
 
 [[question]]
 id = "data-rtsp-reconnect"
@@ -239,6 +446,13 @@ category = "data"
 source = "https://github.com/ultralytics/ultralytics/issues/15057"
 mentions_symbol = false
 relevant = ["ultralytics/data/loaders.py::LoadStreams.update"]
+key_facts = [
+    "If a frame cannot be read, LoadStreams.update replaces it with a black (zeros) image.",
+    "It warns that the video stream is unresponsive and calls cap.open(stream) to re-open it.",
+]
+evidence = [
+    "ultralytics/data/loaders.py:170-188",
+]
 
 # --- Prediction and results -----------------------------------------------------------
 
@@ -253,6 +467,15 @@ relevant = [
     "ultralytics/engine/predictor.py::BasePredictor.__call__",
     "ultralytics/engine/predictor.py::BasePredictor.stream_inference",
 ]
+key_facts = [
+    "With stream=True, prediction returns a generator that yields Results batch by batch instead of a list.",
+    "Use it for long videos, streams or many images, because otherwise all results accumulate in memory and can run out of memory.",
+]
+evidence = [
+    "ultralytics/engine/predictor.py:264-268",
+    "ultralytics/engine/predictor.py:309-318",
+    "ultralytics/engine/model.py:568",
+]
 
 [[question]]
 id = "predict-returns-list"
@@ -265,6 +488,15 @@ relevant = [
     "ultralytics/engine/model.py::Model.__call__",
     "ultralytics/engine/results.py::Results",
 ]
+key_facts = [
+    "Calling the model (an alias of Model.predict) returns a list of Results objects, one per image or frame.",
+    "Index or iterate the list to access detections, e.g. results[0].boxes.",
+]
+evidence = [
+    "ultralytics/engine/model.py:171",
+    "ultralytics/engine/predictor.py:264-268",
+    "ultralytics/engine/results.py:238-244",
+]
 
 [[question]]
 id = "predict-box-size"
@@ -273,6 +505,13 @@ category = "prediction"
 source = "https://github.com/ultralytics/ultralytics/issues/5040"
 mentions_symbol = false
 relevant = ["ultralytics/engine/results.py::Boxes.xywh", "ultralytics/engine/results.py::Boxes"]
+key_facts = [
+    "Use results[0].boxes.xywh, which gives [x_center, y_center, width, height] for each box.",
+    "The values are in pixels of the original image, so width = xywh[:, 2] and height = xywh[:, 3] (xywhn is the normalized version).",
+]
+evidence = [
+    "ultralytics/engine/results.py:1063-1123",
+]
 
 [[question]]
 id = "predict-plot-no-boxes"
@@ -281,6 +520,14 @@ category = "prediction"
 source = "https://github.com/ultralytics/ultralytics/issues/499"
 mentions_symbol = false
 relevant = ["ultralytics/engine/results.py::Results.plot"]
+key_facts = [
+    "Call result.plot(boxes=False): masks are still drawn (masks=True by default) but bounding boxes are not.",
+    "When saving or showing predictions, predict(..., show_boxes=False) has the same effect.",
+]
+evidence = [
+    "ultralytics/engine/results.py:497-571",
+    "ultralytics/engine/predictor.py:523-529",
+]
 
 [[question]]
 id = "predict-crop"
@@ -289,6 +536,15 @@ category = "prediction"
 source = "https://github.com/ultralytics/ultralytics/issues/9344"
 mentions_symbol = false
 relevant = ["ultralytics/engine/results.py::Results.save_crop"]
+key_facts = [
+    "Call result.save_crop(save_dir) on a Results object; it crops every detected box out of the original image.",
+    "Crops are saved as save_dir/<class name>/<file_name>.jpg, one folder per class.",
+    "Alternatively, predict(save_crop=True) saves the crops automatically in a crops folder of the run.",
+]
+evidence = [
+    "ultralytics/engine/results.py:791-828",
+    "ultralytics/engine/predictor.py:535-536",
+]
 
 [[question]]
 id = "predict-seg-masks"
@@ -302,6 +558,15 @@ relevant = [
     "ultralytics/models/yolo/segment/predict.py::SegmentationPredictor.construct_results",
     "ultralytics/engine/results.py::Masks",
 ]
+key_facts = [
+    "It returns Results objects with boxes and masks (a Masks object with one mask per detection, also available as polygons via masks.xy).",
+    "postprocess runs NMS on the detections and takes the prototype masks (protos) from the network output; each detection carries mask coefficients.",
+    "Masks are computed with ops.process_mask from the prototypes and coefficients, cropped to the boxes (process_mask_native when retina_masks=True).",
+]
+evidence = [
+    "ultralytics/models/yolo/segment/predict.py:48-111",
+    "ultralytics/engine/results.py:1152-1207",
+]
 
 [[question]]
 id = "predict-cls-top5"
@@ -313,6 +578,15 @@ relevant = [
     "ultralytics/engine/results.py::Probs",
     "ultralytics/engine/results.py::Probs.top5",
     "ultralytics/engine/results.py::Probs.top5conf",
+]
+key_facts = [
+    "results[0].probs is a Probs object; probs.top5 gives the indices of the 5 most likely classes.",
+    "probs.top5conf gives their probabilities (top1 and top1conf for the single best class).",
+    "Map indices to names with result.names, e.g. [result.names[i] for i in probs.top5].",
+]
+evidence = [
+    "ultralytics/engine/results.py:1360-1424",
+    "ultralytics/engine/results.py:294",
 ]
 
 # --- Validation -----------------------------------------------------------------------
@@ -330,6 +604,17 @@ relevant = [
     "ultralytics/engine/model.py::Model.val",
     "ultralytics/engine/model.py::Model.predict",
 ]
+key_facts = [
+    "predict() uses a default confidence threshold of conf=0.25.",
+    "val() uses conf=0.001 by default (0.01 for OBB) to keep low-confidence boxes for computing mAP.",
+    "Passing the same conf (and other arguments) explicitly to both makes their outputs comparable.",
+]
+evidence = [
+    "ultralytics/engine/model.py:540-543",
+    "ultralytics/engine/predictor.py:155-156",
+    "ultralytics/engine/validator.py:144-145",
+    "ultralytics/engine/model.py:639-642",
+]
 
 [[question]]
 id = "val-test-split"
@@ -342,6 +627,16 @@ relevant = [
     "ultralytics/engine/validator.py::BaseValidator.__call__",
     "ultralytics/data/utils.py::check_det_dataset",
 ]
+key_facts = [
+    "Call model.val(data='data.yaml', split='test').",
+    "The validator loads the dataset with check_det_dataset and builds the dataloader from the entry named by split.",
+    "The dataset YAML must define a test entry; otherwise the images are not found.",
+]
+evidence = [
+    "ultralytics/engine/model.py:639-645",
+    "ultralytics/engine/validator.py:213-233",
+    "ultralytics/data/utils.py:791-799",
+]
 
 # --- Export ---------------------------------------------------------------------------
 
@@ -352,6 +647,14 @@ category = "export"
 source = "https://github.com/ultralytics/ultralytics/issues/191"
 mentions_symbol = false
 relevant = ["ultralytics/engine/exporter.py::Exporter.export_openvino"]
+key_facts = [
+    "Use model.export(format='openvino'); it writes the OpenVINO .xml/.bin model and metadata.yaml into a *_openvino_model folder.",
+    "INT8 quantization is supported (quantize=8): NNCF calibrates the model with images from the data argument.",
+]
+evidence = [
+    "ultralytics/engine/exporter.py:1248-1295",
+    "ultralytics/engine/exporter.py:1047-1053",
+]
 
 [[question]]
 id = "export-tensorrt"
@@ -360,6 +663,16 @@ category = "export"
 source = "https://github.com/ultralytics/ultralytics/issues/1225"
 mentions_symbol = false
 relevant = ["ultralytics/engine/exporter.py::Exporter.export_engine"]
+key_facts = [
+    "Yes: export_engine first exports an ONNX model with export_onnx and then converts it into a TensorRT .engine file.",
+    "TensorRT export requires a GPU (it fails on CPU).",
+    "Options such as dynamic shapes, workspace size and INT8 quantization (with calibration data) are passed to the conversion.",
+]
+evidence = [
+    "ultralytics/engine/exporter.py:1438-1460",
+    "ultralytics/engine/exporter.py:615-617",
+    "ultralytics/engine/exporter.py:646-653",
+]
 
 [[question]]
 id = "export-onnx-dynamic"
@@ -372,6 +685,16 @@ relevant = [
     "ultralytics/engine/exporter.py::Exporter.export_onnx",
     "ultralytics/engine/exporter.py::NMSModel",
 ]
+key_facts = [
+    "Use model.export(format='onnx', dynamic=True, nms=True); dynamic makes the batch, height and width input axes dynamic.",
+    "With nms=True the model is wrapped in NMSModel, so NMS runs inside the ONNX graph and outputs a fixed number of detections padded to max_det.",
+    "With dynamic and nms together, the batch argument sets the maximum batch size.",
+]
+evidence = [
+    "ultralytics/engine/exporter.py:1141-1157",
+    "ultralytics/engine/exporter.py:1957-2032",
+    "ultralytics/engine/exporter.py:861-862",
+]
 
 [[question]]
 id = "export-coreml-nms"
@@ -382,6 +705,15 @@ mentions_symbol = true
 relevant = [
     "ultralytics/engine/exporter.py::Exporter.export_coreml",
     "ultralytics/engine/exporter.py::NMSModel",
+]
+key_facts = [
+    "For detection models with nms=True, export_coreml wraps the model in IOSDetectModel and appends Apple's NMS as a pipeline stage (pipeline_coreml) using iou and conf.",
+    "For segment and pose models, NMS is instead baked into the traced model through NMSModel.",
+    "nms=True cannot be combined with dynamic=True for CoreML.",
+]
+evidence = [
+    "ultralytics/engine/exporter.py:1375-1429",
+    "ultralytics/engine/exporter.py:825-829",
 ]
 
 # --- Specific models ------------------------------------------------------------------
@@ -396,6 +728,15 @@ relevant = [
     "ultralytics/models/fastsam/predict.py::FastSAMPredictor.prompt",
     "ultralytics/models/fastsam/predict.py::FastSAMPredictor.postprocess",
 ]
+key_facts = [
+    "FastSAM first segments everything in the image; without prompts all masks are returned.",
+    "A box prompt keeps, for each box, the mask with the highest IoU with that box.",
+    "A point prompt keeps masks containing the point (label 1) and removes masks containing negative points (label 0).",
+]
+evidence = [
+    "ultralytics/models/fastsam/predict.py:63-77",
+    "ultralytics/models/fastsam/predict.py:92-151",
+]
 
 [[question]]
 id = "model-yoloworld-classes"
@@ -404,6 +745,13 @@ category = "models"
 source = "https://github.com/ultralytics/ultralytics/issues/10038"
 mentions_symbol = false
 relevant = ["ultralytics/models/yolo/model.py::YOLOWorld.set_classes"]
+key_facts = [
+    "Call model.set_classes([...]) on a YOLOWorld model with the list of class names.",
+    "set_classes updates model.names (dropping the background ' ' entry) and resets the predictor so the next predict() uses the new classes.",
+]
+evidence = [
+    "ultralytics/models/yolo/model.py:202-211",
+]
 
 [[question]]
 id = "model-rtdetr-train"
@@ -416,6 +764,15 @@ relevant = [
     "ultralytics/models/rtdetr/train.py::RTDETRTrainer.build_dataset",
     "ultralytics/models/rtdetr/train.py::RTDETRTrainer.get_model",
 ]
+key_facts = [
+    "RTDETRTrainer subclasses the YOLO DetectionTrainer and overrides get_model to build an RTDETRDetectionModel.",
+    "build_dataset uses an RTDETRDataset with rectangular training disabled (rect=False).",
+    "Validation uses RTDETRValidator, whose postprocess applies no NMS.",
+]
+evidence = [
+    "ultralytics/models/rtdetr/train.py:17-97",
+    "ultralytics/models/rtdetr/val.py:111-140",
+]
 
 [[question]]
 id = "model-sam2-dynamic"
@@ -426,6 +783,14 @@ mentions_symbol = false
 relevant = [
     "ultralytics/models/sam/predict.py::SAM2DynamicInteractivePredictor",
     "ultralytics/models/sam/predict.py::SAM2DynamicInteractivePredictor.inference",
+]
+key_facts = [
+    "Use SAM2DynamicInteractivePredictor: on a frame, pass prompts (bboxes, points or masks) with obj_ids and update_memory=True to add new objects.",
+    "Added objects are encoded into its memory bank, so later frames without prompts keep tracking them.",
+    "The number of objects is limited by max_obj_num (default 3), and each obj_id must be below it.",
+]
+evidence = [
+    "ultralytics/models/sam/predict.py:1914-2116",
 ]
 
 # --- Out of scope (answer lives outside models/, engine/, data/) ----------------------
