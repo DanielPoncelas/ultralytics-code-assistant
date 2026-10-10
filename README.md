@@ -1,348 +1,349 @@
 # Ultralytics Code Assistant
 
-A retrieval-augmented code assistant that answers questions about [Ultralytics YOLO](https://github.com/ultralytics/ultralytics) by retrieving relevant source code and generating grounded answers.
+A code assistant that answers questions about [Ultralytics YOLO](https://github.com/ultralytics/ultralytics) by retrieving the relevant source code and generating a grounded answer.
 
-> 🚧 Work in progress.
+## At a glance
 
-## Prerequisites
+**The core**, as the brief asks:
 
-| Tool | Version | Why | Install |
-|------|---------|-----|---------|
-| [uv](https://docs.astral.sh/uv/) | ≥ 0.13.0 | Package and Python version manager (required by the assignment) | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
-| [git](https://git-scm.com/downloads) | any recent | Clones this repo and the pinned Ultralytics source | Preinstalled on most systems |
+| Brief | Implementation |
+|---|---|
+| Chat interface | Gradio app: answers stream in, with the code they used shown next to them |
+| Code indexing | `ultralytics/models`, `engine` and `data` at release `v8.4.175`: 104 files, 1,532 chunks split along functions, methods and classes with Python's `ast` |
+| Vector search | MongoDB Atlas Vector Search over open-source embeddings (`BAAI/bge-small-en-v1.5`, run locally) |
+| Answer generation | A free OpenRouter LLM. Every statement cites its source as `[n]`, a link to the exact lines on GitHub |
 
-**Hardware:** any machine with ~4 GB free RAM and ~4 GB free disk (Python environment and embedding model). **No GPU needed**: everything runs on CPU.
+**Optional extras**, each with a switch in the chat. The first two were measured on 40 real questions:
+- **Keyword search and a reranker** (on by default): related code reaches the LLM for 37 of 40 questions instead of 32.
+- **A second embedding model, Qwen3-Embedding-8B** (served by OpenRouter): 40 of 40. It needs some OpenRouter credit, about $0.0000002 per question.
+- **A paid LLM** (`openai/gpt-5-nano`), with the free models as fallback.
 
-> You do **not** need to install Python yourself: uv downloads the exact interpreter version pinned in `.python-version`.
+Built without RAG frameworks: plain `pymongo`, `httpx` and `sentence-transformers`, managed with uv.
 
-### Accounts
+**Contents:** [Quick start](#quick-start) · [Using it](#using-it) · [Example questions](#example-questions) · [Design notes](#design-notes) · [Evaluation](#evaluation) · [Limitations](#limitations) · [Future work](#future-work) · [Development](#development)
 
-| Service | Tier | Why | What you need from it |
-|---------|------|-----|-----------------------|
-| [MongoDB Atlas](https://www.mongodb.com/cloud/atlas/register) | Free (M0) | Vector store for code chunks (required by the assignment) | A connection string (`mongodb+srv://...`) |
-| [OpenRouter](https://openrouter.ai) | Free | LLM API used to generate answers (required by the assignment) | An API key (`sk-or-v1-...`) from **Keys → Create API Key** |
+## Quick start
 
-> **OpenRouter free-tier limit:** accounts without credits can make **50 requests/day** to `:free` models, which is enough to try the app. Running the full evaluation suite needs more.
+### What you need
+
+| | Why |
+|---|---|
+| [uv](https://docs.astral.sh/uv/) ≥ 0.13 (`curl -LsSf https://astral.sh/uv/install.sh \| sh`) and git | uv installs Python 3.12 and every dependency at the versions pinned in `uv.lock`. You don't need Python installed. |
+| A free [MongoDB Atlas](https://www.mongodb.com/cloud/atlas/register) cluster (M0) | Stores the chunks and runs vector and keyword search. Use an empty cluster: M0 allows 3 search indexes, and this project uses all 3. |
+| A free [OpenRouter](https://openrouter.ai) API key | Generates the answers and reranks the sources. A key with no credit allows 50 free-model requests per day, about 20 questions. |
+
+No GPU is needed. The app runs on CPU and needs about 4 GB of free disk for the environment and the models.
 
 <details>
-<summary>MongoDB Atlas setup (≈5 min)</summary>
+<summary>Creating the Atlas cluster (about 5 minutes)</summary>
 
-1. Create an account and choose **Create Deployment → Free**. Any provider or region works (we used AWS `eu-west-3`, Paris). Leave "Preload sample dataset" unchecked.
-2. Keep **Automate security setup** enabled. Atlas adds your current IP to the access list and creates a database user. Save the username and password.
-3. Go to **Connect → Drivers → Python** and copy the connection string. Ignore the `pip install` hint, because dependencies are installed with `uv`.
+1. Create an account and choose **Create Deployment → Free**. Any provider and region work. Leave "Preload sample dataset" unchecked.
+2. Keep **Automate security setup** on. Atlas adds your current IP address to the access list and creates a database user: save the username and password.
+3. Open **Connect → Drivers → Python** and copy the connection string (`mongodb+srv://...`). Ignore the `pip install` hint.
 
-You don't need to create the vector search index by hand. The indexing command creates it.
+You don't create any index by hand: the `index` command creates them.
 </details>
 
-## Setup
-
-1. Clone the repository and enter it:
-
-   ```bash
-   git clone https://github.com/DanielPoncelas/ultralytics-code-assistant.git
-   cd ultralytics-code-assistant
-   ```
-
-2. Create your environment file and fill in the two values obtained in [Accounts](#accounts):
-
-   ```bash
-   cp .env.example .env
-   ```
-
-3. Install Python 3.12 and all dependencies at the exact versions pinned in `uv.lock`:
-
-   ```bash
-   uv sync
-   ```
-
-4. Verify configuration and connectivity:
-
-   ```bash
-   uv run code-assistant check
-   ```
-
-   Expected output:
-
-   ```
-   ✔ Settings loaded
-   ✔ MongoDB Atlas reachable (server 8.0.x)
-   ✔ OpenRouter key valid (free-model requests today: 50/50)
-   ```
-
-   If a line shows `✘`, the message explains which setting or service to fix.
-
-5. Build the index (one-off):
-
-   ```bash
-   uv run code-assistant index
-   ```
-
-   This clones Ultralytics at the pinned release (`v8.4.175`) and splits `ultralytics/{models,engine,data}` into ~1,500 chunks. It embeds them locally with an open-source model, uploads them to Atlas and creates the vector search index. The first run downloads the embedding model (`BAAI/bge-small-en-v1.5`, ~130 MB) from Hugging Face. The command is idempotent: re-running it updates chunks in place and never duplicates them.
-
-   **Two embedding models.** `index` uploads the chunks twice: with the default model into the `chunks` collection, and with `qwen/qwen3-embedding-8b` (served by OpenRouter) into `chunks_qwen3-embedding-8b`. The chat lets you pick either one per question ([Embedding model choice](#embedding-model-choice)). Set `ALT_EMBEDDING_MODEL=` (empty) to skip the second one.
-
-   **Precomputed embeddings.** The repository ships the chunk vectors in `embeddings/` (1.4 MB for the default model, 13.5 MB for Qwen3-8B), so neither model has to embed the corpus. `index` uses them when they match the current chunks and model revision, which they do at the pinned release, so it only uploads to Atlas. The model is still downloaded, because every question is embedded with it. If anything changes (source, chunker or model), the vectors are recomputed and saved there. To reproduce them from scratch, delete `embeddings/` first.
-
-   **Hardware and speed.** Embedding runs on the fastest device available (NVIDIA GPU, Apple GPU, otherwise CPU), detected automatically. No GPU is required with the default model.
-
-   *Reference timings for the 1,532 chunks with the default model, measured on the author's laptop. Times on your machine will differ; they are given for order of magnitude only:*
-
-   | Device | Indexing time |
-   |---|---|
-   | CPU: Intel Core i7-10750H (6 cores / 12 threads) | 395 s (~6.6 min), peak RAM ~1 GB |
-   | GPU: NVIDIA GTX 1650 Ti, 4 GB (install with `uv sync --no-group cpu --group cuda`, run with `uv run --no-group cpu --group cuda code-assistant index`) | 104 s |
-   | Apple Silicon GPU (automatic on Mac) | not measured (no Mac available to the author) |
-
-   Larger candidate models can be indexed with `--model` (see [Embedding model choice](#embedding-model-choice)). In practice those need a GPU: on the same laptop, Qwen3-Embedding-0.6B took ~27 min on the GTX 1650 Ti and had a 9+ hour ETA on the CPU.
-
-## Usage
-
-**Chat in the browser:**
+### Run it from scratch
 
 ```bash
-uv run code-assistant app        # then open http://127.0.0.1:7860
+# 1. Get the code
+git clone https://github.com/DanielPoncelas/ultralytics-code-assistant.git
+cd ultralytics-code-assistant
+
+# 2. Add your credentials: MONGODB_URI and OPENROUTER_API_KEY
+cp .env.example .env        # then edit .env
+
+# 3. Install Python 3.12 and the dependencies (CPU-only PyTorch)
+uv sync
+
+# 4. Check the configuration and both services
+uv run code-assistant check
+
+# 5. Build the index (one-off)
+uv run code-assistant index
+
+# 6. Start the chat, then open http://127.0.0.1:7860
+uv run code-assistant app
 ```
 
-Answers stream as they are generated. Each `[n]` citation links to the exact lines on GitHub and is coloured like its source in the side panel, where the retrieved code is drawn the way YOLO draws detections. An optional **Use a paid model** checkbox tries `PAID_LLM_MODEL` first, with the free models as fallback. Follow-up questions keep the conversation context: they are rewritten into a standalone search query first (shown as “Searched for: …”).
+Step 4 should print three ticks. If a line shows `✘`, its message says which setting or service to fix:
 
-**Ask a question** (retrieval + LLM answer, streamed, with cited sources):
+```
+✔ Settings loaded
+✔ MongoDB Atlas reachable (server 8.0.x)
+✔ OpenRouter key valid (free-model requests today: 50/50)
+```
+
+Step 5 clones Ultralytics at `v8.4.175` and verifies the commit. It chunks the code and uploads it to Atlas twice, once per embedding model (bge-small and Qwen3-8B, see [Model choices](#model-choices-and-rationale)), and creates the vector and keyword indexes. The chunk vectors are committed in `embeddings/`, so nothing has to be embedded and the step takes a few minutes. Re-running it is safe: chunks are updated in place, never duplicated.
+
+Step 6 loads the embedding model. The first time, it downloads bge-small (about 130 MB, pinned to an exact revision) from Hugging Face, so the first start takes longer; later starts take a few seconds. Each question is then embedded locally on the CPU, which is why the default setup costs nothing.
+
+**Reproducing the embeddings.** Delete `embeddings/` and run step 5 again to recompute the vectors: about 7 minutes on a laptop CPU for bge-small, and less than a cent of OpenRouter credit for Qwen3-8B. The files are used only if their fingerprint (every chunk's text plus the model revision) matches, so stale vectors are never uploaded.
+
+### If something goes wrong
+
+| Symptom | Fix |
+|---|---|
+| `check` can't reach MongoDB Atlas | Your IP address isn't in the cluster's access list (**Network Access → Add current IP**), or the password in `MONGODB_URI` is wrong. |
+| `index` fails while creating an index | The cluster already has other search indexes. M0 allows 3; use an empty cluster. |
+| "No model could answer right now" | The free models are busy, or the key has used its 50 daily requests. Wait a minute, or turn on the paid model in the chat (needs OpenRouter credit). |
+| "qwen/qwen3-embedding-8b needs OpenRouter credits" | Pick `BAAI/bge-small-en-v1.5` as the embedding model, or add credit to the key. |
+
+## Using it
+
+**Chat** (`uv run code-assistant app`). Type a question or click one of the examples.
+- The answer streams in with `[n]` citations.
+- The panel on the right shows the code it used, each piece linked to its lines on GitHub.
+- Follow-up questions work: they are rewritten into a standalone search, shown as "Searched for: …".
+
+Above the sources, three options:
+
+| Option | Default | What it changes |
+|---|---|---|
+| Embedding model for the search | `BAAI/bge-small-en-v1.5` | `qwen/qwen3-embedding-8b` retrieves better but needs OpenRouter credit (about $0.0000002 per question) |
+| Rerank the sources | on | Off: plain vector order, faster but less accurate |
+| Use openai/gpt-5-nano (paid) | off | On: a stronger LLM answers (about $0.0004 per answer), with the free models as fallback |
+
+"Narrow the search" restricts the search to a folder (`models`, `engine`, `data`) or a YOLO task (`detect`, `segment`, …).
+
+**Command line:**
 
 ```bash
-uv run code-assistant ask "How do I resume an interrupted training run?"
+uv run code-assistant ask "How do I resume an interrupted training run?"   # answer with cited sources
+uv run code-assistant search "close_mosaic" --task detect -k 3            # retrieval only, no LLM
 ```
 
-The answer cites sources as `[n]`. The command then lists the retrieved code units with GitHub permalinks (cited ones are marked `*`) and says which LLM answered, including any model that failed before it.
+**Configuration.** Everything is read from `.env` or environment variables, and only the credentials are required:
 
-**Search the code** (retrieval only, no LLM):
-
-```bash
-uv run code-assistant search "How do I resume an interrupted training run?"
-uv run code-assistant search "how are masks built from the network output" --task segment -k 3 --show-code
-```
-
-Each result shows the symbol, file and lines, and a permalink to the exact lines on GitHub at the indexed commit. Filters: `--folder {models,engine,data}`, `--task {detect,segment,pose,obb,classify,...}`, `--kind {function,method,class,module}`.
-
-**Evaluate** retrieval and answers, and reproduce the model choices:
-
-```bash
-uv run code-assistant eval retrieval       # embedding models          → eval/results/retrieval.md
-uv run code-assistant eval search --facts  # search strategies + judge → eval/results/search.md
-uv run code-assistant eval answers         # LLMs + judge              → eval/results/answers.md
-uv run code-assistant eval review          # blind human check of the answer judge (then: eval agreement)
-```
-
-`eval search --facts` also writes a blind review sheet for the fact judge (`eval/results/fact_review.md`). Tick it, then run `uv run code-assistant eval agreement --sheet eval/results/fact_review.md --results eval/results/facts.jsonl`.
-
-The vectors of all four candidate embedding models are shipped in `embeddings/`, so `eval retrieval` only embeds the 40 questions: the full comparison took 105 s on the author's laptop, CPU only (plus downloading each model, ~2.5 GB in total). Without them (e.g. after deleting the folder to recompute), the first run takes minutes on a GPU and hours on CPU for the larger models. Use `--model BAAI/bge-small-en-v1.5` to evaluate only the default model.
-
-### Configuration
-
-All settings are read from environment variables or `.env`:
-
-| Variable | Required | Default | Purpose |
-|---|---|---|---|
-| `MONGODB_URI` | yes | – | Atlas connection string |
-| `OPENROUTER_API_KEY` | yes | – | LLM API key |
-| `EMBEDDING_MODEL` | no | `BAAI/bge-small-en-v1.5` | One of the pinned candidates in `embeddings.py` |
-| `EMBEDDING_DEVICE` | no | auto | `cuda`, `mps` or `cpu` |
-| `ALT_EMBEDDING_MODEL` | no | `qwen/qwen3-embedding-8b` | Second embedding model, selectable in the chat and stored in its own collection. Served by OpenRouter: each question costs ~$0.0000002, but the key needs some credit. Empty disables it |
-| `LLM_MODELS` | no | see `config.py` | Comma-separated OpenRouter models, tried in order (fallback chain) |
-| `RETRIEVAL_K` | no | `6` | Code units given to the LLM |
-| `HYBRID_SEARCH` | no | `false` | Merge keyword (BM25) and vector results with RRF (ignored while the reranker is on) |
-| `RERANK_MODEL` | no | `nvidia/llama-nemotron-rerank-vl-1b-v2:free` | OpenRouter reranker that reorders the vector + keyword candidates (free). Empty disables it. The chat has a "Rerank the sources" checkbox to turn it off per question |
-| `PAID_LLM_MODEL` | no | `openai/gpt-5-nano` | Paid model offered in the chat ("Use a paid model"), tried before the free chain. Empty hides the option. Needs OpenRouter credits (≈ $0.0004 per answer); without them, the free models answer |
-| `MONGODB_DATABASE` / `MONGODB_COLLECTION` | no | `code_assistant` / `chunks` | Where chunks are stored |
+| Variable | Default | Purpose |
+|---|---|---|
+| `MONGODB_URI`, `OPENROUTER_API_KEY` | – | Credentials |
+| `EMBEDDING_MODEL` | `BAAI/bge-small-en-v1.5` | Default embedding model |
+| `ALT_EMBEDDING_MODEL` | `qwen/qwen3-embedding-8b` | Second model offered in the chat; empty disables it |
+| `LLM_MODELS` | Cohere → dots-3 → Laguna (`:free`) | Free models, tried in order |
+| `PAID_LLM_MODEL` | `openai/gpt-5-nano` | Model behind the paid switch; empty hides it |
+| `RERANK_MODEL` | `nvidia/llama-nemotron-rerank-vl-1b-v2:free` | Reranker; empty disables it |
+| `RETRIEVAL_K` | `6` | Code units given to the LLM |
 
 ## Example questions
 
-Five questions from real Ultralytics GitHub issues, chosen before generating any answer. They cover training, data, validation, export, and one question the index cannot answer. The full answers, unedited, with their cited sources, are in **[docs/examples.md](docs/examples.md)** (generated with `uv run code-assistant examples`, default configuration).
+Five questions taken from real Ultralytics GitHub issues. They are also the example buttons in the chat.
 
-| # | Question (source issue) | What the assistant answered | Verdict |
-|---|---|---|---|
-| 1 | *My training run was interrupted at epoch 63. How do I resume it, and what state gets restored?* ([#17492](https://github.com/ultralytics/ultralytics/issues/17492)) | Resume with `resume=True`. Walks through `Model.train` → `check_resume` → `resume_training` (restarts at epoch 64), and gives a table of the checkpoint keys that are restored (optimizer, scaler, EMA, best fitness, …). | ✅ Correct and well cited |
-| 2 | *Which data augmentations are applied by default when training a detection model?* ([#2412](https://github.com/ultralytics/ultralytics/issues/2412)) | `v8_transforms`: Mosaic, RandomPerspective, CopyPaste, MixUp, CutMix, Albumentations, RandomHSV and flips, each controlled by a hyperparameter. | ✅ Correct. Minor slip: it presents Albumentations as user-provided only |
-| 3 | *Why do `model.val()` and `model.predict()` give different detections?* ([#2783](https://github.com/ultralytics/ultralytics/issues/2783)) | Different default arguments: `predict` uses `conf=0.25` and `rect=True`; the validator uses its own, lower `conf`. Pass the same arguments to both. | 🟡 Partly. The validator's `conf=0.001` wasn't retrieved, so the answer says it's "implied" rather than stating it, which is honest about the gap |
-| 4 | *How can I export to ONNX with a dynamic batch size and NMS in the graph?* ([#23339](https://github.com/ultralytics/ultralytics/issues/23339)) | `model.export(format="onnx", dynamic=True, nms=True, batch=16)`, with `batch` as the maximum batch size. | ✅ Correct, but it cites no source |
-| 5 | *What are the default values of the initial learning rate and momentum?* ([#2849](https://github.com/ultralytics/ultralytics/issues/2849)) | "lr0 = 1e-5, momentum = 0.7", read from the hyperparameter-tuning search space. | ❌ Wrong. The defaults live in `cfg/default.yaml`, which isn't indexed; the model presented the tuner's lower bounds as defaults instead of saying it couldn't find them. A known failure mode, see [LLM choice](#llm-choice) |
+Each was answered end to end several times, with both embedding models and the default settings. 21 of the 22 answers contained every key fact, and none made a claim the code doesn't support.
+
+| Question (source issue) | What the assistant answers |
+|---|---|
+| *How do the lr0 and lrf hyperparameters work? Is the learning rate decayed linearly or with a cosine schedule?* ([#2849](https://github.com/ultralytics/ultralytics/issues/2849)) | `lr0` is the initial learning rate, and `lr0 * lrf` the final one. The decay is linear by default; a cosine (one-cycle) schedule is used only with `cos_lr=True`. It quotes `BaseTrainer._setup_scheduler`. |
+| *What does close_mosaic do, and at which point of training is mosaic augmentation switched off?* ([#14886](https://github.com/ultralytics/ultralytics/issues/14886)) | Mosaic, copy-paste, mixup and cutmix are turned off for the last `close_mosaic` epochs. Once `epoch >= epochs - close_mosaic`, `_close_dataloader_mosaic` rebuilds the dataset's transforms. |
+| *Which data augmentations are applied by default when training a detection model?* ([#2412](https://github.com/ultralytics/ultralytics/issues/2412)) | `v8_transforms`: Mosaic, RandomPerspective and CopyPaste, then MixUp, CutMix, Albumentations, HSV colour jitter and flips, each controlled by a hyperparameter. |
+| *How do I set my own class names for open-vocabulary detection with YOLO-World?* ([#10038](https://github.com/ultralytics/ultralytics/issues/10038)) | `model.set_classes([...])`. It updates the class names (dropping the background entry) and resets the predictor, so the next prediction uses them. |
+| *How does the TensorRT export work? Does it go through ONNX first?* ([#1225](https://github.com/ultralytics/ultralytics/issues/1225)) | Yes: `export_engine` exports ONNX first, then `onnx2engine` builds the `.engine` file. It needs a GPU and takes the workspace, dynamic-shape and INT8 calibration options. |
+
+The questions the assistant gets wrong are described under [Limitations](#limitations).
 
 ## Design notes
 
-### Pipeline
+### Architecture
 
 ```
-Indexing (one-off)   fetch (git, pinned tag + commit check) ─► chunk (stdlib ast) ─► embed (local open-source model) ─► store (Atlas, upsert by id)
+Indexing (once: `index`)
+  Ultralytics v8.4.175 (git clone, commit verified)
+   └─► chunk with Python's ast: functions, methods, class and module summaries
+        └─► embed: bge-small (local) and Qwen3-8B (OpenRouter); vectors shipped in embeddings/
+             └─► MongoDB Atlas: one collection + vector index per embedding model, one keyword index
 
-Answering            question ─► embed ─► Atlas $vectorSearch (top 6 distinct code units) ─► prompt with numbered sources ─► free LLM via OpenRouter (fallback chain) ─► streamed answer with [n] citations + GitHub permalinks
+Answering (chat or `ask`)
+  question ─► follow-up? rewrite it into a standalone search query
+           ─► embed it with the selected model
+           ─► Atlas $vectorSearch: top 20  +  Atlas Search (keywords): top 20
+           ─► reranker (OpenRouter, free) keeps the best 6
+           ─► prompt with 6 numbered sources ─► free LLM (Cohere → dots-3 → Laguna)
+           ─► streamed answer with [n] citations linking to the exact lines on GitHub
 ```
 
-### How code is chunked, and why
+### How the code is chunked, and why
 
-Code is split by **logical unit using Python's `ast` module**, not by a fixed number of characters:
+The code is split along its structure with Python's `ast` module, not into fixed-size windows:
 
-| Chunk type | Content | Answers questions like |
+| Chunk | Content | Answers questions like |
 |---|---|---|
-| **Function / method** | Full definition: decorators, signature, docstring, body. Nested functions stay inside their parent. | "How does `BaseTrainer.save_model` decide what to store?" |
-| **Class summary** | Class header, docstring, class attributes, and every method's signature plus the first line of its docstring. No method bodies. | "What does `DetectionTrainer` do and which methods does it override?" |
-| **Module summary** | Module docstring, imports, constants, `__all__`, and the signature of every top-level function and class. | "Where is `YOLODataset` defined / what does `ultralytics.data.augment` contain?" |
+| Function or method | The whole definition: decorators, signature, docstring, body | "What does `BaseTrainer.save_model` store?" |
+| Class summary | Header, docstring, class attributes, and each method's signature and first docstring line | "What does `DetectionTrainer` override?" |
+| Module summary | Docstring, imports, constants, and the signatures of top-level functions and classes | "What does `ultralytics.data.augment` contain?" |
 
-Why:
-- **Fixed-size windows** cut functions in half and mix unrelated code, so neither the embedding nor the LLM sees a coherent unit.
-- **Whole files** are too coarse. `exporter.py` has 1,500+ lines, and a single vector cannot represent it.
-- **AST units** match how people ask about code: by function, method or class. The summaries cover the "big picture" questions that a single method can't answer.
-- `ast` (stdlib) is enough because the corpus is pure Python. tree-sitter would only pay off for multiple languages.
+**Why:**
+- Fixed-size windows cut functions in half and mix unrelated code.
+- Whole files are too coarse: `exporter.py` has over 1,500 lines, too much for one vector.
+- People ask about functions, methods and classes, and the summaries answer the "big picture" questions.
+- The standard library's `ast` is enough for a pure-Python corpus.
 
-**Long units.** Units over ~4,000 characters (~1,000–1,300 tokens; about 5% of them, e.g. the 444-line `Exporter.__call__`) are split **at statement boundaries**, never mid-statement, with a 3-line overlap. Each part is labelled `Part i/n`.
+**Details that matter:**
+- **Long units** (over 4,000 characters, about 5% of them, e.g. the 444-line `Exporter.__call__`) are split at statement boundaries, never mid-statement, with a 3-line overlap.
+- **Comments**, which `ast` ignores, are attached to the statement that follows them. A coverage check confirms that every line of code in the 104 files ends up in a chunk.
+- **The embedded text starts with a header** naming the file, module, symbol, signature and part, because an isolated method body is ambiguous (`self.model`: which model?). The LLM gets the raw code.
 
-**Contextual header.** The text that is embedded is prefixed with where the code lives:
+Result: 1,532 chunks (1,072 methods, 214 class summaries, 140 functions and 106 module summaries; 79 long units split into parts). The median chunk is 927 characters.
 
-```
-# File: ultralytics/engine/trainer.py
-# Module: ultralytics.engine.trainer
-# Symbol: BaseTrainer._do_train (method of class BaseTrainer)
-# Signature: def _do_train(self)
-# Part: 2/4
-<code>
-```
-
-An isolated method body is ambiguous (`self.model`: which model?). The header places it in the codebase. The raw code is stored separately for display and for the LLM prompt.
-
-**Comments.** `ast` doesn't see comments, so comment blocks between statements (e.g. `# NOTE: keep this class for backward compatibility` above a class) are attached to the statement that follows them. A coverage check over the whole corpus confirms that **every non-blank line of the 104 files appears in some chunk**. The only exceptions are the license headers of 4 `__init__.py` files that contain no code at all.
-
-Result for `v8.4.175`: **104 files → 1,532 chunks** (1,072 methods, 214 class summaries, 140 functions, 106 module summaries; 79 long units split into parts). Median chunk 927 characters of code, max 4,000.
-
-### Metadata extracted per chunk
+### Metadata extracted
 
 | Field | Used for |
 |---|---|
-| `path`, `module`, `qualified_name`, `kind` | Identifying the chunk and citing it |
-| `start_line`, `end_line`, `github_url` | Clickable citations: a permalink to the exact lines **at the pinned commit**, so links never rot |
-| `signature`, `docstring`, `decorators`, `parent_class`, `bases` | Context for the LLM; building class summaries |
-| `folder` (`models`/`engine`/`data`), `model_family` (`yolo`, `sam`, `rtdetr`, …), `task` (`detect`, `segment`, `pose`, …) | **Pre-filters** in Atlas Vector Search, e.g. "search only `task: segment`" |
-| `part`, `total_parts` | Reassembling split units |
-| `source.{repo,tag,commit}`, `embedding_model` | Provenance: which code version and which model produced each vector |
-| `_id` | Stable hash of path + symbol + part, which makes re-indexing idempotent |
+| `path`, `module`, `qualified_name`, `kind` | Identifying and citing a chunk |
+| `start_line`, `end_line`, `github_url` | Citations: a permalink to the exact lines at the pinned commit, so links never break |
+| `signature`, `docstring`, `decorators`, `parent_class`, `bases` | Context for the LLM, and building the class summaries |
+| `folder`, `model_family` (`yolo`, `sam`, `rtdetr`, …), `task` (`detect`, `segment`, …) | Pre-filters for the search, e.g. only `task: segment` |
+| `part`, `total_parts` | Collapsing the parts of a long unit into one result |
+| `source` (repo, tag, commit), `embedding_model` | Provenance; the app refuses to query an index built with another model |
+| `_id` | A stable hash of path, symbol and part, so re-indexing updates instead of duplicating |
 
 ### Retrieval
 
-1. Embed the question with the same model as the index. This is checked: querying an index built with another model fails with a clear error.
-2. Run Atlas `$vectorSearch` with `limit = 3k` and `numCandidates = 20 × limit`. That's MongoDB's guidance for near-exact recall, and we **measured 99% top-5 overlap with an exact search**.
-3. Collapse the parts of the same symbol (a long function split into parts could otherwise fill the top-k) and return k distinct code units.
-4. Optional metadata pre-filters (`folder`, `task`, `kind`) narrow the search before ranking.
-5. **Rerank** (on by default): an Atlas Search keyword index (BM25, created by `index`) adds its top 20 to the top 20 vector results. A hosted reranker (`nvidia/llama-nemotron-rerank-vl-1b-v2:free` through OpenRouter's `/rerank`, same API key) reads each (question, code) pair and reorders the ~33 candidates, and the best 6 go to the LLM. If the reranker fails (e.g. a 429 from the free tier), the search falls back to vector order instead of failing.
+1. **Vector search:** embed the question and run Atlas `$vectorSearch` with `numCandidates` = 20 × `limit`, MongoDB's guidance for near-exact recall. It matches an exact search on 99% of the top 5.
+2. **Keyword search:** an Atlas Search index whose analyzer splits identifiers, so "nms" matches `agnostic_nms` and `NMSModel`. Together, the top 20 of each list contain the right code for 38 of 40 evaluation questions.
+3. **Reranking:** a reranker reads each (question, code) pair and keeps the best 6, deduplicated so that a long function split into parts counts once. If it fails, for example when it is rate-limited, the search falls back to vector order instead of failing.
 
-Why: the keyword index's analyzer splits identifiers, so "nms" matches `agnostic_nms` and `NMSModel`, and together the two lists contain the right code for 38 of 40 questions. Vector order alone puts it in the top 6 for only 32. Measured on the 40 questions (`uv run code-assistant eval search`, no LLM calls):
+### Model choices and rationale
 
-| Search | Hit@1 | Hit@6 | MRR@10 | Evidence@6 | Facts@6 | All facts@6 | Latency |
-|---|---|---|---|---|---|---|---|
-| Vector only | 52.5% | 80.0% | 0.626 | 50.8% | 55.4% | 35.0% | 0.14 s |
-| Hybrid (vector + keyword, RRF) | 57.5% | 77.5% | 0.664 | 50.7% | 53.8% | 41.0% | 0.20 s |
-| **Reranked (default)** | **62.5%** | **92.5%** | **0.738** | **63.3%** | **62.9%** | **42.5%** | 0.76 s |
+Each choice was measured on the same 40 questions (see [Evaluation](#evaluation)), with the decision rule written down before the run.
 
-The reranker fixes 6 questions and loses 1 (`val-test-split`, rank 5 → 8). The two it can't fix aren't among the candidates.
+**Embeddings: `BAAI/bge-small-en-v1.5` by default, `qwen/qwen3-embedding-8b` selectable.**
+- **Four local open-source models were compared:** Qwen3-Embedding-0.6B, Granite R2, GTE-ModernBERT and bge-small. The rule: best Hit@5 wins, unless a smaller model is within 3 points.
+- **bge-small won:** one question behind Qwen-0.6B, ahead on Hit@1 and MRR, 18× smaller and 6.5× faster per query on CPU.
+- **Qwen3-Embedding-8B was added later.** The brief asks for an open-source model, not a free one: its weights are Apache-2.0, and OpenRouter only hosts them. It reads 32k tokens, where bge-small truncates a third of the chunks at 512.
+  - It gets related code into the top 6 for all 40 questions (bge-small: 32, or 37 with the reranker).
+  - It raises the share of key facts in the sources from 63% to 71–74%.
+- **bge-small stays the default** because it is free and runs locally, so the app works with any OpenRouter key.
 
-**Hit@6 overstates what the LLM gets.** It needs only *one* relevant code unit among the sources. Two stricter measures check whether the *answer* is there:
+**Reranker: `nvidia/llama-nemotron-rerank-vl-1b-v2:free`.**
+- **Why hosted:** a local cross-encoder took over a minute per question on CPU, so three OpenRouter rerankers were measured instead.
+- **The free one won:** related code in the top 6 for 37 questions instead of 32, for about 0.6 s more per question.
 
-- **Evidence@6:** the share of the labelled evidence lines that reach the LLM.
-- **Facts@6:** an LLM judge reads the 6 sources and checks each key fact of the correct answer. A "yes" counts only if the judge quotes a line that really is in the sources. **All facts@6** is the share of questions where every key fact is there.
-
-On `val-vs-predict`, the reranker ranks `Model.val` second (a hit), but the lines that answer the question (`conf=0.25` in `Model.predict`, `conf=0.001` in `BaseValidator.__init__`) are missing, so the answer misses the point. Overall, the judge finds the full answer in the sources for 17 of 40 questions, not 37.
-
-The judge was checked by hand on 10 random questions (25 facts, `eval/results/fact_review.md`): 76% agreement, and every disagreement was the judge missing a fact that is in the sources. So Facts@6 is a **lower bound**, and comparisons between strategies stay fair because they share the judge.
-
-### Embedding model choice
-
-All candidates are open source (Apache-2.0/MIT), not gated, natively supported by `transformers` (no remote code), and pinned to an exact revision:
-
-| Candidate | Why it's in the comparison |
-|---|---|
-| `Qwen/Qwen3-Embedding-0.6B` (596M, 32k ctx) | The strongest model that fits on a laptop (top of MTEB for its size) |
-| `ibm-granite/granite-embedding-english-r2` (149M, 8k ctx) | Mid-size ModernBERT model trained with code retrieval data |
-| `Alibaba-NLP/gte-modernbert-base` (149M, 8k ctx) | Same size and architecture, different training data |
-| `BAAI/bge-small-en-v1.5` (33M, 512 ctx) | Deliberately small, generic baseline |
-
-Ruled out:
-- `jina-code-embeddings` (non-commercial license);
-- `embeddinggemma` (gated);
-- `CodeRankEmbed` (its remote code crashes with transformers 5).
-
-**How the model was chosen.** On 40 real questions labelled before any run, with this decision rule fixed in advance: *best Hit@5 wins, unless a smaller model is within 3 points*.
-
-| Model | Hit@1 | Hit@5 (95% CI) | MRR@10 | Query time (CPU) |
-|---|---|---|---|---|
-| Qwen3-Embedding-0.6B | 47.5% | **80.0%** (67.5–92.5) | 0.608 | 764 ms |
-| **bge-small-en-v1.5** ✅ | **52.5%** | 77.5% (65.0–90.0) | **0.626** | **117 ms** |
-| Granite Embedding R2 | 47.5% | 77.5% (65.0–90.0) | 0.607 | 188 ms |
-| GTE-ModernBERT | 45.0% | 72.5% (57.5–85.0) | 0.574 | 173 ms |
-
-**Chosen: `BAAI/bge-small-en-v1.5`.** It's one question behind the best model on Hit@5 and ahead on Hit@1 and MRR. It's also 18× smaller, embeds a query 6.5× faster on CPU, and makes indexing from scratch practical on any laptop. Trade-offs:
-- **Truncation:** it reads at most 512 tokens, so 32.5% of chunks are truncated when embedded. The LLM still receives the full code.
-- **Plain-language questions:** Qwen does better on questions that name no symbol (76.9% vs 65.4%, n=26). That's not significant at this sample size, but it's worth re-checking on a larger set.
-
-Full report with per-category results and failure analysis: [`eval/results/retrieval.md`](eval/results/retrieval.md). Detailed reasoning: [DECISIONS.md](DECISIONS.md) D12–D18.
-
-**Second model, selectable in the chat: `qwen/qwen3-embedding-8b`.** The brief asks for an open-source embedding model, not a free one: Qwen3-Embedding-8B has Apache-2.0 weights, and OpenRouter only hosts it. It reads 32k tokens, so nothing is truncated, and it is 240× larger than bge-small. Measured on the same 40 questions with the same judge (`eval/results/search_qwen3-embedding-8b.md`):
-
-| Search | Hit@6 | Evidence@6 | Facts@6 | All facts@6 | Latency |
-|---|---|---|---|---|---|
-| bge-small + reranker (default) | 92.5% | 63.3% | 62.9% | 42.5% | 0.76 s |
-| Qwen3-8B, vector only | **100%** | **69.3%** | 71.4% | 43.6% | 0.53 s |
-| Qwen3-8B + reranker | 97.5% | 69.1% | **73.9%** | **53.8%** | 1.15 s |
-
-With vector search only, Qwen fixes all 8 questions bge misses and breaks none: the only difference in this evaluation that is statistically clear. bge-small stays the default because it is free and local, so the app runs with any OpenRouter key; Qwen needs a few cents of credit (about $0.0000002 per question). Details in D28.
+**LLM: `cohere/north-mini-code:free`, with `dots-studio/dots-3-note-preview:free` and `poolside/laguna-s-2.1:free` as fallbacks.**
+- **How it was chosen:** the free candidates answered all 46 questions from the same sources, and a judge from another model family graded them.
+- **Cohere won:** it covered the most key facts (53.8%, 11 points ahead) and never declined a question it could answer.
+- **Why a chain:** the fallbacks come from different providers, so one provider's outage doesn't stop the assistant.
+- **The paid switch** (`openai/gpt-5-nano`) is there for when quality matters more than cost.
 
 ### Answer generation
 
-- **Prompt:**
-  - the sources are numbered and wrapped in `<source>` tags;
-  - the model answers only from them, cites `[n]` per statement, answers the supported part and says what is missing, and replies "I couldn't find this in the indexed code" only when nothing relevant was retrieved;
-  - retrieved text is treated as untrusted data (indirect prompt-injection guard, tested).
-- **Context:** 6 code units, the knee of the vector retrieval curve (Hit@5 77.5%, Hit@6 80%, Hit@8 80%); with the reranker, Hit@6 is 92.5%.
-- **Fallback chain:** if the first model is rate-limited, errors, times out or returns an empty answer, the next one answers. The CLI says which model answered and which failed. While streaming, fallback only happens before the first token, so two models' answers are never spliced.
+- The six sources are numbered in the prompt. The model must answer only from them and cite `[n]` per statement.
+- When only part of the question is covered, it answers that part and says what is missing. It replies "I couldn't find this in the indexed code" only when nothing relevant was retrieved.
+- The retrieved code is treated as untrusted data, so instructions hidden in it are ignored (covered by a prompt-injection test).
+- If a model is rate-limited, times out or returns an empty answer, the next one in the chain answers. The status line says which model answered and which failed.
 
-### LLM choice
+### Trade-offs
 
-The assignment asks for a free OpenRouter model. On 2026-10-10 OpenRouter listed 15 free models, and **none of them were Qwen, Llama, DeepSeek or Mistral** (all paid). From those 15 we excluded:
-- the Nemotron family, because it's the judge's family;
-- Inkling, which isn't available through the API;
-- a 2.6B model, too small.
+| Choice | Gained | Given up |
+|---|---|---|
+| bge-small as the default embedder | Free, local, 117 ms per query on CPU | It truncates long chunks; Qwen3-8B retrieves clearly better |
+| Qwen3-8B behind a switch | The best retrieval measured | Needs OpenRouter credit and depends on one provider |
+| Reranking on by default | 5 more questions with related code in the top 6 | About 0.6 s and one more free request per question |
+| Free LLMs by default | Anyone can run it at no cost | They state about half the key facts, sometimes return empty answers, and get rate-limited |
+| 6 sources per question | The knee of the retrieval curve, about 6–7k prompt tokens | Answers that need code from many places |
+| A pinned release | Reproducible results and permanent links | Doesn't follow new Ultralytics releases |
+| Keyword search used only as reranker candidates | Catches exact identifiers | Mixed with vector results (RRF) without a reranker, it lost a question, so that mode stays off |
 
-The candidates were two code-specialised models (Cohere, Poolside) and one general model (Google Gemma 4).
+### Key decisions
 
-**Method:**
-- 46 questions from real issues; 40 have 2–3 hand-written *key facts* each, checked against the source.
-- Every model answered from the **same retrieved sources**.
-- A judge from a different model family (`nvidia/nemotron-3-super-120b-a12b:free`) graded key-fact coverage, unsupported claims and refusals.
-- The selection rule was fixed in advance. Full report: [`eval/results/answers.md`](eval/results/answers.md).
-- **Judge validation:** in a blind review by the author (10 random answers, the judge's verdicts not shown; [`eval/results/judge_review.md`](eval/results/judge_review.md)), the judge agreed with the human on **25/25 key facts** (Cohen's κ = 1.0; 95% CI for the agreement rate ≈ 86–100%). This covers key-fact grading only. One known judge error is in refusal detection: it missed a correct "couldn't find it" (see DECISIONS D23).
+Each decision is logged in [DECISIONS.md](DECISIONS.md), with the alternatives considered:
 
-| Model | Key-fact coverage | Fully correct | Grounded | Out-of-scope declined | False refusals | Median latency |
-|---|---|---|---|---|---|---|
-| **`cohere/north-mini-code:free`** ✅ | **53.8%** | **32.5%** | 77.8% | 3/6 | **0%** | 10.1 s |
-| `dots-studio/dots-3-note-preview:free` | 42.9% | 20.0% | **82.2%** | 3/6 | **0%** | 15.9 s |
-| `poolside/laguna-s-2.1:free` | 36.2% | 12.5% | 80.4% | 4/6 | 18.8% | 8.5 s |
-| `google/gemma-4-31b-it:free` | – | – | – | – | – | unavailable: rate-limited upstream for 37/46 questions |
+- **D8:** index a pinned release, verified by commit SHA.
+- **D9–D11:** chunk along the syntax tree, split long units, add a contextual header.
+- **D12–D18:** choose the embedding model with data; **D28:** offer Qwen3-8B.
+- **D6, D7, D19:** an own OpenRouter client with ordered fallback, no SDK; **D20:** a cited, scoped, injection-aware prompt.
+- **D21, D23:** grade answers with a judge validated by a human; choose the LLM.
+- **D24, D26:** hybrid search tried and left off; reranker adopted.
+- **D14:** ship the embeddings; **D25:** an optional paid model; **D27:** stricter retrieval metrics.
 
-**Chosen: Cohere North-Mini-Code.** It has the best coverage by 11 points, never declines when the right code is in context, and is reasonably fast. The default fallback chain is **Cohere → dots-3 → Laguna**: three providers, so one provider's outage doesn't take the assistant down.
+## Evaluation
 
-**Honest limitations:**
-- **Even the best free model states only about half of the key facts.**
-- **Only about half of its answers (52.5%) cite their sources correctly.**
-- **It sometimes answers out-of-scope questions with a plausible misreading instead of declining.** Example: tuner search-space bounds presented as default hyperparameters (example 5 above).
-- **Free models are non-deterministic and their availability changes by the hour.**
-- **Reasoning models (Cohere, dots-3) spend part of the token budget thinking.** The evaluation ran with 2,000 output tokens, which truncated 3 of Cohere's 46 answers. The default is now 4,000 and truncated answers are flagged.
+**Question set.** 46 questions from real GitHub issues: 40 that the indexed code can answer, and 6 that it can't. Before any run, each in-scope question was labelled with the code that answers it, its 2–3 key facts and the exact evidence lines (`eval/questions.toml`).
 
-Running the answer evaluation needs ~92 OpenRouter requests per model (answer + judge). Accounts with fewer than 10 credits purchased are limited to 50 free-model requests per day; we used an account with credits (1,000/day; free models don't consume them). All answers and verdicts are committed in `eval/results/answers.jsonl`.
+**Retrieval**, from most lenient to strictest. Does the LLM get…
+- **Hit@6:** at least one relevant piece of code?
+- **Facts@6:** each key fact? Judged by an LLM that must quote the supporting line.
+- **All facts@6:** every key fact, that is, the full answer?
+
+| Search | Hit@6 | Facts@6 | All facts@6 |
+|---|---|---|---|
+| bge-small, vector only | 80.0% | 55.4% | 35.0% |
+| **bge-small + reranker (default)** | 92.5% | 62.9% | 42.5% |
+| Qwen3-8B, vector only | **100%** | 71.4% | 43.6% |
+| Qwen3-8B + reranker | 97.5% | **73.9%** | **53.8%** |
+
+**Hit@6 alone would overstate quality.** On "why do `val()` and `predict()` give different detections?", the search finds `Model.val` but not the two lines that answer the question (the `conf` defaults), so the answer misses the point.
+
+**Answers.** The selected LLM states 53.8% of the key facts and has no false refusals. That was measured with vector-only retrieval, before the reranker; the example questions above were checked with the final setup.
+
+**Checking the judges.** I reviewed samples blind, without seeing the judges' verdicts:
+- **Answer judge:** it agreed with me on 25 of 25 key facts.
+- **Fact judge:** 76% agreement, and every disagreement was the judge missing a fact that was there. So its numbers are a lower bound.
+
+**Reproduce:**
+
+```bash
+uv run code-assistant eval retrieval       # embedding models  → eval/results/retrieval.md (~2 min on CPU)
+uv run code-assistant eval search --facts  # search strategies → eval/results/search.md
+uv run code-assistant eval answers         # LLMs + judge      → eval/results/answers.md
+```
+
+The last two use free OpenRouter requests (about 160, and 92 per LLM), so they need a key with at least $10 of credit purchased, which raises the free limit to 1,000 requests per day.
+
+## Limitations
+
+- **Answers spread across distant code.** "Why do `val()` and `predict()` differ?" needs one line in `Model.predict` and one in `BaseValidator.__init__`. "How do I disable NMS?" needs a line inside `setup_model`. Neither embedding model retrieves those lines, so these answers are partial or wrong.
+- **The index covers only `models/`, `engine/` and `data/`**, as the brief asks. Defaults defined in `cfg/default.yaml` and helpers in `utils/` aren't indexed, so questions about default values can be misread: once, the tuner's search bounds were presented as defaults.
+- **Free LLMs:** they state about half the key facts, sometimes return empty answers or skip citations, and are rate-limited.
+- **A small evaluation:** with 40 questions, only large differences are meaningful. The Qwen3-8B gain (8 questions fixed, none broken) is the clearest one.
+
+## Future work
+
+### What I would improve with more time
+
+1. **Answers that combine distant code.** Let the LLM write extra search queries in the code's own vocabulary ("BaseValidator default conf"), or let it call the search as a tool several times before answering. This targets the failures above.
+2. **Finer retrieval inside long methods.** Index small windows of long methods such as `_do_train`, and give the LLM the whole method when one of them matches.
+3. **Index `cfg/default.yaml`.** It documents every argument and its default, which is where many real questions end up.
+4. **A larger, double-labelled evaluation set** (100+ questions from issues and discussions) and a stronger judge, so that smaller differences become measurable.
+5. **Re-run the answer evaluation** with the final retrieval and with paid models, to choose the default LLM on quality and cost.
+
+### How this would scale to production
+
+- **Indexing as a pipeline.** Index every new Ultralytics release automatically (on a release webhook) into a versioned collection, and let users pick their version. Only re-embed the chunks that changed.
+- **Search.** Move to a dedicated Atlas tier, with search nodes and room for more indexes, and quantize the vectors (int8) to cut memory. A self-hosted Qwen3-8B on a GPU removes the per-query dependency and cost.
+- **Serving.** Put a stateless API (e.g. FastAPI) behind the UI, with autoscaling and concurrency. Use paid models with SLAs and provider routing, cache frequent questions, and add per-user rate limits and cost tracking.
+- **Quality and operations.** Log each question with its retrieved code, model, latency and user feedback. Run the retrieval evaluation (about 2 minutes, no LLM) in CI on every change, and the answer evaluation nightly. Alert on fallback rates.
+- **Security.** Use least-privilege database users (a separate reader and indexer) and a secrets manager, and keep treating retrieved text as untrusted.
+
+### Critical missing features
+
+- **Authentication and rate limiting:** anyone who can reach the app spends the owner's API quota.
+- **Documentation and configuration files:** answers come only from code, not from docs.ultralytics.com or the YAML configs.
+- **A single release:** there is no way to ask about the version a user actually runs.
+- **No feedback loop:** users can't flag a wrong answer, so quality can't be tracked in use.
 
 ## Development
 
 ```bash
-uv run pytest            # run the test suite
-uv run ruff check .      # lint
-uv run ruff format .     # format
+uv run pytest           # 148 tests, no network needed
+uv run ruff check .     # lint
+uv run ruff format .    # format
 ```
 
-Design decisions, alternatives considered and known limitations are logged in [DECISIONS.md](DECISIONS.md).
-
-## Future work
-
-_TODO: improvements, scaling to production, critical missing features._
+```
+src/code_assistant/
+  indexing/      fetch the pinned source, chunk with ast, embedding cache, upload pipeline
+  evaluation/    question set, retrieval / search / answer evaluations, judges and human review
+  embeddings.py  local (sentence-transformers) and OpenRouter-served embedding models
+  store.py       MongoDB Atlas: vector and keyword search, indexes created from code
+  retrieval.py   vector search, keyword candidates, reranking, fallbacks
+  rerank.py      OpenRouter reranker client
+  llm.py         OpenRouter chat client: fallback chain, streaming, retries
+  prompt.py      prompt, citations, follow-up rewriting
+  assistant.py   retrieve and generate
+  app.py         Gradio chat
+  cli.py         command line
+eval/            labelled questions and committed results
+embeddings/      precomputed chunk vectors per model
+DECISIONS.md     decision log with alternatives and measurements
+```
