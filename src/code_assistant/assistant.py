@@ -17,6 +17,7 @@ class Answer:
     latency_s: float
     citations: list[int] = field(default_factory=list)
     failed_attempts: tuple[Attempt, ...] = ()  # models tried before the one that answered
+    truncated: bool = False  # the LLM ran out of tokens before finishing
 
     @property
     def invalid_citations(self) -> list[int]:
@@ -65,4 +66,5 @@ class CodeAssistant:
             latency_s=completion.latency_s,
             citations=extract_citations(completion.text),
             failed_attempts=completion.failed_attempts,
+            truncated=completion.truncated,
         )

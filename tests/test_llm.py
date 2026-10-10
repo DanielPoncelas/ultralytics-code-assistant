@@ -181,3 +181,22 @@ def test_complete_does_not_retry_empty_completions():
     with pytest.raises(LLMError, match="empty completion"):
         client.complete(MESSAGES)
     assert len(calls) == 1
+
+
+def test_finish_reason_length_marks_truncated_answers():
+    def handler(request: httpx.Request) -> httpx.Response:
+        body = completion_body("partial answer", "a/model")
+        body["choices"][0]["finish_reason"] = "length"
+        return httpx.Response(200, json=body)
+
+    assert make_client(handler).complete(MESSAGES).truncated
+
+
+def test_stream_captures_finish_reason():
+    final = {"model": "a/model", "choices": [{"delta": {}, "finish_reason": "stop"}]}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, content=sse(chunk("done"), final))
+
+    completion = list(make_client(handler).stream(MESSAGES))[-1]
+    assert completion.finish_reason == "stop" and not completion.truncated

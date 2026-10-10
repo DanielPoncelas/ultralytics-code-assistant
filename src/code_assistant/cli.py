@@ -1,5 +1,6 @@
 """Command-line entry point: `uv run code-assistant <command>`."""
 
+import re
 from pathlib import Path
 from typing import Annotated
 
@@ -197,8 +198,22 @@ def ask(
             dim=True,
         )
     )
+    if answer.truncated:
+        typer.echo(f"{FAIL} The answer was cut off: the model ran out of tokens.")
     if answer.invalid_citations:
         typer.echo(f"{FAIL} Answer cites non-existent sources: {answer.invalid_citations}")
+
+
+def _demote_headings(markdown: str) -> str:
+    """Nest the answer's own headings under the example's '##' heading (code blocks untouched)."""
+    lines, in_code = [], False
+    for line in markdown.splitlines():
+        if line.lstrip().startswith("```"):
+            in_code = not in_code
+        elif not in_code:
+            line = re.sub(r"^(#{1,4}) ", r"\1## ", line)
+        lines.append(line)
+    return "\n".join(lines)
 
 
 def _source_line(number: int, source, cited: bool) -> str:
@@ -239,13 +254,17 @@ def examples(
                 _source_line(n, src, cited=n in answer.citations)
                 for n, src in enumerate(answer.sources, start=1)
             )
+            fallback = "".join(
+                f" after `{a.model}` failed ({a.error})" for a in answer.failed_attempts
+            )
+            truncated = " · ⚠ truncated (token budget ran out)" if answer.truncated else ""
             sections += [
                 f"## {i}. {q.question}",
                 "",
-                f"*Source: [{q.source.rsplit('/', 1)[-1]}]({q.source}) · answered by "
-                f"`{answer.model}` in {answer.latency_s:.1f} s*",
+                f"*Source: [issue #{q.source.rsplit('/', 1)[-1]}]({q.source}) · answered by "
+                f"`{answer.model}`{fallback} in {answer.latency_s:.1f} s{truncated}*",
                 "",
-                answer.text,
+                _demote_headings(answer.text),
                 "",
                 "**Retrieved sources** (bold = cited in the answer):",
                 "",

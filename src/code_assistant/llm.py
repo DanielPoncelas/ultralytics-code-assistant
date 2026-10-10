@@ -41,6 +41,13 @@ class Completion:
     failed_attempts: tuple[Attempt, ...] = ()
     prompt_tokens: int | None = None
     completion_tokens: int | None = None
+    # "length" means the token budget ran out. Reasoning models spend part of the budget
+    # thinking before they answer, so this can happen even for short visible answers.
+    finish_reason: str | None = None
+
+    @property
+    def truncated(self) -> bool:
+        return self.finish_reason == "length"
 
 
 class _ModelFailure(Exception):
@@ -130,6 +137,7 @@ class OpenRouterClient:
                     failed_attempts=tuple(failures),
                     prompt_tokens=usage.get("prompt_tokens"),
                     completion_tokens=usage.get("completion_tokens"),
+                    finish_reason=data["choices"][0].get("finish_reason"),
                 )
         raise LLMError(_summary(failures))
 
@@ -143,12 +151,13 @@ class OpenRouterClient:
         for model in self.models:
             started = time.perf_counter()
             parts: list[str] = []
-            reported_model, usage = model, {}
+            reported_model, usage, finish_reason = model, {}, None
             try:
                 for event in self._stream_events(model, messages):
                     reported_model = event.get("model", reported_model)
                     usage = event.get("usage") or usage
                     choices = event.get("choices") or [{}]
+                    finish_reason = choices[0].get("finish_reason") or finish_reason
                     delta = (choices[0].get("delta") or {}).get("content") or ""
                     if delta:
                         parts.append(delta)
@@ -167,6 +176,7 @@ class OpenRouterClient:
                 failed_attempts=tuple(failures),
                 prompt_tokens=usage.get("prompt_tokens"),
                 completion_tokens=usage.get("completion_tokens"),
+                finish_reason=finish_reason,
             )
             return
         raise LLMError(_summary(failures))
