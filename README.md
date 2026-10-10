@@ -264,6 +264,7 @@ The candidates were two code-specialised models (Cohere, Poolside) and one gener
 - Every model answered from the **same retrieved sources**.
 - A judge from a different model family (`nvidia/nemotron-3-super-120b-a12b:free`) graded key-fact coverage, unsupported claims and refusals.
 - The selection rule was fixed in advance. Full report: [`eval/results/answers.md`](eval/results/answers.md).
+- **Judge validation:** in a blind review by the author (10 random answers, the judge's verdicts not shown; [`eval/results/judge_review.md`](eval/results/judge_review.md)), the judge agreed with the human on **25/25 key facts** (Cohen's κ = 1.0; 95% CI for the agreement rate ≈ 86–100%). This covers key-fact grading only. One known judge error is in refusal detection: it missed a correct "couldn't find it" (see DECISIONS D23).
 
 | Model | Key-fact coverage | Fully correct | Grounded | Out-of-scope declined | False refusals | Median latency |
 |---|---|---|---|---|---|---|

@@ -270,9 +270,13 @@ Every significant design decision, with the alternatives considered and the trad
   1. A model that declines fewer than half of the out-of-scope questions is ineligible, because it invents answers.
   2. The best coverage wins.
   3. Within 5 points of it, the more grounded model wins, then the faster one.
+- **Judge validation (done):** a blind review by the author covered 10 answers sampled at random (seed 0), with the judge's verdicts not shown.
+  - The judge agreed on **25/25 key facts**: Cohen's κ = 1.0, 95% Clopper–Pearson CI for the agreement rate ≈ 86–100%.
+  - The sample included the borderline cases. Examples: a fact conveyed only through code the answer quotes; valid alternative solutions (drawing masks with OpenCV instead of `plot(boxes=False)`; `x2 - x1` instead of `xywh`) that don't state the key fact. Human and judge treated them the same way.
+  - Scope: this validates key-fact grading only. Refusal detection has one known error (D23); unsupported-claim detection was not reviewed.
 - **Known weaknesses:**
-  - The judge is an LLM. It's validated against a human on a sample (see the results).
-  - The key facts reflect one person's notion of "essential".
+  - The judge is an LLM. It's validated against a human on a small sample (25 facts).
+  - The key facts reflect one person's notion of "essential", and they reward the canonical answer: a correct but different solution scores 0, so coverage *underestimates* usefulness.
   - 40 questions is a small sample.
   - Free models are non-deterministic run to run.
 
