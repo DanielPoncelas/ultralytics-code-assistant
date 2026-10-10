@@ -57,6 +57,8 @@ class Settings(BaseSettings):
     llm_interactive_timeout_s: float = 30.0
     # Chunks given to the LLM: Hit@k plateaus at 6 (80%) in the retrieval evaluation.
     retrieval_k: int = 6
+    # Vector + keyword search merged with RRF. Off: it improved Hit@1 but not Hit@6 (D24).
+    hybrid_search: bool = False
 
     @field_validator("llm_models", mode="before")
     @classmethod

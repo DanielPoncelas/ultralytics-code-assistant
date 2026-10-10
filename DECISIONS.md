@@ -330,6 +330,23 @@ Every significant design decision, with the alternatives considered and the trad
 
   Each would be measured with the same evaluation.
 
+## D24. Hybrid search: implemented, measured, off by default
+
+- **What:** an Atlas Search text index (`chunks_text_index`, created and kept in sync by `code-assistant index`) over `qualified_name` (boost 3), `docstring` (boost 2) and `code`. A custom "code" analyzer (whitespace + wordDelimiterGraph + lowercase) splits identifiers, so "nms" matches `agnostic_nms`, `NMSModel` and `self.args.nms`. Vector and keyword lists are merged with **Reciprocal Rank Fusion** (k = 60), which uses ranks only, so cosine and BM25 scales don't matter. If the text search fails, retrieval falls back to vectors only.
+- **Rule fixed before measuring:** keep hybrid only if Hit@6 (what the LLM sees) doesn't drop and Hit@5 or MRR improves.
+- **Result** (40 questions, live Atlas, `eval/results/hybrid.md`):
+  - Hit@1: 52.5% → 57.5%.
+  - Hit@5: 77.5% → 75.0%.
+  - **Hit@6: 80.0% → 77.5%.**
+  - MRR: 0.626 → 0.664.
+- **What the data shows:**
+  - Hybrid helps when the question has distinctive terms: `val-vs-predict` moved from rank 4 to 1, and `data-rtsp-reconnect` from 10 to 4.
+  - It hurts when the terms are generic: `data-rect` moved from 3 to 7, and `val-test-split` from 5 to outside the top 10.
+  - The net change is one question, which is noise at n = 40. **Per the rule it stays off** (`HYBRID_SEARCH=false`).
+- **Why keep the code:**
+  - The candidate pool of top-20 vector plus top-20 keyword results (~32 code units) contains the correct code for **38/40** questions, against 32/40 in today's top 6. Retrieval *finds* the code; it ranks it poorly.
+  - That makes the keyword side the candidate generator for the next experiment: a reranker.
+
 ---
 
 ## Known limitations (running list)

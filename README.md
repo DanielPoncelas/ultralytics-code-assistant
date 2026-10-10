@@ -140,6 +140,7 @@ All settings are read from environment variables or `.env`:
 | `EMBEDDING_DEVICE` | no | auto | `cuda`, `mps` or `cpu` |
 | `LLM_MODELS` | no | see `config.py` | Comma-separated OpenRouter models, tried in order (fallback chain) |
 | `RETRIEVAL_K` | no | `6` | Code units given to the LLM |
+| `HYBRID_SEARCH` | no | `false` | Merge keyword (BM25) and vector results with RRF |
 | `MONGODB_DATABASE` / `MONGODB_COLLECTION` | no | `code_assistant` / `chunks` | Where chunks are stored |
 
 ## Example questions
@@ -217,6 +218,15 @@ Result for `v8.4.175`: **104 files → 1,532 chunks** (1,072 methods, 214 class 
 2. Run Atlas `$vectorSearch` with `limit = 3k` and `numCandidates = 20 × limit`. That's MongoDB's guidance for near-exact recall, and we **measured 99% top-5 overlap with an exact search**.
 3. Collapse the parts of the same symbol (a long function split into parts could otherwise fill the top-k) and return k distinct code units.
 4. Optional metadata pre-filters (`folder`, `task`, `kind`) narrow the search before ranking.
+
+**Hybrid search (implemented, off by default).** An Atlas Search keyword index (created by `index`) lets you combine vector and BM25 results with Reciprocal Rank Fusion (`HYBRID_SEARCH=true`). Its analyzer splits identifiers, so "nms" matches `agnostic_nms` and `NMSModel`. Measured on the 40 questions (`uv run code-assistant eval hybrid`, no LLM calls):
+
+| Retrieval | Hit@1 | Hit@5 | Hit@6 | MRR@10 |
+|---|---|---|---|---|
+| Vector only (default) | 52.5% | 77.5% | **80.0%** | 0.626 |
+| Hybrid (vector + keyword, RRF) | **57.5%** | 75.0% | 77.5% | **0.664** |
+
+It ranks the right code first more often but drops one question from the top 6 the LLM sees. The rule fixed beforehand ("keep only if Hit@6 doesn't drop") keeps it off. The correct code is, however, among the top 20 vector plus top 20 keyword candidates for 38 of 40 questions, so the gap is ordering, not recall.
 
 ### Embedding model choice
 
