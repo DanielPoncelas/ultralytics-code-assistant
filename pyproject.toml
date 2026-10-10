@@ -1,0 +1,41 @@
+[project]
+name = "code-assistant"
+version = "0.1.0"
+description = "RAG code assistant that answers questions about Ultralytics YOLO from its source code."
+readme = "README.md"
+authors = [{ name = "Daniel Poncelas", email = "danielponcelasvar@gmail.com" }]
+requires-python = ">=3.12"
+dependencies = [
+    "httpx>=0.28.1",
+    "pydantic-settings>=2.15.0",
+    "pymongo>=4.18.3",
+    "typer>=0.27.3",
+]
+
+[project.scripts]
+code-assistant = "code_assistant.cli:app"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "ruff>=0.17.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.13.0,<0.14.0"]
+build-backend = "uv_build"
+
+[tool.uv]
+required-version = ">=0.13.0"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+# E/F: pycodestyle + pyflakes, I: import sorting, B: bugbear, UP: pyupgrade, SIM: simplifications
+select = ["E", "F", "I", "B", "UP", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"

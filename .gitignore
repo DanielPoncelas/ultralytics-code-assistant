@@ -1,0 +1,14 @@
+# Secrets
+.env
+
+# Python / uv
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Local working files (assignment brief, setup screenshots)
+*.pdf
+image*.png
