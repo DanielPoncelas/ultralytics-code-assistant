@@ -1,0 +1,492 @@
+# Evaluation questions for the Ultralytics code assistant.
+#
+# Every question is grounded in a real user question from the Ultralytics GitHub issue
+# tracker (`source`). Questions are paraphrased into a self-contained form.
+#
+# `relevant` lists the chunks that answer the question, as "<path>::<qualified name>".
+# Labels were written by reading the indexed source (v8.4.175) BEFORE running any
+# retrieval, so that they don't reflect any model's output. A question counts as a hit
+# at rank k if ANY relevant symbol appears in the top k (deduplicated) results.
+#
+# `in_scope = false` marks questions whose answer lives outside the indexed folders
+# (ultralytics/{models,engine,data}). They are excluded from retrieval metrics and used
+# to check that the assistant says it cannot answer instead of guessing.
+#
+# `mentions_symbol` is true when the question names a function/class/argument, which
+# makes lexical overlap easier. `example = true` marks the 5 questions shown in the README
+# (chosen before generating any answer).
+
+# --- Training -------------------------------------------------------------------------
+
+[[question]]
+id = "train-resume"
+question = "My training run was interrupted at epoch 63. How do I resume it from the last checkpoint, and what state gets restored?"
+category = "training"
+source = "https://github.com/ultralytics/ultralytics/issues/17492"
+mentions_symbol = false
+example = true
+relevant = [
+    "ultralytics/engine/trainer.py::BaseTrainer.check_resume",
+    "ultralytics/engine/trainer.py::BaseTrainer.resume_training",
+]
+
+[[question]]
+id = "train-optimizer-auto"
+question = "Which optimizer is used when I set optimizer='auto', and how is its learning rate chosen?"
+category = "training"
+source = "https://github.com/ultralytics/ultralytics/issues/3360"
+mentions_symbol = true
+relevant = ["ultralytics/engine/trainer.py::BaseTrainer.build_optimizer"]
+
+[[question]]
+id = "train-lr-schedule"
+question = "How do the lr0 and lrf hyperparameters work? Is the learning rate decayed linearly or with a cosine schedule?"
+category = "training"
+source = "https://github.com/ultralytics/ultralytics/issues/2849"
+mentions_symbol = true
+relevant = ["ultralytics/engine/trainer.py::BaseTrainer._setup_scheduler"]
+
+[[question]]
+id = "train-warmup-bias"
+question = "Why is warmup_bias_lr forced to 0.0 when optimizer='auto' is used?"
+category = "training"
+source = "https://github.com/ultralytics/ultralytics/issues/10130"
+mentions_symbol = true
+relevant = [
+    "ultralytics/engine/trainer.py::BaseTrainer.build_optimizer",
+    "ultralytics/engine/trainer.py::BaseTrainer._do_train",
+]
+
+[[question]]
+id = "train-freeze"
+question = "How can I freeze the backbone layers when doing transfer learning on a new dataset?"
+category = "training"
+source = "https://github.com/ultralytics/ultralytics/issues/2375"
+mentions_symbol = false
+relevant = ["ultralytics/engine/trainer.py::BaseTrainer._setup_train"]
+
+[[question]]
+id = "train-grad-accum"
+question = "Does YOLO accumulate gradients so I can simulate a larger batch size on a small GPU?"
+category = "training"
+source = "https://github.com/ultralytics/ultralytics/issues/16301"
+mentions_symbol = false
+relevant = [
+    "ultralytics/engine/trainer.py::BaseTrainer._build_train_pipeline",
+    "ultralytics/engine/trainer.py::BaseTrainer._do_train",
+    "ultralytics/engine/trainer.py::BaseTrainer.optimizer_step",
+]
+
+[[question]]
+id = "train-close-mosaic"
+question = "What does close_mosaic do, and at which point of training is mosaic augmentation switched off?"
+category = "training"
+source = "https://github.com/ultralytics/ultralytics/issues/14886"
+mentions_symbol = true
+relevant = [
+    "ultralytics/engine/trainer.py::BaseTrainer._do_train",
+    "ultralytics/engine/trainer.py::BaseTrainer._close_dataloader_mosaic",
+]
+
+[[question]]
+id = "train-multi-gpu"
+question = "How do I train on multiple GPUs, and how are the distributed worker processes launched?"
+category = "training"
+source = "https://github.com/ultralytics/ultralytics/issues/3308"
+mentions_symbol = false
+relevant = [
+    "ultralytics/engine/trainer.py::BaseTrainer.train",
+    "ultralytics/engine/trainer.py::BaseTrainer._setup_ddp",
+]
+
+[[question]]
+id = "train-epoch-lag"
+question = "There is a long pause between epochs while the dataloader restarts its workers. How does YOLO avoid re-creating workers every epoch?"
+category = "training"
+source = "https://github.com/ultralytics/ultralytics/issues/509"
+mentions_symbol = false
+relevant = ["ultralytics/data/build.py::InfiniteDataLoader"]
+
+[[question]]
+id = "train-autobatch"
+question = "If I set batch=-1, how does YOLO choose the batch size automatically?"
+category = "training"
+source = "https://github.com/ultralytics/ultralytics/issues/16301"
+mentions_symbol = true
+relevant = [
+    "ultralytics/engine/trainer.py::BaseTrainer.auto_batch",
+    "ultralytics/models/yolo/detect/train.py::DetectionTrainer.auto_batch",
+]
+
+[[question]]
+id = "train-plot-augmented"
+question = "How can I see what my training images look like after augmentation?"
+category = "training"
+source = "https://github.com/ultralytics/ultralytics/issues/14190"
+mentions_symbol = false
+relevant = [
+    "ultralytics/models/yolo/detect/train.py::DetectionTrainer.plot_training_samples",
+    "ultralytics/engine/trainer.py::BaseTrainer.plot_training_samples",
+]
+
+[[question]]
+id = "train-tune"
+question = "How does model.tune() search for better hyperparameters? Is it a grid search?"
+category = "training"
+source = "https://github.com/ultralytics/ultralytics/issues/7531"
+mentions_symbol = true
+relevant = [
+    "ultralytics/engine/tuner.py::Tuner",
+    "ultralytics/engine/tuner.py::Tuner._mutate",
+    "ultralytics/engine/tuner.py::Tuner.__call__",
+    "ultralytics/engine/model.py::Model.tune",
+]
+
+# --- Data -----------------------------------------------------------------------------
+
+[[question]]
+id = "data-default-augment"
+question = "Which data augmentations are applied by default when training a detection model?"
+category = "data"
+source = "https://github.com/ultralytics/ultralytics/issues/2412"
+mentions_symbol = false
+example = true
+relevant = ["ultralytics/data/augment.py::v8_transforms"]
+
+[[question]]
+id = "data-albumentations"
+question = "How are Albumentations augmentations enabled and applied during YOLO training?"
+category = "data"
+source = "https://github.com/ultralytics/ultralytics/issues/7339"
+mentions_symbol = true
+relevant = ["ultralytics/data/augment.py::Albumentations", "ultralytics/data/augment.py::Albumentations.__init__"]
+
+[[question]]
+id = "data-rect"
+question = "What does rect=True do together with imgsz, and why are my training images no longer square?"
+category = "data"
+source = "https://github.com/ultralytics/ultralytics/issues/9022"
+mentions_symbol = true
+relevant = ["ultralytics/data/base.py::BaseDataset.set_rectangle"]
+
+[[question]]
+id = "data-cache"
+question = "What is the difference between cache='ram' and cache='disk', and how does YOLO check whether there is enough memory?"
+category = "data"
+source = "https://github.com/ultralytics/ultralytics/issues/2411"
+mentions_symbol = true
+relevant = [
+    "ultralytics/data/base.py::BaseDataset.cache_images",
+    "ultralytics/data/base.py::BaseDataset.check_cache_ram",
+]
+
+[[question]]
+id = "data-no-labels"
+question = "Training fails with 'No labels found in labels.cache'. How does YOLO locate the label files for my images and cache them?"
+category = "data"
+source = "https://github.com/ultralytics/ultralytics/issues/1770"
+mentions_symbol = false
+relevant = [
+    "ultralytics/data/dataset.py::YOLODataset.get_labels",
+    "ultralytics/data/dataset.py::YOLODataset.cache_labels",
+    "ultralytics/data/utils.py::img2label_paths",
+]
+
+[[question]]
+id = "data-not-found"
+question = "I get 'Dataset not found, missing path'. How is the dataset YAML file parsed and validated?"
+category = "data"
+source = "https://github.com/ultralytics/ultralytics/issues/13789"
+mentions_symbol = false
+relevant = ["ultralytics/data/utils.py::check_det_dataset"]
+
+[[question]]
+id = "data-coco-convert"
+question = "How do I convert a dataset with COCO JSON annotations to YOLO label format?"
+category = "data"
+source = "https://github.com/ultralytics/ultralytics/issues/16363"
+mentions_symbol = false
+relevant = ["ultralytics/data/converter.py::convert_coco"]
+
+[[question]]
+id = "data-mask-convert"
+question = "My segmentation labels are binary mask images. Can I convert them into YOLO polygon labels?"
+category = "data"
+source = "https://github.com/ultralytics/ultralytics/issues/3085"
+mentions_symbol = false
+relevant = ["ultralytics/data/converter.py::convert_segment_masks_to_yolo_seg"]
+
+[[question]]
+id = "data-letterbox-auto"
+question = "How does the auto option of LetterBox decide the padding?"
+category = "data"
+source = "https://github.com/ultralytics/ultralytics/issues/9366"
+mentions_symbol = true
+relevant = ["ultralytics/data/augment.py::LetterBox", "ultralytics/data/augment.py::LetterBox.__call__"]
+
+[[question]]
+id = "data-multi-rtsp"
+question = "How can I run inference on several RTSP camera streams at the same time?"
+category = "data"
+source = "https://github.com/ultralytics/ultralytics/issues/1387"
+mentions_symbol = false
+relevant = ["ultralytics/data/loaders.py::LoadStreams", "ultralytics/data/loaders.py::LoadStreams.__init__"]
+
+[[question]]
+id = "data-rtsp-reconnect"
+question = "What happens when an RTSP stream loses its connection or returns empty frames during prediction?"
+category = "data"
+source = "https://github.com/ultralytics/ultralytics/issues/15057"
+mentions_symbol = false
+relevant = ["ultralytics/data/loaders.py::LoadStreams.update"]
+
+# --- Prediction and results -----------------------------------------------------------
+
+[[question]]
+id = "predict-stream"
+question = "What does stream=True do in model.predict(), and when should I use it?"
+category = "prediction"
+source = "https://github.com/ultralytics/ultralytics/issues/1713"
+mentions_symbol = true
+relevant = [
+    "ultralytics/engine/model.py::Model.predict",
+    "ultralytics/engine/predictor.py::BasePredictor.__call__",
+    "ultralytics/engine/predictor.py::BasePredictor.stream_inference",
+]
+
+[[question]]
+id = "predict-returns-list"
+question = "I get AttributeError: 'list' object has no attribute 'boxes' after calling the model. What does prediction return?"
+category = "prediction"
+source = "https://github.com/ultralytics/ultralytics/issues/516"
+mentions_symbol = false
+relevant = [
+    "ultralytics/engine/model.py::Model.predict",
+    "ultralytics/engine/model.py::Model.__call__",
+    "ultralytics/engine/results.py::Results",
+]
+
+[[question]]
+id = "predict-box-size"
+question = "How do I get the width and height in pixels of each detected object?"
+category = "prediction"
+source = "https://github.com/ultralytics/ultralytics/issues/5040"
+mentions_symbol = false
+relevant = ["ultralytics/engine/results.py::Boxes.xywh", "ultralytics/engine/results.py::Boxes"]
+
+[[question]]
+id = "predict-plot-no-boxes"
+question = "How can I draw only the segmentation masks on the output image, without the bounding boxes?"
+category = "prediction"
+source = "https://github.com/ultralytics/ultralytics/issues/499"
+mentions_symbol = false
+relevant = ["ultralytics/engine/results.py::Results.plot"]
+
+[[question]]
+id = "predict-crop"
+question = "How do I crop the detected objects out of an image and save them as separate files?"
+category = "prediction"
+source = "https://github.com/ultralytics/ultralytics/issues/9344"
+mentions_symbol = false
+relevant = ["ultralytics/engine/results.py::Results.save_crop"]
+
+[[question]]
+id = "predict-seg-masks"
+question = "What does a segmentation model return, and how are the masks built from the raw network output?"
+category = "prediction"
+source = "https://github.com/ultralytics/ultralytics/issues/2953"
+mentions_symbol = false
+relevant = [
+    "ultralytics/models/yolo/segment/predict.py::SegmentationPredictor.postprocess",
+    "ultralytics/models/yolo/segment/predict.py::SegmentationPredictor.construct_result",
+    "ultralytics/models/yolo/segment/predict.py::SegmentationPredictor.construct_results",
+    "ultralytics/engine/results.py::Masks",
+]
+
+[[question]]
+id = "predict-cls-top5"
+question = "For a classification model, how do I get the top predicted class names together with their probabilities?"
+category = "prediction"
+source = "https://github.com/ultralytics/ultralytics/issues/4962"
+mentions_symbol = false
+relevant = [
+    "ultralytics/engine/results.py::Probs",
+    "ultralytics/engine/results.py::Probs.top5",
+    "ultralytics/engine/results.py::Probs.top5conf",
+]
+
+# --- Validation -----------------------------------------------------------------------
+
+[[question]]
+id = "val-vs-predict"
+question = "Why do model.val() and model.predict() give different detections on the same images?"
+category = "validation"
+source = "https://github.com/ultralytics/ultralytics/issues/2783"
+mentions_symbol = true
+example = true
+relevant = [
+    "ultralytics/engine/validator.py::BaseValidator.__init__",
+    "ultralytics/engine/predictor.py::BasePredictor.__init__",
+    "ultralytics/engine/model.py::Model.val",
+    "ultralytics/engine/model.py::Model.predict",
+]
+
+[[question]]
+id = "val-test-split"
+question = "How do I evaluate my trained model on the test split instead of the validation split?"
+category = "validation"
+source = "https://github.com/ultralytics/ultralytics/issues/1129"
+mentions_symbol = false
+relevant = [
+    "ultralytics/engine/model.py::Model.val",
+    "ultralytics/engine/validator.py::BaseValidator.__call__",
+    "ultralytics/data/utils.py::check_det_dataset",
+]
+
+# --- Export ---------------------------------------------------------------------------
+
+[[question]]
+id = "export-openvino"
+question = "How do I export a YOLO model to OpenVINO, and can the export be quantized to INT8?"
+category = "export"
+source = "https://github.com/ultralytics/ultralytics/issues/191"
+mentions_symbol = false
+relevant = ["ultralytics/engine/exporter.py::Exporter.export_openvino"]
+
+[[question]]
+id = "export-tensorrt"
+question = "How does the TensorRT export work? Does it go through ONNX first?"
+category = "export"
+source = "https://github.com/ultralytics/ultralytics/issues/1225"
+mentions_symbol = false
+relevant = ["ultralytics/engine/exporter.py::Exporter.export_engine"]
+
+[[question]]
+id = "export-onnx-dynamic"
+question = "How can I export a model to ONNX with a dynamic batch size and NMS included in the graph?"
+category = "export"
+source = "https://github.com/ultralytics/ultralytics/issues/23339"
+mentions_symbol = false
+example = true
+relevant = [
+    "ultralytics/engine/exporter.py::Exporter.export_onnx",
+    "ultralytics/engine/exporter.py::NMSModel",
+]
+
+[[question]]
+id = "export-coreml-nms"
+question = "When I export a detection model to CoreML with nms=True, how is non-maximum suppression added to the model?"
+category = "export"
+source = "https://github.com/ultralytics/ultralytics/issues/3044"
+mentions_symbol = true
+relevant = [
+    "ultralytics/engine/exporter.py::Exporter.export_coreml",
+    "ultralytics/engine/exporter.py::NMSModel",
+]
+
+# --- Specific models ------------------------------------------------------------------
+
+[[question]]
+id = "model-fastsam-prompts"
+question = "What does FastSAM return, and how do point or box prompts select the final masks?"
+category = "models"
+source = "https://github.com/ultralytics/ultralytics/issues/17236"
+mentions_symbol = true
+relevant = [
+    "ultralytics/models/fastsam/predict.py::FastSAMPredictor.prompt",
+    "ultralytics/models/fastsam/predict.py::FastSAMPredictor.postprocess",
+]
+
+[[question]]
+id = "model-yoloworld-classes"
+question = "How do I set my own class names for open-vocabulary detection with YOLO-World?"
+category = "models"
+source = "https://github.com/ultralytics/ultralytics/issues/10038"
+mentions_symbol = false
+relevant = ["ultralytics/models/yolo/model.py::YOLOWorld.set_classes"]
+
+[[question]]
+id = "model-rtdetr-train"
+question = "How is training an RT-DETR model different from training a YOLO model in Ultralytics?"
+category = "models"
+source = "https://github.com/ultralytics/ultralytics/issues/3597"
+mentions_symbol = false
+relevant = [
+    "ultralytics/models/rtdetr/train.py::RTDETRTrainer",
+    "ultralytics/models/rtdetr/train.py::RTDETRTrainer.build_dataset",
+    "ultralytics/models/rtdetr/train.py::RTDETRTrainer.get_model",
+]
+
+[[question]]
+id = "model-sam2-dynamic"
+question = "How can I add new objects to track while running SAM2 interactively on a video?"
+category = "models"
+source = "https://github.com/ultralytics/ultralytics/issues/23444"
+mentions_symbol = false
+relevant = [
+    "ultralytics/models/sam/predict.py::SAM2DynamicInteractivePredictor",
+    "ultralytics/models/sam/predict.py::SAM2DynamicInteractivePredictor.inference",
+]
+
+# --- Out of scope (answer lives outside models/, engine/, data/) ----------------------
+
+[[question]]
+id = "oos-default-lr"
+question = "What are the default values of the initial learning rate and momentum?"
+category = "out-of-scope"
+source = "https://github.com/ultralytics/ultralytics/issues/2849"
+mentions_symbol = false
+in_scope = false
+example = true
+notes = "Defaults live in ultralytics/cfg/default.yaml, which is not indexed."
+relevant = []
+
+[[question]]
+id = "oos-loss"
+question = "How is the detection loss computed from the box, classification and DFL terms?"
+category = "out-of-scope"
+source = "https://github.com/ultralytics/ultralytics/issues/10465"
+mentions_symbol = false
+in_scope = false
+notes = "v8DetectionLoss lives in ultralytics/utils/loss.py."
+relevant = []
+
+[[question]]
+id = "oos-confusion-matrix"
+question = "How are true positives, false positives and false negatives counted in the confusion matrix?"
+category = "out-of-scope"
+source = "https://github.com/ultralytics/ultralytics/issues/1325"
+mentions_symbol = false
+in_scope = false
+notes = "ConfusionMatrix lives in ultralytics/utils/metrics.py; validators only call it."
+relevant = []
+
+[[question]]
+id = "oos-ensemble"
+question = "Can I ensemble several YOLO models and average their predictions?"
+category = "out-of-scope"
+source = "https://github.com/ultralytics/ultralytics/issues/3665"
+mentions_symbol = false
+in_scope = false
+notes = "Ensemble lives in ultralytics/nn/tasks.py."
+relevant = []
+
+[[question]]
+id = "oos-activation"
+question = "How do I change the activation function used by the convolution layers?"
+category = "out-of-scope"
+source = "https://github.com/ultralytics/ultralytics/issues/7296"
+mentions_symbol = false
+in_scope = false
+notes = "Conv.default_act lives in ultralytics/nn/modules/conv.py."
+relevant = []
+
+[[question]]
+id = "oos-analytics"
+question = "What usage analytics does Ultralytics collect, and how do I turn them off?"
+category = "out-of-scope"
+source = "https://github.com/ultralytics/ultralytics/issues/6405"
+mentions_symbol = false
+in_scope = false
+notes = "Events/settings live in ultralytics/utils/__init__.py and ultralytics/utils/events.py."
+relevant = []

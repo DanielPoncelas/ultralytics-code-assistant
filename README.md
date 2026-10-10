@@ -77,32 +77,69 @@ You don't need to create the vector search index by hand. The indexing command c
    uv run code-assistant index
    ```
 
-   This clones Ultralytics at the pinned release (`v8.4.175`) and splits `ultralytics/{models,engine,data}` into ~1,500 chunks. It embeds them locally with an open-source model, uploads them to Atlas and creates the vector search index. The first run downloads the embedding model (~1.2 GB) from Hugging Face. The command is idempotent: re-running it updates chunks in place and never duplicates them. Computed embeddings are cached in `.cache/embeddings/`, so a second run skips the slow step.
+   This clones Ultralytics at the pinned release (`v8.4.175`) and splits `ultralytics/{models,engine,data}` into ~1,500 chunks. It embeds them locally with an open-source model, uploads them to Atlas and creates the vector search index. The first run downloads the embedding model (`BAAI/bge-small-en-v1.5`, ~130 MB) from Hugging Face. The command is idempotent: re-running it updates chunks in place and never duplicates them. Computed embeddings are cached in `.cache/embeddings/`, so a second run skips the slow step.
 
-   **Hardware and speed.** Embedding runs on the fastest device available, detected automatically:
+   **Hardware and speed.** Embedding runs on the fastest device available (NVIDIA GPU, Apple GPU, otherwise CPU), detected automatically. No GPU is required with the default model.
 
-   | Machine | Device used | Install | Approx. time (default model) |
-   |---|---|---|---|
-   | Mac with Apple Silicon | Apple GPU (MPS) | default `uv sync` | not benchmarked yet (no Mac available to the author) |
-   | Linux/Windows + NVIDIA GPU | CUDA | `uv sync --no-group cpu --group cuda`, then run with `uv run --no-group cpu --group cuda code-assistant index` | ~27 min on a 4 GB GTX 1650 Ti (measured), much less on recent GPUs |
-   | CPU only | CPU | default `uv sync` | hours for the default model. Use a smaller model (`--model ibm-granite/granite-embedding-english-r2`) |
+   *Reference timings for the 1,532 chunks with the default model, measured on the author's laptop. Times on your machine will differ; they are given for order of magnitude only:*
 
-   Answering questions only embeds one short query (~0.6 s on a laptop CPU with the default model, measured), so a GPU only matters for this one-off step.
+   | Device | Indexing time |
+   |---|---|
+   | CPU: Intel Core i7-10750H (6 cores / 12 threads) | 395 s (~6.6 min), peak RAM ~1 GB |
+   | GPU: NVIDIA GTX 1650 Ti, 4 GB (install with `uv sync --no-group cpu --group cuda`, run with `uv run --no-group cpu --group cuda code-assistant index`) | 104 s |
+   | Apple Silicon GPU (automatic on Mac) | not measured (no Mac available to the author) |
+
+   Larger candidate models can be indexed with `--model` (see [Embedding model choice](#embedding-model-choice)). In practice those need a GPU: on the same laptop, Qwen3-Embedding-0.6B took ~27 min on the GTX 1650 Ti and had a 9+ hour ETA on the CPU.
 
 ## Usage
 
-_TODO_
+**Search the code** (retrieval only, no LLM):
+
+```bash
+uv run code-assistant search "How do I resume an interrupted training run?"
+uv run code-assistant search "how are masks built from the network output" --task segment -k 3 --show-code
+```
+
+Each result shows the symbol, file and lines, and a permalink to the exact lines on GitHub at the indexed commit. Filters: `--folder {models,engine,data}`, `--task {detect,segment,pose,obb,classify,...}`, `--kind {function,method,class,module}`.
+
+**Evaluate retrieval** and reproduce the embedding model choice:
+
+```bash
+uv run code-assistant eval retrieval     # writes eval/results/retrieval.md and .json
+```
+
+Evaluating all four candidate models needs their embeddings. The first run computes them, which takes minutes on a GPU and hours on CPU for the larger models. Use `--model BAAI/bge-small-en-v1.5` to evaluate only the default model.
+
+### Configuration
+
+All settings are read from environment variables or `.env`:
+
+| Variable | Required | Default | Purpose |
+|---|---|---|---|
+| `MONGODB_URI` | yes | – | Atlas connection string |
+| `OPENROUTER_API_KEY` | yes | – | LLM API key |
+| `EMBEDDING_MODEL` | no | `BAAI/bge-small-en-v1.5` | One of the pinned candidates in `embeddings.py` |
+| `EMBEDDING_DEVICE` | no | auto | `cuda`, `mps` or `cpu` |
+| `MONGODB_DATABASE` / `MONGODB_COLLECTION` | no | `code_assistant` / `chunks` | Where chunks are stored |
 
 ## Example questions
 
-_TODO: 3–5 questions from real YOLO use cases._
+Five questions taken from real Ultralytics GitHub issues. They were chosen before generating any answer and cover training, data, validation, export, plus one question the index can't answer. Below are the code units retrieved for each one (top 3, default model). Generated answers are added with the answer-generation step.
+
+| # | Question (source issue) | Top retrieved code | Expected code found? |
+|---|---|---|---|
+| 1 | *My training run was interrupted at epoch 63. How do I resume it from the last checkpoint, and what state gets restored?* ([#17492](https://github.com/ultralytics/ultralytics/issues/17492)) | [`BaseTrainer.resume_training`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/trainer.py#L1124-L1141), [`BaseTrainer.check_resume`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/trainer.py#L1020-L1065), [`Model.train`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/model.py#L875-L913) | ✅ rank 1 |
+| 2 | *Which data augmentations are applied by default when training a detection model?* ([#2412](https://github.com/ultralytics/ultralytics/issues/2412)) | [`Model.train`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/model.py#L807-L877), [`DetectionTrainer`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/models/yolo/detect/train.py#L24-L256), [`v8_transforms`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/data/augment.py#L2831-L2912) | ✅ rank 3 |
+| 3 | *Why do `model.val()` and `model.predict()` give different detections on the same images?* ([#2783](https://github.com/ultralytics/ultralytics/issues/2783)) | [`DetectionValidator.plot_predictions`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/models/yolo/detect/val.py#L451-L477), [`ClassificationValidator`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/models/yolo/classify/val.py#L18-L219), [`YOLOE.predict`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/models/yolo/model.py#L532-L567) | ❌ The answer is the different default `conf` (0.001 in `BaseValidator.__init__` vs 0.25 in `BasePredictor.__init__`), spread across files. A known failure, see the [evaluation report](eval/results/retrieval.md) |
+| 4 | *How can I export a model to ONNX with a dynamic batch size and NMS included in the graph?* ([#23339](https://github.com/ultralytics/ultralytics/issues/23339)) | [`Exporter.export_onnx`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/exporter.py#L1175-L1245), [`Exporter.__call__`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/exporter.py#L842-L911), [`Model.export`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/model.py#L753-L805) | ✅ rank 1 |
+| 5 | *What are the default values of the initial learning rate and momentum?* ([#2849](https://github.com/ultralytics/ultralytics/issues/2849)) | [`Tuner.__init__`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/tuner.py#L79-L142), [`BaseTrainer.build_optimizer`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/trainer.py#L1215-L1242), [`TinyViT.set_layer_lr_decay`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/models/sam/modules/tiny_encoder.py#L900-L933) | ➖ Out of scope by design: defaults live in `ultralytics/cfg/default.yaml`, which isn't indexed. The assistant must say so instead of guessing |
 
 ## Design notes
 
 ### Pipeline
 
 ```
- fetch (git, pinned tag + commit check) ─► chunk (stdlib ast) ─► embed (local model, CPU) ─► store (Atlas, upsert by id)
+ fetch (git, pinned tag + commit check) ─► chunk (stdlib ast) ─► embed (local open-source model) ─► store (Atlas, upsert by id)
 ```
 
 ### How code is chunked, and why
@@ -151,6 +188,44 @@ Result for `v8.4.175`: **104 files → 1,532 chunks** (1,072 methods, 214 class 
 | `part`, `total_parts` | Reassembling split units |
 | `source.{repo,tag,commit}`, `embedding_model` | Provenance: which code version and which model produced each vector |
 | `_id` | Stable hash of path + symbol + part, which makes re-indexing idempotent |
+
+### Retrieval
+
+1. Embed the question with the same model as the index. This is checked: querying an index built with another model fails with a clear error.
+2. Run Atlas `$vectorSearch` with `limit = 3k` and `numCandidates = 20 × limit`. That's MongoDB's guidance for near-exact recall, and we **measured 99% top-5 overlap with an exact search**.
+3. Collapse the parts of the same symbol (a long function split into parts could otherwise fill the top-k) and return k distinct code units.
+4. Optional metadata pre-filters (`folder`, `task`, `kind`) narrow the search before ranking.
+
+### Embedding model choice
+
+All candidates are open source (Apache-2.0/MIT), not gated, natively supported by `transformers` (no remote code), and pinned to an exact revision:
+
+| Candidate | Why it's in the comparison |
+|---|---|
+| `Qwen/Qwen3-Embedding-0.6B` (596M, 32k ctx) | The strongest model that fits on a laptop (top of MTEB for its size) |
+| `ibm-granite/granite-embedding-english-r2` (149M, 8k ctx) | Mid-size ModernBERT model trained with code retrieval data |
+| `Alibaba-NLP/gte-modernbert-base` (149M, 8k ctx) | Same size and architecture, different training data |
+| `BAAI/bge-small-en-v1.5` (33M, 512 ctx) | Deliberately small, generic baseline |
+
+Ruled out:
+- `jina-code-embeddings` (non-commercial license);
+- `embeddinggemma` (gated);
+- `CodeRankEmbed` (its remote code crashes with transformers 5).
+
+**How the model was chosen.** On 40 real questions labelled before any run, with this decision rule fixed in advance: *best Hit@5 wins, unless a smaller model is within 3 points*.
+
+| Model | Hit@1 | Hit@5 (95% CI) | MRR@10 | Query time (CPU) |
+|---|---|---|---|---|
+| Qwen3-Embedding-0.6B | 47.5% | **80.0%** (67.5–92.5) | 0.608 | 822 ms |
+| **bge-small-en-v1.5** ✅ | **52.5%** | 77.5% (65.0–90.0) | **0.626** | **119 ms** |
+| Granite Embedding R2 | 47.5% | 77.5% (65.0–90.0) | 0.607 | 199 ms |
+| GTE-ModernBERT | 45.0% | 72.5% (57.5–85.0) | 0.574 | 189 ms |
+
+**Chosen: `BAAI/bge-small-en-v1.5`.** It's one question behind the best model on Hit@5 and ahead on Hit@1 and MRR. It's also 18× smaller, embeds a query 7× faster on CPU, and makes indexing from scratch practical on any laptop. Trade-offs:
+- **Truncation:** it reads at most 512 tokens, so 32.5% of chunks are truncated when embedded. The LLM still receives the full code.
+- **Plain-language questions:** Qwen does better on questions that name no symbol (76.9% vs 65.4%, n=26). That's not significant at this sample size, but it's worth re-checking on a larger set.
+
+Full report with per-category results and failure analysis: [`eval/results/retrieval.md`](eval/results/retrieval.md). Detailed reasoning: [DECISIONS.md](DECISIONS.md) D12–D18.
 
 ## Development
 

@@ -142,20 +142,12 @@ def run_indexing(
             build_document(chunk, vector.tolist(), source, model_name)
             for chunk, vector in zip(chunks, vectors, strict=True)
         ]
-        store = ChunkStore(
-            settings.mongodb_uri.get_secret_value(),
-            settings.mongodb_database,
-            settings.mongodb_collection,
-            settings.vector_index_name,
-        )
-        try:
+        with ChunkStore.from_settings(settings) as store:
             log(f"Writing {len(documents)} documents to Atlas ...")
             result = store.replace_all(documents)
             index_status = store.ensure_vector_index(int(vectors.shape[1]))
             log(f"Vector index {index_status}; waiting until it is queryable ...")
             store.wait_until_queryable()
-        finally:
-            store.close()
 
     return IndexReport(
         files=len(files),

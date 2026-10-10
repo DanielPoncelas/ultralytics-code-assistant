@@ -1,0 +1,2958 @@
+{
+  "corpus": {
+    "tag": "v8.4.175",
+    "commit": "69c95d1add13a232382e53b3aa5094ec0c7738db",
+    "chunks": 1532,
+    "files": 104
+  },
+  "chosen": "BAAI/bge-small-en-v1.5",
+  "reason": "Qwen/Qwen3-Embedding-0.6B has the best Hit@5 (80.0%), but BAAI/bge-small-en-v1.5 is within 3% (77.5%) with 33M instead of 596M parameters, so the smaller model wins.",
+  "models": [
+    {
+      "model": "Qwen/Qwen3-Embedding-0.6B",
+      "params_m": 596,
+      "dimensions": 1024,
+      "hit_at_1": 0.475,
+      "hit_at_5": 0.8,
+      "hit_at_5_ci95": [
+        0.675,
+        0.925
+      ],
+      "mrr_at_10": 0.6079464285714286,
+      "median_query_latency_ms": 763.5176405019592,
+      "questions": [
+        {
+          "question_id": "train-resume",
+          "category": "training",
+          "mentions_symbol": false,
+          "rank": 1,
+          "top": [
+            "ultralytics/engine/trainer.py::BaseTrainer.resume_training",
+            "ultralytics/engine/trainer.py::BaseTrainer.check_resume",
+            "ultralytics/engine/trainer.py::BaseTrainer._load_checkpoint_state",
+            "ultralytics/engine/trainer.py::BaseTrainer.setup_model",
+            "ultralytics/engine/trainer.py::BaseTrainer._handle_nan_recovery",
+            "ultralytics/models/sam/build.py::_load_checkpoint",
+            "ultralytics/models/yolo/yoloe/train_seg.py::YOLOESegTrainerFromScratch",
+            "ultralytics/models/yolo/yoloe/train_seg.py::ultralytics.models.yolo.yoloe.train_seg",
+            "ultralytics/engine/model.py::Model.train",
+            "ultralytics/models/yolo/depth/calibrate.py::_rewind"
+          ]
+        },
+        {
+          "question_id": "train-optimizer-auto",
+          "category": "training",
+          "mentions_symbol": true,
+          "rank": 1,
+          "top": [
+            "ultralytics/engine/trainer.py::BaseTrainer.build_optimizer",
+            "ultralytics/engine/tuner.py::ultralytics.engine.tuner",
+            "ultralytics/engine/trainer.py::BaseTrainer",
+            "ultralytics/engine/trainer.py::BaseTrainer.auto_batch",
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer.auto_batch",
+            "ultralytics/engine/model.py::Model.tune",
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOETrainer.get_model",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOEPETrainer",
+            "ultralytics/models/yolo/model.py::YOLOE.__init__"
+          ]
+        },
+        {
+          "question_id": "train-lr-schedule",
+          "category": "training",
+          "mentions_symbol": true,
+          "rank": 1,
+          "top": [
+            "ultralytics/engine/trainer.py::BaseTrainer._setup_scheduler",
+            "ultralytics/models/sam/modules/tiny_encoder.py::TinyViT.set_layer_lr_decay",
+            "ultralytics/engine/tuner.py::ultralytics.engine.tuner",
+            "ultralytics/models/yolo/yoloe/train_seg.py::YOLOEPESegTrainer",
+            "ultralytics/models/yolo/model.py::ultralytics.models.yolo.model",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOEPETrainer",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOETrainer.__init__",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOETrainer.get_model",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOEPETrainer.get_model",
+            "ultralytics/models/yolo/yoloe/train.py::ultralytics.models.yolo.yoloe.train"
+          ]
+        },
+        {
+          "question_id": "train-warmup-bias",
+          "category": "training",
+          "mentions_symbol": true,
+          "rank": 2,
+          "top": [
+            "ultralytics/engine/trainer.py::BaseTrainer._get_warmup_iterations",
+            "ultralytics/engine/trainer.py::BaseTrainer.build_optimizer",
+            "ultralytics/engine/trainer.py::BaseTrainer.auto_batch",
+            "ultralytics/models/yolo/yoloe/predict.py::YOLOEVPDetectPredictor.setup_model",
+            "ultralytics/engine/tuner.py::ultralytics.engine.tuner",
+            "ultralytics/engine/trainer.py::BaseTrainer._setup_scheduler",
+            "ultralytics/engine/model.py::Model.tune",
+            "ultralytics/models/sam/modules/tiny_encoder.py::Attention.train",
+            "ultralytics/engine/trainer.py::BaseTrainer",
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer.auto_batch"
+          ]
+        },
+        {
+          "question_id": "train-freeze",
+          "category": "training",
+          "mentions_symbol": false,
+          "rank": 4,
+          "top": [
+            "ultralytics/models/yolo/yoloe/train.py::YOLOEPETrainer",
+            "ultralytics/engine/trainer.py::BaseTrainer._model_train",
+            "ultralytics/engine/model.py::Model.fuse",
+            "ultralytics/engine/trainer.py::BaseTrainer._setup_train",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOEPEFreeTrainer",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOEPETrainer.get_model",
+            "ultralytics/engine/model.py::ultralytics.engine.model",
+            "ultralytics/engine/trainer.py::ultralytics.engine.trainer",
+            "ultralytics/models/sam/modules/sam.py::SAM2Model._prepare_backbone_features",
+            "ultralytics/engine/predictor.py::BasePredictor.setup_model"
+          ]
+        },
+        {
+          "question_id": "train-grad-accum",
+          "category": "training",
+          "mentions_symbol": false,
+          "rank": null,
+          "top": [
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer.auto_batch",
+            "ultralytics/engine/trainer.py::BaseTrainer.plot_training_samples",
+            "ultralytics/models/yolo/model.py::ultralytics.models.yolo.model",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOEPEFreeTrainer.preprocess_batch",
+            "ultralytics/engine/trainer.py::BaseTrainer.auto_batch",
+            "ultralytics/engine/trainer.py::ultralytics.engine.trainer",
+            "ultralytics/models/yolo/yoloe/train_seg.py::YOLOEPESegTrainer",
+            "ultralytics/models/yolo/yoloe/train_seg.py::ultralytics.models.yolo.yoloe.train_seg",
+            "ultralytics/models/yolo/yoloe/train.py::ultralytics.models.yolo.yoloe.train",
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer"
+          ]
+        },
+        {
+          "question_id": "train-close-mosaic",
+          "category": "training",
+          "mentions_symbol": true,
+          "rank": 3,
+          "top": [
+            "ultralytics/data/dataset.py::YOLODataset.close_mosaic",
+            "ultralytics/data/dataset.py::YOLOConcatDataset.close_mosaic",
+            "ultralytics/engine/trainer.py::BaseTrainer._close_dataloader_mosaic",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOEVPTrainer._close_dataloader_mosaic",
+            "ultralytics/data/augment.py::Mosaic.__init__",
+            "ultralytics/data/augment.py::Mosaic",
+            "ultralytics/data/augment.py::Mosaic.apply_image",
+            "ultralytics/data/augment.py::Mosaic.apply_semantic",
+            "ultralytics/data/augment.py::Mosaic.apply_instances",
+            "ultralytics/engine/trainer.py::BaseTrainer"
+          ]
+        },
+        {
+          "question_id": "train-multi-gpu",
+          "category": "training",
+          "mentions_symbol": false,
+          "rank": 1,
+          "top": [
+            "ultralytics/engine/trainer.py::BaseTrainer._setup_ddp",
+            "ultralytics/engine/trainer.py::ultralytics.engine.trainer",
+            "ultralytics/models/yolo/classify/train.py::ultralytics.models.yolo.classify.train",
+            "ultralytics/models/yolo/detect/train.py::ultralytics.models.yolo.detect.train",
+            "ultralytics/engine/trainer.py::BaseTrainer.train",
+            "ultralytics/engine/trainer.py::BaseTrainer",
+            "ultralytics/models/yolo/segment/train.py::ultralytics.models.yolo.segment.train",
+            "ultralytics/models/yolo/yoloe/train_seg.py::ultralytics.models.yolo.yoloe.train_seg",
+            "ultralytics/models/yolo/yoloe/train.py::ultralytics.models.yolo.yoloe.train",
+            "ultralytics/models/yolo/yoloe/train_seg.py::YOLOESegTrainer"
+          ]
+        },
+        {
+          "question_id": "train-epoch-lag",
+          "category": "training",
+          "mentions_symbol": false,
+          "rank": 1,
+          "top": [
+            "ultralytics/data/build.py::InfiniteDataLoader",
+            "ultralytics/data/build.py::InfiniteDataLoader.__init__",
+            "ultralytics/data/build.py::ultralytics.data.build",
+            "ultralytics/data/build.py::InfiniteDataLoader.__del__",
+            "ultralytics/data/build.py::InfiniteDataLoader.close",
+            "ultralytics/data/build.py::seed_worker",
+            "ultralytics/data/build.py::InfiniteDataLoader.reset",
+            "ultralytics/engine/trainer.py::BaseTrainer._do_train",
+            "ultralytics/data/build.py::build_dataloader",
+            "ultralytics/models/yolo/depth/calibrate.py::_rewind"
+          ]
+        },
+        {
+          "question_id": "train-autobatch",
+          "category": "training",
+          "mentions_symbol": true,
+          "rank": 1,
+          "top": [
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer.auto_batch",
+            "ultralytics/engine/trainer.py::BaseTrainer.auto_batch",
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOEPEFreeTrainer.preprocess_batch",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOETrainer.build_dataset",
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer.build_dataset",
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer.preprocess_batch",
+            "ultralytics/data/build.py::build_yolo_dataset",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOETrainer.get_model",
+            "ultralytics/models/yolo/model.py::ultralytics.models.yolo.model"
+          ]
+        },
+        {
+          "question_id": "train-plot-augmented",
+          "category": "training",
+          "mentions_symbol": false,
+          "rank": null,
+          "top": [
+            "ultralytics/data/augment.py::v8_transforms",
+            "ultralytics/data/augment.py::ultralytics.data.augment",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOEVPTrainer",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOEVPTrainer.build_dataset",
+            "ultralytics/data/augment.py::Albumentations.__init__",
+            "ultralytics/data/augment.py::LoadVisualPrompt.apply_image",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOETrainerFromScratch.build_dataset",
+            "ultralytics/data/augment.py::Albumentations",
+            "ultralytics/data/augment.py::BaseTransform",
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer.build_dataset"
+          ]
+        },
+        {
+          "question_id": "train-tune",
+          "category": "training",
+          "mentions_symbol": true,
+          "rank": 2,
+          "top": [
+            "ultralytics/engine/tuner.py::ultralytics.engine.tuner",
+            "ultralytics/engine/model.py::Model.tune",
+            "ultralytics/engine/tuner.py::Tuner",
+            "ultralytics/engine/tuner.py::Tuner.__call__",
+            "ultralytics/engine/tuner.py::Tuner.__init__",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOEPETrainer",
+            "ultralytics/engine/tuner.py::Tuner._mutate",
+            "ultralytics/engine/predictor.py::BasePredictor.setup_model",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOETrainer.get_model",
+            "ultralytics/engine/trainer.py::ultralytics.engine.trainer"
+          ]
+        },
+        {
+          "question_id": "data-default-augment",
+          "category": "data",
+          "mentions_symbol": false,
+          "rank": 1,
+          "top": [
+            "ultralytics/data/augment.py::v8_transforms",
+            "ultralytics/data/augment.py::Albumentations.__init__",
+            "ultralytics/data/augment.py::ultralytics.data.augment",
+            "ultralytics/models/yolo/detect/train.py::ultralytics.models.yolo.detect.train",
+            "ultralytics/data/augment.py::Albumentations",
+            "ultralytics/data/augment.py::BaseTransform",
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer.build_dataset",
+            "ultralytics/data/annotator.py::ultralytics.data.annotator",
+            "ultralytics/data/dataset.py::YOLOMultiModalDataset.build_transforms",
+            "ultralytics/data/dataset.py::YOLODataset.build_transforms"
+          ]
+        },
+        {
+          "question_id": "data-albumentations",
+          "category": "data",
+          "mentions_symbol": true,
+          "rank": 1,
+          "top": [
+            "ultralytics/data/augment.py::Albumentations.__init__",
+            "ultralytics/data/augment.py::Albumentations",
+            "ultralytics/data/augment.py::v8_transforms",
+            "ultralytics/data/augment.py::BaseTransform",
+            "ultralytics/data/dataset.py::YOLODataset.build_transforms",
+            "ultralytics/data/augment.py::ultralytics.data.augment",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOEVPTrainer",
+            "ultralytics/data/augment.py::Albumentations.__call__",
+            "ultralytics/data/dataset.py::YOLOMultiModalDataset.build_transforms",
+            "ultralytics/data/dataset.py::GroundingDataset.build_transforms"
+          ]
+        },
+        {
+          "question_id": "data-rect",
+          "category": "data",
+          "mentions_symbol": true,
+          "rank": 1,
+          "top": [
+            "ultralytics/data/base.py::BaseDataset.set_rectangle",
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer.build_dataset",
+            "ultralytics/data/dataset.py::SemanticDataset.load_image",
+            "ultralytics/models/sam/sam3/sam3_image.py::SAM3SemanticModel.set_imgsz",
+            "ultralytics/models/rtdetr/val.py::RTDETRDataset",
+            "ultralytics/data/build.py::build_yolo_dataset",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOETrainer.build_dataset",
+            "ultralytics/models/sam/modules/tiny_encoder.py::TinyViT.set_imgsz",
+            "ultralytics/models/sam/sam3/necks.py::Sam3DualViTDetNeck.set_imgsz",
+            "ultralytics/models/sam/sam3/vl_combiner.py::SAM3VLBackbone.set_imgsz"
+          ]
+        },
+        {
+          "question_id": "data-cache",
+          "category": "data",
+          "mentions_symbol": true,
+          "rank": 1,
+          "top": [
+            "ultralytics/data/base.py::BaseDataset.check_cache_ram",
+            "ultralytics/data/base.py::BaseDataset.cache_images",
+            "ultralytics/data/base.py::BaseDataset.check_cache_disk",
+            "ultralytics/models/yolo/model.py::ultralytics.models.yolo.model",
+            "ultralytics/models/yolo/model.py::YOLO",
+            "ultralytics/engine/trainer.py::BaseTrainer._clear_memory",
+            "ultralytics/data/dataset.py::ClassificationDataset.cache_images",
+            "ultralytics/models/yolo/__init__.py::ultralytics.models.yolo",
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer.auto_batch",
+            "ultralytics/data/base.py::BaseDataset"
+          ]
+        },
+        {
+          "question_id": "data-no-labels",
+          "category": "data",
+          "mentions_symbol": false,
+          "rank": 1,
+          "top": [
+            "ultralytics/data/dataset.py::YOLODataset.get_labels",
+            "ultralytics/data/dataset.py::YOLODataset.cache_labels",
+            "ultralytics/data/dataset.py::GroundingDataset.get_labels",
+            "ultralytics/data/dataset.py::YOLODataset.get_label_files",
+            "ultralytics/data/dataset.py::YOLODataset",
+            "ultralytics/data/dataset.py::SemanticDataset.get_labels",
+            "ultralytics/data/dataset.py::GroundingDataset.cache_labels",
+            "ultralytics/data/dataset.py::YOLODataset.get_cache_hash",
+            "ultralytics/engine/trainer.py::BaseTrainer.plot_training_labels",
+            "ultralytics/data/dataset.py::YOLODataset._load_or_scan_cache"
+          ]
+        },
+        {
+          "question_id": "data-not-found",
+          "category": "data",
+          "mentions_symbol": false,
+          "rank": 1,
+          "top": [
+            "ultralytics/data/utils.py::check_det_dataset",
+            "ultralytics/engine/trainer.py::BaseTrainer.get_dataset",
+            "ultralytics/data/utils.py::find_dataset_yaml",
+            "ultralytics/models/yolo/world/train_world.py::WorldTrainerFromScratch.get_dataset",
+            "ultralytics/engine/validator.py::BaseValidator.build_dataset",
+            "ultralytics/data/dataset.py::YOLODataset.__init__",
+            "ultralytics/data/dataset.py::YOLODataset",
+            "ultralytics/data/utils.py::check_cls_dataset",
+            "ultralytics/models/yolo/semantic/train.py::SemanticSegmentationTrainer.get_dataset",
+            "ultralytics/models/yolo/detect/val.py::DetectionValidator.build_dataset"
+          ]
+        },
+        {
+          "question_id": "data-coco-convert",
+          "category": "data",
+          "mentions_symbol": false,
+          "rank": 1,
+          "top": [
+            "ultralytics/data/converter.py::convert_coco",
+            "ultralytics/data/converter.py::convert_dota_to_yolo_obb",
+            "ultralytics/data/converter.py::ultralytics.data.converter",
+            "ultralytics/data/dataset.py::YOLODataset",
+            "ultralytics/data/converter.py::yolo_bbox2segment",
+            "ultralytics/data/dataset.py::YOLODataset.get_labels",
+            "ultralytics/data/dataset.py::GroundingDataset",
+            "ultralytics/data/dataset.py::ultralytics.data.dataset",
+            "ultralytics/data/split_dota.py::load_yolo_dota",
+            "ultralytics/data/dataset.py::YOLODataset.update_labels_info"
+          ]
+        },
+        {
+          "question_id": "data-mask-convert",
+          "category": "data",
+          "mentions_symbol": false,
+          "rank": 2,
+          "top": [
+            "ultralytics/data/dataset.py::PolygonSemanticDataset",
+            "ultralytics/data/converter.py::convert_segment_masks_to_yolo_seg",
+            "ultralytics/data/converter.py::yolo_bbox2segment",
+            "ultralytics/data/utils.py::ultralytics.data.utils",
+            "ultralytics/data/utils.py::polygons2masks",
+            "ultralytics/data/dataset.py::PolygonSemanticDataset.load_mask",
+            "ultralytics/data/converter.py::convert_coco",
+            "ultralytics/data/converter.py::convert_dota_to_yolo_obb",
+            "ultralytics/data/utils.py::polygon2mask",
+            "ultralytics/data/dataset.py::YOLODataset.update_labels_info"
+          ]
+        },
+        {
+          "question_id": "data-letterbox-auto",
+          "category": "data",
+          "mentions_symbol": true,
+          "rank": 4,
+          "top": [
+            "ultralytics/data/augment.py::LetterBox.__init__",
+            "ultralytics/data/augment.py::ClassifyLetterBox.__init__",
+            "ultralytics/data/augment.py::ClassifyLetterBox",
+            "ultralytics/data/augment.py::LetterBox",
+            "ultralytics/data/augment.py::LetterBox.get_params",
+            "ultralytics/data/augment.py::LetterBox.__call__",
+            "ultralytics/data/augment.py::ClassifyLetterBox.__call__",
+            "ultralytics/data/augment.py::LetterBox.apply_image",
+            "ultralytics/data/augment.py::LetterBox.apply_semantic",
+            "ultralytics/data/augment.py::LetterBox._update_labels"
+          ]
+        },
+        {
+          "question_id": "data-multi-rtsp",
+          "category": "data",
+          "mentions_symbol": false,
+          "rank": 2,
+          "top": [
+            "ultralytics/engine/predictor.py::ultralytics.engine.predictor",
+            "ultralytics/data/loaders.py::LoadStreams",
+            "ultralytics/data/loaders.py::LoadStreams.__init__",
+            "ultralytics/models/yolo/model.py::YOLOE",
+            "ultralytics/data/loaders.py::ultralytics.data.loaders",
+            "ultralytics/engine/model.py::Model.track",
+            "ultralytics/data/loaders.py::LoadStreams.update",
+            "ultralytics/models/yolo/yoloe/predict.py::YOLOEVPDetectPredictor.inference",
+            "ultralytics/engine/predictor.py::BasePredictor.__call__",
+            "ultralytics/engine/predictor.py::BasePredictor.stream_inference"
+          ]
+        },
+        {
+          "question_id": "data-rtsp-reconnect",
+          "category": "data",
+          "mentions_symbol": false,
+          "rank": 5,
+          "top": [
+            "ultralytics/models/yolo/model.py::YOLOE",
+            "ultralytics/engine/predictor.py::ultralytics.engine.predictor",
+            "ultralytics/models/rtdetr/predict.py::ultralytics.models.rtdetr.predict",
+            "ultralytics/models/yolo/yoloe/predict.py::ultralytics.models.yolo.yoloe.predict",
+            "ultralytics/data/loaders.py::LoadStreams.update",
+            "ultralytics/models/yolo/model.py::YOLOE.predict",
+            "ultralytics/engine/model.py::Model.track",
+            "ultralytics/engine/model.py::Model.__call__",
+            "ultralytics/models/rtdetr/predict.py::RTDETRPredictor",
+            "ultralytics/models/yolo/yoloe/predict.py::YOLOEVPSegPredictor"
+          ]
+        },
+        {
+          "question_id": "predict-stream",
+          "category": "prediction",
+          "mentions_symbol": true,
+          "rank": 3,
+          "top": [
+            "ultralytics/models/yolo/model.py::YOLOE",
+            "ultralytics/engine/model.py::Model.__call__",
+            "ultralytics/engine/predictor.py::BasePredictor.__call__",
+            "ultralytics/engine/model.py::Model.predict",
+            "ultralytics/models/yolo/model.py::YOLOE.predict",
+            "ultralytics/engine/predictor.py::ultralytics.engine.predictor",
+            "ultralytics/engine/predictor.py::BasePredictor.stream_inference",
+            "ultralytics/models/sam/model.py::SAM.predict",
+            "ultralytics/models/fastsam/model.py::FastSAM.predict",
+            "ultralytics/engine/predictor.py::BasePredictor.predict_cli"
+          ]
+        },
+        {
+          "question_id": "predict-returns-list",
+          "category": "prediction",
+          "mentions_symbol": false,
+          "rank": 10,
+          "top": [
+            "ultralytics/models/yolo/detect/predict.py::ultralytics.models.yolo.detect.predict",
+            "ultralytics/models/yolo/detect/predict.py::DetectionPredictor",
+            "ultralytics/models/yolo/classify/predict.py::ultralytics.models.yolo.classify.predict",
+            "ultralytics/models/yolo/model.py::YOLOE",
+            "ultralytics/models/yolo/model.py::YOLOE.predict",
+            "ultralytics/models/yolo/obb/predict.py::ultralytics.models.yolo.obb.predict",
+            "ultralytics/models/nas/predict.py::NASPredictor.postprocess",
+            "ultralytics/engine/predictor.py::ultralytics.engine.predictor",
+            "ultralytics/models/yolo/detect/predict.py::DetectionPredictor.construct_results",
+            "ultralytics/engine/model.py::Model.__call__"
+          ]
+        },
+        {
+          "question_id": "predict-box-size",
+          "category": "prediction",
+          "mentions_symbol": false,
+          "rank": 7,
+          "top": [
+            "ultralytics/models/yolo/detect/predict.py::DetectionPredictor",
+            "ultralytics/models/yolo/detect/predict.py::DetectionPredictor.get_obj_feats",
+            "ultralytics/models/yolo/detect/predict.py::ultralytics.models.yolo.detect.predict",
+            "ultralytics/models/yolo/detect/predict.py::DetectionPredictor.construct_result",
+            "ultralytics/models/nas/predict.py::ultralytics.models.nas.predict",
+            "ultralytics/models/yolo/__init__.py::ultralytics.models.yolo",
+            "ultralytics/engine/results.py::Boxes",
+            "ultralytics/models/yolo/model.py::ultralytics.models.yolo.model",
+            "ultralytics/engine/results.py::ultralytics.engine.results",
+            "ultralytics/models/yolo/detect/val.py::DetectionValidator.get_desc"
+          ]
+        },
+        {
+          "question_id": "predict-plot-no-boxes",
+          "category": "prediction",
+          "mentions_symbol": false,
+          "rank": null,
+          "top": [
+            "ultralytics/models/yolo/yoloe/predict.py::YOLOEVPSegPredictor",
+            "ultralytics/models/yolo/segment/predict.py::SegmentationPredictor",
+            "ultralytics/models/yolo/segment/predict.py::SegmentationPredictor.postprocess",
+            "ultralytics/models/yolo/segment/predict.py::SegmentationPredictor.construct_result",
+            "ultralytics/models/yolo/yoloe/predict.py::ultralytics.models.yolo.yoloe.predict",
+            "ultralytics/data/converter.py::yolo_bbox2segment",
+            "ultralytics/data/converter.py::convert_segment_masks_to_yolo_seg",
+            "ultralytics/models/yolo/segment/predict.py::ultralytics.models.yolo.segment.predict",
+            "ultralytics/engine/results.py::SemanticMask",
+            "ultralytics/engine/results.py::ultralytics.engine.results"
+          ]
+        },
+        {
+          "question_id": "predict-crop",
+          "category": "prediction",
+          "mentions_symbol": false,
+          "rank": 1,
+          "top": [
+            "ultralytics/engine/results.py::Results.save_crop",
+            "ultralytics/data/converter.py::yolo_bbox2segment",
+            "ultralytics/data/split_dota.py::crop_and_save",
+            "ultralytics/models/yolo/detect/predict.py::DetectionPredictor",
+            "ultralytics/data/converter.py::convert_dota_to_yolo_obb",
+            "ultralytics/models/yolo/yoloe/predict.py::ultralytics.models.yolo.yoloe.predict",
+            "ultralytics/models/yolo/detect/val.py::DetectionValidator.save_one_txt",
+            "ultralytics/models/yolo/yoloe/predict.py::YOLOEVPSegPredictor",
+            "ultralytics/models/yolo/detect/predict.py::DetectionPredictor.construct_result",
+            "ultralytics/models/yolo/segment/val.py::SegmentationValidator.save_one_txt"
+          ]
+        },
+        {
+          "question_id": "predict-seg-masks",
+          "category": "prediction",
+          "mentions_symbol": false,
+          "rank": 2,
+          "top": [
+            "ultralytics/models/yolo/segment/predict.py::SegmentationPredictor",
+            "ultralytics/models/yolo/segment/predict.py::SegmentationPredictor.construct_result",
+            "ultralytics/models/yolo/segment/predict.py::ultralytics.models.yolo.segment.predict",
+            "ultralytics/engine/results.py::SemanticMask",
+            "ultralytics/models/yolo/segment/predict.py::SegmentationPredictor.postprocess",
+            "ultralytics/models/yolo/segment/val.py::SegmentationValidator.postprocess",
+            "ultralytics/models/yolo/semantic/predict.py::ultralytics.models.yolo.semantic.predict",
+            "ultralytics/models/yolo/semantic/predict.py::SemanticSegmentationPredictor",
+            "ultralytics/models/yolo/yoloe/predict.py::YOLOEVPSegPredictor",
+            "ultralytics/engine/results.py::Masks"
+          ]
+        },
+        {
+          "question_id": "predict-cls-top5",
+          "category": "prediction",
+          "mentions_symbol": false,
+          "rank": 1,
+          "top": [
+            "ultralytics/engine/results.py::Probs",
+            "ultralytics/engine/results.py::Probs.top1conf",
+            "ultralytics/models/yolo/classify/predict.py::ClassificationPredictor",
+            "ultralytics/models/yolo/classify/predict.py::ultralytics.models.yolo.classify.predict",
+            "ultralytics/models/yolo/classify/predict.py::ClassificationPredictor.postprocess",
+            "ultralytics/engine/results.py::Results.verbose",
+            "ultralytics/models/yolo/detect/predict.py::ultralytics.models.yolo.detect.predict",
+            "ultralytics/engine/results.py::Probs.top5conf",
+            "ultralytics/engine/results.py::Probs.__init__",
+            "ultralytics/models/yolo/classify/val.py::ClassificationValidator.get_desc"
+          ]
+        },
+        {
+          "question_id": "val-vs-predict",
+          "category": "validation",
+          "mentions_symbol": true,
+          "rank": null,
+          "top": [
+            "ultralytics/models/yolo/detect/val.py::ultralytics.models.yolo.detect.val",
+            "ultralytics/models/yolo/detect/val.py::DetectionValidator",
+            "ultralytics/models/yolo/detect/predict.py::ultralytics.models.yolo.detect.predict",
+            "ultralytics/models/yolo/detect/val.py::DetectionValidator.init_metrics",
+            "ultralytics/models/yolo/detect/predict.py::DetectionPredictor",
+            "ultralytics/models/yolo/detect/__init__.py::ultralytics.models.yolo.detect",
+            "ultralytics/engine/validator.py::ultralytics.engine.validator",
+            "ultralytics/models/yolo/model.py::YOLOE.val",
+            "ultralytics/models/yolo/yoloe/predict.py::ultralytics.models.yolo.yoloe.predict",
+            "ultralytics/models/yolo/detect/val.py::DetectionValidator.update_metrics"
+          ]
+        },
+        {
+          "question_id": "val-test-split",
+          "category": "validation",
+          "mentions_symbol": false,
+          "rank": null,
+          "top": [
+            "ultralytics/engine/validator.py::ultralytics.engine.validator",
+            "ultralytics/models/yolo/world/train_world.py::WorldTrainerFromScratch.final_eval",
+            "ultralytics/engine/predictor.py::BasePredictor.setup_model",
+            "ultralytics/models/yolo/model.py::YOLOE.val",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOETrainer.get_validator",
+            "ultralytics/models/yolo/world/val.py::WorldValidator.__call__",
+            "ultralytics/models/yolo/detect/val.py::ultralytics.models.yolo.detect.val",
+            "ultralytics/models/yolo/model.py::YOLO",
+            "ultralytics/models/yolo/model.py::ultralytics.models.yolo.model",
+            "ultralytics/models/yolo/classify/__init__.py::ultralytics.models.yolo.classify"
+          ]
+        },
+        {
+          "question_id": "export-openvino",
+          "category": "export",
+          "mentions_symbol": false,
+          "rank": 1,
+          "top": [
+            "ultralytics/engine/exporter.py::Exporter.export_openvino",
+            "ultralytics/engine/exporter.py::Exporter",
+            "ultralytics/engine/exporter.py::ultralytics.engine.exporter",
+            "ultralytics/engine/exporter.py::Exporter.export_qnn",
+            "ultralytics/engine/exporter.py::Exporter.export_litert",
+            "ultralytics/engine/exporter.py::Exporter.export_xilinx",
+            "ultralytics/engine/exporter.py::QNNModel",
+            "ultralytics/engine/exporter.py::Exporter.export_onnx",
+            "ultralytics/engine/exporter.py::Exporter.export_hailo",
+            "ultralytics/engine/model.py::Model.export"
+          ]
+        },
+        {
+          "question_id": "export-tensorrt",
+          "category": "export",
+          "mentions_symbol": false,
+          "rank": 1,
+          "top": [
+            "ultralytics/engine/exporter.py::Exporter.export_engine",
+            "ultralytics/engine/exporter.py::Exporter.export_onnx",
+            "ultralytics/engine/exporter.py::ultralytics.engine.exporter",
+            "ultralytics/engine/exporter.py::Exporter",
+            "ultralytics/engine/exporter.py::Exporter.export_litert",
+            "ultralytics/engine/exporter.py::Exporter.export_rknn",
+            "ultralytics/engine/exporter.py::QNNModel",
+            "ultralytics/engine/model.py::Model.export",
+            "ultralytics/engine/exporter.py::Exporter.export_edgetpu",
+            "ultralytics/engine/exporter.py::export_formats"
+          ]
+        },
+        {
+          "question_id": "export-onnx-dynamic",
+          "category": "export",
+          "mentions_symbol": false,
+          "rank": 1,
+          "top": [
+            "ultralytics/engine/exporter.py::Exporter.export_onnx",
+            "ultralytics/engine/exporter.py::QNNModel",
+            "ultralytics/engine/exporter.py::ultralytics.engine.exporter",
+            "ultralytics/engine/exporter.py::Exporter.export_deepx",
+            "ultralytics/engine/exporter.py::Exporter.export_qnn",
+            "ultralytics/engine/exporter.py::Exporter.export_mnn",
+            "ultralytics/engine/exporter.py::Exporter.export_openvino",
+            "ultralytics/engine/exporter.py::Exporter.export_ncnn",
+            "ultralytics/engine/model.py::Model.export",
+            "ultralytics/engine/exporter.py::Exporter.export_xilinx"
+          ]
+        },
+        {
+          "question_id": "export-coreml-nms",
+          "category": "export",
+          "mentions_symbol": true,
+          "rank": 1,
+          "top": [
+            "ultralytics/engine/exporter.py::NMSModel",
+            "ultralytics/engine/exporter.py::Exporter.export_coreml",
+            "ultralytics/engine/exporter.py::NMSModel.forward",
+            "ultralytics/models/yolo/detect/val.py::DetectionValidator.postprocess",
+            "ultralytics/models/nas/val.py::NASValidator",
+            "ultralytics/engine/exporter.py::NMSModel.__init__",
+            "ultralytics/models/yolo/detect/predict.py::DetectionPredictor.postprocess",
+            "ultralytics/models/nas/val.py::NASValidator.postprocess",
+            "ultralytics/engine/exporter.py::Exporter.__call__",
+            "ultralytics/engine/exporter.py::Exporter.export_coreai"
+          ]
+        },
+        {
+          "question_id": "model-fastsam-prompts",
+          "category": "models",
+          "mentions_symbol": true,
+          "rank": 8,
+          "top": [
+            "ultralytics/models/fastsam/predict.py::FastSAMPredictor",
+            "ultralytics/models/sam/predict.py::Predictor.prompt_inference",
+            "ultralytics/models/fastsam/model.py::FastSAM",
+            "ultralytics/models/sam/predict.py::Predictor.inference",
+            "ultralytics/models/fastsam/model.py::FastSAM.predict",
+            "ultralytics/models/fastsam/predict.py::ultralytics.models.fastsam.predict",
+            "ultralytics/models/sam/model.py::SAM",
+            "ultralytics/models/fastsam/predict.py::FastSAMPredictor.prompt",
+            "ultralytics/models/sam/predict.py::Predictor.inference_features",
+            "ultralytics/models/fastsam/model.py::ultralytics.models.fastsam.model"
+          ]
+        },
+        {
+          "question_id": "model-yoloworld-classes",
+          "category": "models",
+          "mentions_symbol": false,
+          "rank": 4,
+          "top": [
+            "ultralytics/models/yolo/model.py::YOLOWorld",
+            "ultralytics/models/yolo/world/val.py::WorldValidator",
+            "ultralytics/models/yolo/model.py::YOLOWorld.__init__",
+            "ultralytics/models/yolo/model.py::YOLOWorld.set_classes",
+            "ultralytics/models/yolo/world/val.py::ultralytics.models.yolo.world.val",
+            "ultralytics/models/yolo/model.py::ultralytics.models.yolo.model",
+            "ultralytics/models/yolo/__init__.py::ultralytics.models.yolo",
+            "ultralytics/models/yolo/model.py::YOLOE.set_classes",
+            "ultralytics/models/yolo/model.py::YOLOE.set_vocab",
+            "ultralytics/models/yolo/world/train.py::ultralytics.models.yolo.world.train"
+          ]
+        },
+        {
+          "question_id": "model-rtdetr-train",
+          "category": "models",
+          "mentions_symbol": false,
+          "rank": 3,
+          "top": [
+            "ultralytics/models/rtdetr/model.py::ultralytics.models.rtdetr.model",
+            "ultralytics/models/rtdetr/train.py::ultralytics.models.rtdetr.train",
+            "ultralytics/models/rtdetr/train.py::RTDETRTrainer",
+            "ultralytics/models/rtdetr/model.py::RTDETR",
+            "ultralytics/models/rtdetr/__init__.py::ultralytics.models.rtdetr",
+            "ultralytics/models/rtdetr/predict.py::ultralytics.models.rtdetr.predict",
+            "ultralytics/models/rtdetr/model.py::RTDETR.__init__",
+            "ultralytics/models/rtdetr/train.py::RTDETRTrainer.get_model",
+            "ultralytics/models/rtdetr/predict.py::RTDETRPredictor",
+            "ultralytics/models/rtdetr/val.py::ultralytics.models.rtdetr.val"
+          ]
+        },
+        {
+          "question_id": "model-sam2-dynamic",
+          "category": "models",
+          "mentions_symbol": false,
+          "rank": 2,
+          "top": [
+            "ultralytics/models/sam/predict.py::SAM3VideoSemanticPredictor.inference",
+            "ultralytics/models/sam/predict.py::SAM2DynamicInteractivePredictor",
+            "ultralytics/models/sam/predict.py::SAM3VideoPredictor",
+            "ultralytics/models/sam/predict.py::SAM3VideoSemanticPredictor",
+            "ultralytics/models/sam/predict.py::SAM3VideoSemanticPredictor.setup_model",
+            "ultralytics/models/sam/model.py::SAM",
+            "ultralytics/models/sam/predict.py::ultralytics.models.sam.predict",
+            "ultralytics/models/sam/predict.py::SAM3VideoSemanticPredictor._tracker_add_new_objects",
+            "ultralytics/models/sam/predict.py::SAM2VideoPredictor",
+            "ultralytics/models/sam/__init__.py::ultralytics.models.sam"
+          ]
+        }
+      ]
+    },
+    {
+      "model": "ibm-granite/granite-embedding-english-r2",
+      "params_m": 149,
+      "dimensions": 768,
+      "hit_at_1": 0.475,
+      "hit_at_5": 0.775,
+      "hit_at_5_ci95": [
+        0.65,
+        0.9
+      ],
+      "mrr_at_10": 0.6069047619047618,
+      "median_query_latency_ms": 188.35594649863197,
+      "questions": [
+        {
+          "question_id": "train-resume",
+          "category": "training",
+          "mentions_symbol": false,
+          "rank": 1,
+          "top": [
+            "ultralytics/engine/trainer.py::BaseTrainer.resume_training",
+            "ultralytics/engine/trainer.py::BaseTrainer.check_resume",
+            "ultralytics/engine/trainer.py::BaseTrainer._handle_nan_recovery",
+            "ultralytics/engine/model.py::Model.train",
+            "ultralytics/engine/trainer.py::BaseTrainer._do_train",
+            "ultralytics/engine/trainer.py::BaseTrainer._load_checkpoint_state",
+            "ultralytics/engine/trainer.py::BaseTrainer.setup_model",
+            "ultralytics/engine/trainer.py::BaseTrainer.save_model",
+            "ultralytics/engine/trainer.py::BaseTrainer._get_warmup_iterations",
+            "ultralytics/engine/trainer.py::BaseTrainer"
+          ]
+        },
+        {
+          "question_id": "train-optimizer-auto",
+          "category": "training",
+          "mentions_symbol": true,
+          "rank": 1,
+          "top": [
+            "ultralytics/engine/trainer.py::BaseTrainer.build_optimizer",
+            "ultralytics/engine/trainer.py::BaseTrainer.optimizer_step",
+            "ultralytics/engine/trainer.py::BaseTrainer._setup_scheduler",
+            "ultralytics/engine/trainer.py::BaseTrainer.auto_batch",
+            "ultralytics/engine/trainer.py::BaseTrainer",
+            "ultralytics/engine/tuner.py::Tuner.__init__",
+            "ultralytics/engine/tuner.py::Tuner.__call__",
+            "ultralytics/engine/tuner.py::Tuner",
+            "ultralytics/engine/tuner.py::Tuner._best_result_index",
+            "ultralytics/engine/trainer.py::BaseTrainer._do_train"
+          ]
+        },
+        {
+          "question_id": "train-lr-schedule",
+          "category": "training",
+          "mentions_symbol": true,
+          "rank": 1,
+          "top": [
+            "ultralytics/engine/trainer.py::BaseTrainer._setup_scheduler",
+            "ultralytics/models/sam/modules/tiny_encoder.py::TinyViT.set_layer_lr_decay",
+            "ultralytics/engine/trainer.py::BaseTrainer._do_train",
+            "ultralytics/engine/tuner.py::Tuner.__call__",
+            "ultralytics/engine/tuner.py::ultralytics.engine.tuner",
+            "ultralytics/engine/tuner.py::Tuner.__init__",
+            "ultralytics/models/llm.py::LLM",
+            "ultralytics/engine/trainer.py::BaseTrainer",
+            "ultralytics/engine/trainer.py::BaseTrainer._get_warmup_iterations",
+            "ultralytics/engine/trainer.py::BaseTrainer.build_optimizer"
+          ]
+        },
+        {
+          "question_id": "train-warmup-bias",
+          "category": "training",
+          "mentions_symbol": true,
+          "rank": 2,
+          "top": [
+            "ultralytics/engine/trainer.py::BaseTrainer._get_warmup_iterations",
+            "ultralytics/engine/trainer.py::BaseTrainer.build_optimizer",
+            "ultralytics/models/sam/modules/tiny_encoder.py::Attention.train",
+            "ultralytics/engine/trainer.py::BaseTrainer._do_train",
+            "ultralytics/engine/trainer.py::BaseTrainer._setup_scheduler",
+            "ultralytics/engine/trainer.py::BaseTrainer.optimizer_step",
+            "ultralytics/models/sam/modules/tiny_encoder.py::TinyViT.no_weight_decay_keywords",
+            "ultralytics/engine/trainer.py::BaseTrainer",
+            "ultralytics/data/augment.py::classify_augmentations",
+            "ultralytics/models/yolo/depth/calibrate.py::_delta1_none"
+          ]
+        },
+        {
+          "question_id": "train-freeze",
+          "category": "training",
+          "mentions_symbol": false,
+          "rank": 3,
+          "top": [
+            "ultralytics/engine/trainer.py::BaseTrainer._model_train",
+            "ultralytics/models/sam/modules/tiny_encoder.py::ConvLayer.forward",
+            "ultralytics/engine/trainer.py::BaseTrainer._setup_train",
+            "ultralytics/models/sam/sam3/decoder.py::TransformerDecoderLayer.forward_ffn",
+            "ultralytics/engine/model.py::Model.fuse",
+            "ultralytics/data/augment.py::CopyPaste.apply_semantic",
+            "ultralytics/models/sam/modules/tiny_encoder.py::MLP.forward",
+            "ultralytics/data/augment.py::CopyPaste",
+            "ultralytics/data/dataset.py::YOLOConcatDataset.close_mosaic",
+            "ultralytics/models/sam/modules/tiny_encoder.py::MBConv.forward"
+          ]
+        },
+        {
+          "question_id": "train-grad-accum",
+          "category": "training",
+          "mentions_symbol": false,
+          "rank": null,
+          "top": [
+            "ultralytics/models/yolo/detect/val.py::DetectionValidator.preprocess",
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer.auto_batch",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOETrainer.build_dataset",
+            "ultralytics/models/yolo/detect/val.py::DetectionValidator.build_dataset",
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer.preprocess_batch",
+            "ultralytics/models/yolo/yoloe/predict.py::YOLOEVPDetectPredictor._prompts_to_tensor",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOETrainerFromScratch.build_dataset",
+            "ultralytics/models/yolo/world/train_world.py::WorldTrainerFromScratch.build_dataset",
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer.build_dataset",
+            "ultralytics/models/yolo/yoloe/predict.py::YOLOEVPDetectPredictor.preprocess"
+          ]
+        },
+        {
+          "question_id": "train-close-mosaic",
+          "category": "training",
+          "mentions_symbol": true,
+          "rank": 1,
+          "top": [
+            "ultralytics/engine/trainer.py::BaseTrainer._close_dataloader_mosaic",
+            "ultralytics/data/dataset.py::YOLODataset.close_mosaic",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOEVPTrainer._close_dataloader_mosaic",
+            "ultralytics/data/dataset.py::YOLOConcatDataset.close_mosaic",
+            "ultralytics/data/augment.py::Mosaic",
+            "ultralytics/data/augment.py::Mosaic.__init__",
+            "ultralytics/data/augment.py::Mosaic.apply_semantic",
+            "ultralytics/data/augment.py::Mosaic.apply_image",
+            "ultralytics/data/augment.py::Mosaic.apply_instances",
+            "ultralytics/engine/trainer.py::BaseTrainer"
+          ]
+        },
+        {
+          "question_id": "train-multi-gpu",
+          "category": "training",
+          "mentions_symbol": false,
+          "rank": 1,
+          "top": [
+            "ultralytics/engine/trainer.py::BaseTrainer.train",
+            "ultralytics/engine/trainer.py::BaseTrainer._setup_ddp",
+            "ultralytics/engine/trainer.py::MultiTrainer.__init__",
+            "ultralytics/engine/trainer.py::BaseTrainer._setup_train",
+            "ultralytics/engine/trainer.py::MultiTrainer",
+            "ultralytics/engine/trainer.py::BaseTrainer.__init__",
+            "ultralytics/engine/trainer.py::BaseTrainer._do_train",
+            "ultralytics/data/build.py::ContiguousDistributedSampler",
+            "ultralytics/engine/trainer.py::MultiTrainer.train",
+            "ultralytics/engine/model.py::Model.train"
+          ]
+        },
+        {
+          "question_id": "train-epoch-lag",
+          "category": "training",
+          "mentions_symbol": false,
+          "rank": null,
+          "top": [
+            "ultralytics/engine/trainer.py::BaseTrainer.resume_training",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOEVPTrainer._close_dataloader_mosaic",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOETrainer.build_dataset",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOETrainerFromScratch",
+            "ultralytics/models/yolo/model.py::YOLO",
+            "ultralytics/models/yolo/world/train_world.py::WorldTrainerFromScratch.build_dataset",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOEPETrainer.get_model",
+            "ultralytics/models/yolo/model.py::YOLO.__init__",
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer.get_dataloader",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOETrainerFromScratch.build_dataset"
+          ]
+        },
+        {
+          "question_id": "train-autobatch",
+          "category": "training",
+          "mentions_symbol": true,
+          "rank": 1,
+          "top": [
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer.auto_batch",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOEPEFreeTrainer.preprocess_batch",
+            "ultralytics/models/yolo/detect/val.py::DetectionValidator.preprocess",
+            "ultralytics/models/yolo/yoloe/predict.py::YOLOEVPDetectPredictor._prompts_to_tensor",
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer.preprocess_batch",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOETrainer.build_dataset",
+            "ultralytics/models/yolo/detect/val.py::DetectionValidator._prepare_batch",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOETrainer.get_model",
+            "ultralytics/models/yolo/detect/val.py::DetectionValidator.build_dataset",
+            "ultralytics/models/yolo/segment/val.py::SegmentationValidator.preprocess"
+          ]
+        },
+        {
+          "question_id": "train-plot-augmented",
+          "category": "training",
+          "mentions_symbol": false,
+          "rank": 10,
+          "top": [
+            "ultralytics/data/augment.py::classify_augmentations",
+            "ultralytics/engine/results.py::Results.show",
+            "ultralytics/data/augment.py::v8_transforms",
+            "ultralytics/data/augment.py::CopyPaste.__call__",
+            "ultralytics/data/augment.py::ultralytics.data.augment",
+            "ultralytics/data/augment.py::MixUp.__init__",
+            "ultralytics/data/augment.py::Mosaic.apply_image",
+            "ultralytics/data/augment.py::Mosaic.__init__",
+            "ultralytics/data/augment.py::Mosaic",
+            "ultralytics/engine/trainer.py::BaseTrainer.plot_training_samples"
+          ]
+        },
+        {
+          "question_id": "train-tune",
+          "category": "training",
+          "mentions_symbol": true,
+          "rank": 1,
+          "top": [
+            "ultralytics/engine/model.py::Model.tune",
+            "ultralytics/engine/tuner.py::Tuner",
+            "ultralytics/engine/tuner.py::Tuner.__call__",
+            "ultralytics/engine/tuner.py::Tuner._best_result_index",
+            "ultralytics/engine/tuner.py::Tuner.__init__",
+            "ultralytics/engine/tuner.py::Tuner._mutate",
+            "ultralytics/engine/tuner.py::ultralytics.engine.tuner",
+            "ultralytics/engine/tuner.py::Tuner._constrain",
+            "ultralytics/engine/tuner.py::Tuner._result_record",
+            "ultralytics/engine/tuner.py::Tuner._local_results_to_array"
+          ]
+        },
+        {
+          "question_id": "data-default-augment",
+          "category": "data",
+          "mentions_symbol": false,
+          "rank": null,
+          "top": [
+            "ultralytics/data/augment.py::classify_augmentations",
+            "ultralytics/data/augment.py::ultralytics.data.augment",
+            "ultralytics/data/augment.py::Format.__init__",
+            "ultralytics/data/augment.py::Albumentations.__init__",
+            "ultralytics/data/augment.py::Albumentations.__call__",
+            "ultralytics/models/yolo/detect/train.py::ultralytics.models.yolo.detect.train",
+            "ultralytics/data/augment.py::MixUp.__init__",
+            "ultralytics/data/augment.py::classify_transforms",
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer",
+            "ultralytics/data/augment.py::CopyPaste.__call__"
+          ]
+        },
+        {
+          "question_id": "data-albumentations",
+          "category": "data",
+          "mentions_symbol": true,
+          "rank": 1,
+          "top": [
+            "ultralytics/data/augment.py::Albumentations.__init__",
+            "ultralytics/data/augment.py::Albumentations",
+            "ultralytics/data/augment.py::v8_transforms",
+            "ultralytics/data/augment.py::Albumentations.__call__",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOEVPTrainer",
+            "ultralytics/models/yolo/yoloe/train.py::ultralytics.models.yolo.yoloe.train",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOEVPTrainer._close_dataloader_mosaic",
+            "ultralytics/data/augment.py::classify_augmentations",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOETrainer.get_validator",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOETrainer"
+          ]
+        },
+        {
+          "question_id": "data-rect",
+          "category": "data",
+          "mentions_symbol": true,
+          "rank": 1,
+          "top": [
+            "ultralytics/data/base.py::BaseDataset.set_rectangle",
+            "ultralytics/models/sam/modules/tiny_encoder.py::TinyViT.set_imgsz",
+            "ultralytics/models/sam/sam3/vitdet.py::ViT.set_imgsz",
+            "ultralytics/models/sam/sam3/necks.py::Sam3DualViTDetNeck.set_imgsz",
+            "ultralytics/models/sam/modules/sam.py::SAMModel.set_imgsz",
+            "ultralytics/data/augment.py::ClassifyLetterBox.__init__",
+            "ultralytics/models/sam/modules/sam.py::SAM3Model.set_imgsz",
+            "ultralytics/engine/predictor.py::BasePredictor.pre_transform",
+            "ultralytics/models/sam/amg.py::uncrop_boxes_xyxy",
+            "ultralytics/models/fastsam/utils.py::ultralytics.models.fastsam.utils"
+          ]
+        },
+        {
+          "question_id": "data-cache",
+          "category": "data",
+          "mentions_symbol": true,
+          "rank": 1,
+          "top": [
+            "ultralytics/data/base.py::BaseDataset.check_cache_ram",
+            "ultralytics/data/dataset.py::YOLODataset.get_labels",
+            "ultralytics/models/yolo/model.py::YOLO",
+            "ultralytics/models/yolo/detect/val.py::DetectionValidator.preprocess",
+            "ultralytics/models/yolo/yoloe/predict.py::YOLOEVPDetectPredictor.is_per_image",
+            "ultralytics/data/dataset.py::YOLODataset._load_or_scan_cache",
+            "ultralytics/data/base.py::BaseDataset.cache_images",
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer.auto_batch",
+            "ultralytics/data/dataset.py::YOLODataset.get_cache_hash",
+            "ultralytics/data/base.py::BaseDataset.check_cache_disk"
+          ]
+        },
+        {
+          "question_id": "data-no-labels",
+          "category": "data",
+          "mentions_symbol": false,
+          "rank": 1,
+          "top": [
+            "ultralytics/data/dataset.py::YOLODataset.get_labels",
+            "ultralytics/data/dataset.py::YOLODataset.cache_labels",
+            "ultralytics/models/yolo/world/train_world.py::WorldTrainerFromScratch.plot_training_labels",
+            "ultralytics/engine/trainer.py::BaseTrainer.plot_training_labels",
+            "ultralytics/data/dataset.py::YOLODataset.get_label_files",
+            "ultralytics/data/dataset.py::YOLODataset.get_cache_hash",
+            "ultralytics/data/dataset.py::GroundingDataset.cache_labels",
+            "ultralytics/data/dataset.py::GroundingDataset.get_labels",
+            "ultralytics/models/yolo/yoloe/train.py::ultralytics.models.yolo.yoloe.train",
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer"
+          ]
+        },
+        {
+          "question_id": "data-not-found",
+          "category": "data",
+          "mentions_symbol": false,
+          "rank": 4,
+          "top": [
+            "ultralytics/data/utils.py::find_dataset_yaml",
+            "ultralytics/models/yolo/world/train_world.py::WorldTrainerFromScratch.get_dataset",
+            "ultralytics/engine/trainer.py::BaseTrainer.get_dataset",
+            "ultralytics/data/utils.py::check_det_dataset",
+            "ultralytics/data/__init__.py::ultralytics.data",
+            "ultralytics/data/dataset.py::ultralytics.data.dataset",
+            "ultralytics/models/yolo/world/train_world.py::WorldTrainerFromScratch.check_data_config",
+            "ultralytics/data/dataset.py::YOLODataset",
+            "ultralytics/data/dataset.py::YOLODataset.__init__",
+            "ultralytics/models/yolo/classify/val.py::ClassificationValidator.get_dataloader"
+          ]
+        },
+        {
+          "question_id": "data-coco-convert",
+          "category": "data",
+          "mentions_symbol": false,
+          "rank": 1,
+          "top": [
+            "ultralytics/data/converter.py::convert_coco",
+            "ultralytics/models/yolo/pose/val.py::PoseValidator.pred_to_json",
+            "ultralytics/models/yolo/detect/val.py::DetectionValidator.pred_to_json",
+            "ultralytics/models/yolo/obb/val.py::OBBValidator.pred_to_json",
+            "ultralytics/models/yolo/detect/val.py::DetectionValidator.eval_json",
+            "ultralytics/data/dataset.py::YOLODataset.get_labels",
+            "ultralytics/data/converter.py::convert_dota_to_yolo_obb",
+            "ultralytics/data/converter.py::convert_ndjson_to_yolo",
+            "ultralytics/data/converter.py::ultralytics.data.converter",
+            "ultralytics/data/dataset.py::YOLODataset"
+          ]
+        },
+        {
+          "question_id": "data-mask-convert",
+          "category": "data",
+          "mentions_symbol": false,
+          "rank": 1,
+          "top": [
+            "ultralytics/data/converter.py::convert_segment_masks_to_yolo_seg",
+            "ultralytics/data/converter.py::yolo_bbox2segment",
+            "ultralytics/data/converter.py::convert_coco",
+            "ultralytics/data/converter.py::convert_dota_to_yolo_obb",
+            "ultralytics/models/yolo/segment/val.py::SegmentationValidator.preprocess",
+            "ultralytics/data/dataset.py::PolygonSemanticDataset",
+            "ultralytics/models/yolo/segment/val.py::SegmentationValidator.pred_to_json",
+            "ultralytics/models/yolo/segment/val.py::SegmentationValidator.postprocess",
+            "ultralytics/data/utils.py::polygons2masks",
+            "ultralytics/models/yolo/yoloe/val.py::YOLOESegValidator"
+          ]
+        },
+        {
+          "question_id": "data-letterbox-auto",
+          "category": "data",
+          "mentions_symbol": true,
+          "rank": 3,
+          "top": [
+            "ultralytics/data/augment.py::LetterBox.get_params",
+            "ultralytics/data/augment.py::LetterBox.__init__",
+            "ultralytics/data/augment.py::LetterBox",
+            "ultralytics/data/augment.py::ClassifyLetterBox.__call__",
+            "ultralytics/data/augment.py::ClassifyLetterBox",
+            "ultralytics/data/augment.py::ClassifyLetterBox.__init__",
+            "ultralytics/data/augment.py::LetterBox.__call__",
+            "ultralytics/data/augment.py::LetterBox._update_labels",
+            "ultralytics/models/sam/sam3/geometry_encoders.py::is_right_padded",
+            "ultralytics/data/augment.py::LetterBox.apply_semantic"
+          ]
+        },
+        {
+          "question_id": "data-multi-rtsp",
+          "category": "data",
+          "mentions_symbol": false,
+          "rank": 2,
+          "top": [
+            "ultralytics/engine/predictor.py::BasePredictor.stream_inference",
+            "ultralytics/data/loaders.py::LoadStreams.__init__",
+            "ultralytics/engine/predictor.py::BasePredictor.__call__",
+            "ultralytics/models/sam/predict.py::SAM3VideoSemanticPredictor._run_single_frame_inference",
+            "ultralytics/data/build.py::load_inference_source",
+            "ultralytics/models/sam/predict.py::SAM2VideoPredictor.inference",
+            "ultralytics/data/loaders.py::LoadStreams.__next__",
+            "ultralytics/models/sam/predict.py::SAM2VideoPredictor.propagate_in_video_preflight",
+            "ultralytics/data/loaders.py::LoadStreams",
+            "ultralytics/models/sam/predict.py::SAM3VideoPredictor.propagate_in_video"
+          ]
+        },
+        {
+          "question_id": "data-rtsp-reconnect",
+          "category": "data",
+          "mentions_symbol": false,
+          "rank": 6,
+          "top": [
+            "ultralytics/engine/predictor.py::ultralytics.engine.predictor",
+            "ultralytics/engine/predictor.py::BasePredictor.stream_inference",
+            "ultralytics/data/loaders.py::LoadStreams.__next__",
+            "ultralytics/models/rtdetr/predict.py::RTDETRPredictor",
+            "ultralytics/models/utils/loss.py::RTDETRDetectionLoss",
+            "ultralytics/data/loaders.py::LoadStreams.update",
+            "ultralytics/models/sam/predict.py::SAM2VideoPredictor._get_empty_mask_ptr",
+            "ultralytics/models/rtdetr/predict.py::ultralytics.models.rtdetr.predict",
+            "ultralytics/models/rtdetr/predict.py::RTDETRPredictor.postprocess",
+            "ultralytics/data/loaders.py::LoadStreams.__init__"
+          ]
+        },
+        {
+          "question_id": "predict-stream",
+          "category": "prediction",
+          "mentions_symbol": true,
+          "rank": 2,
+          "top": [
+            "ultralytics/engine/predictor.py::ultralytics.engine.predictor",
+            "ultralytics/engine/predictor.py::BasePredictor.stream_inference",
+            "ultralytics/engine/predictor.py::BasePredictor.__call__",
+            "ultralytics/engine/model.py::Model.predict",
+            "ultralytics/engine/model.py::Model.__call__",
+            "ultralytics/engine/predictor.py::BasePredictor.setup_source",
+            "ultralytics/models/yolo/model.py::YOLOE",
+            "ultralytics/engine/predictor.py::BasePredictor.predict_cli",
+            "ultralytics/models/sam/model.py::SAM.predict",
+            "ultralytics/models/fastsam/model.py::FastSAM.predict"
+          ]
+        },
+        {
+          "question_id": "predict-returns-list",
+          "category": "prediction",
+          "mentions_symbol": false,
+          "rank": 7,
+          "top": [
+            "ultralytics/engine/predictor.py::ultralytics.engine.predictor",
+            "ultralytics/models/yolo/classify/predict.py::ClassificationPredictor.postprocess",
+            "ultralytics/models/yolo/obb/predict.py::OBBPredictor.construct_result",
+            "ultralytics/models/yolo/detect/predict.py::DetectionPredictor.construct_results",
+            "ultralytics/models/yolo/detect/predict.py::DetectionPredictor.construct_result",
+            "ultralytics/models/yolo/pose/predict.py::PosePredictor.construct_result",
+            "ultralytics/engine/model.py::Model.__call__",
+            "ultralytics/models/yolo/segment/predict.py::SegmentationPredictor.construct_results",
+            "ultralytics/models/sam/predict.py::Predictor._inference_features",
+            "ultralytics/models/rtdetr/predict.py::RTDETRPredictor.postprocess"
+          ]
+        },
+        {
+          "question_id": "predict-box-size",
+          "category": "prediction",
+          "mentions_symbol": false,
+          "rank": 4,
+          "top": [
+            "ultralytics/models/yolo/detect/predict.py::DetectionPredictor.get_obj_feats",
+            "ultralytics/engine/results.py::Boxes.xywhn",
+            "ultralytics/data/utils.py::exif_size",
+            "ultralytics/engine/results.py::Boxes.xywh",
+            "ultralytics/engine/results.py::Masks.xy",
+            "ultralytics/engine/results.py::Boxes.xyxyn",
+            "ultralytics/engine/results.py::Keypoints.xy",
+            "ultralytics/models/yolo/detect/val.py::DetectionValidator._gather_image_metrics",
+            "ultralytics/models/yolo/detect/predict.py::DetectionPredictor.construct_result",
+            "ultralytics/engine/results.py::Results.summary"
+          ]
+        },
+        {
+          "question_id": "predict-plot-no-boxes",
+          "category": "prediction",
+          "mentions_symbol": false,
+          "rank": null,
+          "top": [
+            "ultralytics/data/augment.py::LoadVisualPrompt.make_mask",
+            "ultralytics/models/yolo/segment/predict.py::SegmentationPredictor.construct_result",
+            "ultralytics/models/sam/sam3/maskformer_segmentation.py::SegmentationHead._embed_pixels",
+            "ultralytics/models/fastsam/utils.py::adjust_bboxes_to_image_border",
+            "ultralytics/data/augment.py::Format._format_segments",
+            "ultralytics/engine/results.py::Masks.xy",
+            "ultralytics/models/sam/sam3/maskformer_segmentation.py::MaskPredictor.forward",
+            "ultralytics/data/augment.py::LoadVisualPrompt.get_visuals",
+            "ultralytics/models/sam/amg.py::batched_mask_to_box",
+            "ultralytics/data/augment.py::RandomPerspective.apply_segments"
+          ]
+        },
+        {
+          "question_id": "predict-crop",
+          "category": "prediction",
+          "mentions_symbol": false,
+          "rank": 1,
+          "top": [
+            "ultralytics/engine/results.py::Results.save_crop",
+            "ultralytics/data/split_dota.py::crop_and_save",
+            "ultralytics/engine/results.py::Results.save_txt",
+            "ultralytics/data/split_dota.py::ultralytics.data.split_dota",
+            "ultralytics/models/yolo/detect/predict.py::DetectionPredictor.get_obj_feats",
+            "ultralytics/models/sam/amg.py::ultralytics.models.sam.amg",
+            "ultralytics/data/split_dota.py::get_window_obj",
+            "ultralytics/data/split_dota.py::split_images_and_labels",
+            "ultralytics/data/split_dota.py::split_test",
+            "ultralytics/models/yolo/detect/predict.py::DetectionPredictor.construct_result"
+          ]
+        },
+        {
+          "question_id": "predict-seg-masks",
+          "category": "prediction",
+          "mentions_symbol": false,
+          "rank": 5,
+          "top": [
+            "ultralytics/models/sam/sam3/maskformer_segmentation.py::MaskPredictor",
+            "ultralytics/models/sam/sam3/maskformer_segmentation.py::ultralytics.models.sam.sam3.maskformer_segmentation",
+            "ultralytics/models/sam/sam3/maskformer_segmentation.py::SegmentationHead",
+            "ultralytics/models/sam/sam3/maskformer_segmentation.py::MaskPredictor.forward",
+            "ultralytics/models/yolo/segment/predict.py::SegmentationPredictor.construct_result",
+            "ultralytics/models/sam/sam3/maskformer_segmentation.py::SegmentationHead.__init__",
+            "ultralytics/engine/results.py::Masks.xy",
+            "ultralytics/models/sam/sam3/maskformer_segmentation.py::PixelDecoder.__init__",
+            "ultralytics/models/sam/modules/decoders.py::SAM2MaskDecoder",
+            "ultralytics/models/sam/sam3/maskformer_segmentation.py::MaskPredictor.__init__"
+          ]
+        },
+        {
+          "question_id": "predict-cls-top5",
+          "category": "prediction",
+          "mentions_symbol": false,
+          "rank": 3,
+          "top": [
+            "ultralytics/engine/results.py::Probs.top1conf",
+            "ultralytics/engine/results.py::Probs.top1",
+            "ultralytics/engine/results.py::Probs.top5",
+            "ultralytics/engine/results.py::Probs",
+            "ultralytics/engine/results.py::Probs.top5conf",
+            "ultralytics/engine/results.py::Probs.__init__",
+            "ultralytics/engine/model.py::Model.names",
+            "ultralytics/models/yolo/classify/predict.py::ClassificationPredictor.postprocess",
+            "ultralytics/engine/results.py::Results.verbose",
+            "ultralytics/models/yolo/classify/val.py::ClassificationValidator.postprocess"
+          ]
+        },
+        {
+          "question_id": "val-vs-predict",
+          "category": "validation",
+          "mentions_symbol": true,
+          "rank": 1,
+          "top": [
+            "ultralytics/engine/model.py::Model.predict",
+            "ultralytics/models/yolo/detect/val.py::DetectionValidator.scale_preds",
+            "ultralytics/models/yolo/yoloe/predict.py::YOLOEVPDetectPredictor._process_single_image",
+            "ultralytics/models/yolo/yoloe/predict.py::YOLOEVPDetectPredictor.get_vpe",
+            "ultralytics/engine/model.py::Model.__call__",
+            "ultralytics/models/sam/predict.py::Predictor.get_im_features",
+            "ultralytics/models/yolo/classify/predict.py::ClassificationPredictor.preprocess",
+            "ultralytics/models/yolo/detect/val.py::DetectionValidator.plot_predictions",
+            "ultralytics/models/yolo/yoloe/predict.py::YOLOEVPDetectPredictor._prompts_to_tensor",
+            "ultralytics/models/sam/predict.py::Predictor.preprocess"
+          ]
+        },
+        {
+          "question_id": "val-test-split",
+          "category": "validation",
+          "mentions_symbol": false,
+          "rank": 6,
+          "top": [
+            "ultralytics/engine/validator.py::ultralytics.engine.validator",
+            "ultralytics/engine/model.py::Model.eval",
+            "ultralytics/models/yolo/world/train_world.py::WorldTrainerFromScratch.final_eval",
+            "ultralytics/engine/trainer.py::BaseTrainer.final_eval",
+            "ultralytics/engine/trainer.py::BaseTrainer.validate",
+            "ultralytics/engine/validator.py::BaseValidator.__call__",
+            "ultralytics/models/yolo/classify/val.py::ClassificationValidator",
+            "ultralytics/engine/validator.py::BaseValidator.get_model",
+            "ultralytics/models/yolo/semantic/train.py::SemanticSegmentationTrainer.get_validator",
+            "ultralytics/models/yolo/segment/val.py::SegmentationValidator.eval_json"
+          ]
+        },
+        {
+          "question_id": "export-openvino",
+          "category": "export",
+          "mentions_symbol": false,
+          "rank": 1,
+          "top": [
+            "ultralytics/engine/exporter.py::Exporter.export_openvino",
+            "ultralytics/engine/exporter.py::ultralytics.engine.exporter",
+            "ultralytics/engine/exporter.py::Exporter",
+            "ultralytics/engine/exporter.py::Exporter.export_qnn",
+            "ultralytics/engine/exporter.py::Exporter.export_rknn",
+            "ultralytics/engine/exporter.py::Exporter.export_litert",
+            "ultralytics/engine/exporter.py::Exporter.export_imx",
+            "ultralytics/engine/exporter.py::export_formats",
+            "ultralytics/engine/exporter.py::Exporter.export_xilinx",
+            "ultralytics/engine/exporter.py::Exporter.export_deepx"
+          ]
+        },
+        {
+          "question_id": "export-tensorrt",
+          "category": "export",
+          "mentions_symbol": false,
+          "rank": 1,
+          "top": [
+            "ultralytics/engine/exporter.py::Exporter.export_engine",
+            "ultralytics/engine/exporter.py::Exporter.export_onnx",
+            "ultralytics/engine/exporter.py::Exporter.export_saved_model",
+            "ultralytics/engine/exporter.py::Exporter.export_rknn",
+            "ultralytics/engine/exporter.py::Exporter.export_qnn",
+            "ultralytics/engine/exporter.py::Exporter.__call__",
+            "ultralytics/engine/model.py::Model.export",
+            "ultralytics/engine/exporter.py::Exporter",
+            "ultralytics/engine/exporter.py::Exporter.export_mnn",
+            "ultralytics/engine/exporter.py::QNNModel"
+          ]
+        },
+        {
+          "question_id": "export-onnx-dynamic",
+          "category": "export",
+          "mentions_symbol": false,
+          "rank": 1,
+          "top": [
+            "ultralytics/engine/exporter.py::Exporter.export_onnx",
+            "ultralytics/engine/model.py::Model.export",
+            "ultralytics/engine/exporter.py::Exporter.export_rknn",
+            "ultralytics/engine/exporter.py::NMSModel.__init__",
+            "ultralytics/engine/exporter.py::NMSModel",
+            "ultralytics/engine/exporter.py::NMSModel.forward",
+            "ultralytics/engine/exporter.py::Exporter.export_qnn",
+            "ultralytics/engine/exporter.py::Exporter.export_mnn",
+            "ultralytics/engine/exporter.py::Exporter.export_ncnn",
+            "ultralytics/engine/exporter.py::QNNModel"
+          ]
+        },
+        {
+          "question_id": "export-coreml-nms",
+          "category": "export",
+          "mentions_symbol": true,
+          "rank": 2,
+          "top": [
+            "ultralytics/models/yolo/detect/val.py::DetectionValidator.postprocess",
+            "ultralytics/engine/exporter.py::Exporter.export_coreml",
+            "ultralytics/models/nas/val.py::NASValidator.postprocess",
+            "ultralytics/engine/exporter.py::NMSModel.forward",
+            "ultralytics/models/yolo/detect/predict.py::DetectionPredictor.postprocess",
+            "ultralytics/engine/exporter.py::NMSModel",
+            "ultralytics/engine/exporter.py::Exporter.__call__",
+            "ultralytics/engine/exporter.py::Exporter.export_onnx",
+            "ultralytics/models/utils/loss.py::RTDETRDetectionLoss.forward",
+            "ultralytics/engine/exporter.py::Exporter.export_ncnn"
+          ]
+        },
+        {
+          "question_id": "model-fastsam-prompts",
+          "category": "models",
+          "mentions_symbol": true,
+          "rank": 1,
+          "top": [
+            "ultralytics/models/fastsam/predict.py::FastSAMPredictor.postprocess",
+            "ultralytics/models/fastsam/predict.py::FastSAMPredictor.prompt",
+            "ultralytics/models/fastsam/model.py::FastSAM",
+            "ultralytics/models/fastsam/model.py::FastSAM.predict",
+            "ultralytics/models/fastsam/predict.py::FastSAMPredictor",
+            "ultralytics/models/fastsam/model.py::ultralytics.models.fastsam.model",
+            "ultralytics/models/sam/modules/sam.py::SAM2Model._forward_sam_heads",
+            "ultralytics/models/fastsam/model.py::FastSAM.task_map",
+            "ultralytics/models/sam/modules/sam.py::SAM2Model._use_mask_as_output",
+            "ultralytics/models/fastsam/__init__.py::ultralytics.models.fastsam"
+          ]
+        },
+        {
+          "question_id": "model-yoloworld-classes",
+          "category": "models",
+          "mentions_symbol": false,
+          "rank": 2,
+          "top": [
+            "ultralytics/models/yolo/model.py::YOLOE.set_classes",
+            "ultralytics/models/yolo/model.py::YOLOWorld.set_classes",
+            "ultralytics/models/yolo/model.py::YOLOWorld",
+            "ultralytics/models/yolo/classify/train.py::ClassificationTrainer.set_model_attributes",
+            "ultralytics/models/yolo/model.py::YOLOE.set_vocab",
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer.set_model_names_for_load",
+            "ultralytics/models/yolo/world/val.py::WorldValidator",
+            "ultralytics/models/yolo/model.py::YOLOE.get_vocab",
+            "ultralytics/models/yolo/world/val.py::ultralytics.models.yolo.world.val",
+            "ultralytics/models/yolo/model.py::YOLOWorld.__init__"
+          ]
+        },
+        {
+          "question_id": "model-rtdetr-train",
+          "category": "models",
+          "mentions_symbol": false,
+          "rank": 2,
+          "top": [
+            "ultralytics/models/rtdetr/train.py::ultralytics.models.rtdetr.train",
+            "ultralytics/models/rtdetr/train.py::RTDETRTrainer",
+            "ultralytics/models/rtdetr/val.py::ultralytics.models.rtdetr.val",
+            "ultralytics/models/rtdetr/val.py::RTDETRDataset",
+            "ultralytics/models/rtdetr/model.py::ultralytics.models.rtdetr.model",
+            "ultralytics/models/yolo/yoloe/train.py::ultralytics.models.yolo.yoloe.train",
+            "ultralytics/models/rtdetr/model.py::RTDETR",
+            "ultralytics/models/rtdetr/train.py::RTDETRTrainer.get_model",
+            "ultralytics/models/yolo/detect/train.py::ultralytics.models.yolo.detect.train",
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer.get_model"
+          ]
+        },
+        {
+          "question_id": "model-sam2-dynamic",
+          "category": "models",
+          "mentions_symbol": false,
+          "rank": null,
+          "top": [
+            "ultralytics/models/sam/predict.py::SAM3VideoSemanticPredictor._tracker_add_new_objects",
+            "ultralytics/models/sam/predict.py::SAM2VideoPredictor.add_new_prompts",
+            "ultralytics/models/sam/predict.py::SAM3VideoSemanticPredictor.run_tracker_update_execution_phase",
+            "ultralytics/models/sam/modules/sam.py::SAM2Model.__init__",
+            "ultralytics/models/sam/modules/sam.py::SAM2Model.track_step",
+            "ultralytics/models/sam/predict.py::SAM3VideoSemanticPredictor._tracker_remove_objects",
+            "ultralytics/models/sam/predict.py::SAM2VideoPredictor.inference",
+            "ultralytics/models/sam/build_sam3.py::build_interactive_sam3",
+            "ultralytics/models/sam/modules/sam.py::SAM2Model._track_step",
+            "ultralytics/models/sam/modules/sam.py::SAM2Model"
+          ]
+        }
+      ]
+    },
+    {
+      "model": "Alibaba-NLP/gte-modernbert-base",
+      "params_m": 149,
+      "dimensions": 768,
+      "hit_at_1": 0.45,
+      "hit_at_5": 0.725,
+      "hit_at_5_ci95": [
+        0.575,
+        0.85
+      ],
+      "mrr_at_10": 0.5744642857142856,
+      "median_query_latency_ms": 173.45878099877154,
+      "questions": [
+        {
+          "question_id": "train-resume",
+          "category": "training",
+          "mentions_symbol": false,
+          "rank": 1,
+          "top": [
+            "ultralytics/engine/trainer.py::BaseTrainer.resume_training",
+            "ultralytics/engine/trainer.py::BaseTrainer._load_checkpoint_state",
+            "ultralytics/engine/trainer.py::BaseTrainer._handle_nan_recovery",
+            "ultralytics/engine/trainer.py::BaseTrainer.setup_model",
+            "ultralytics/engine/trainer.py::BaseTrainer.check_resume",
+            "ultralytics/engine/trainer.py::BaseTrainer.save_model",
+            "ultralytics/engine/trainer.py::BaseTrainer.__init__",
+            "ultralytics/engine/model.py::Model.train",
+            "ultralytics/data/build.py::InfiniteDataLoader.reset",
+            "ultralytics/engine/trainer.py::BaseTrainer._do_train"
+          ]
+        },
+        {
+          "question_id": "train-optimizer-auto",
+          "category": "training",
+          "mentions_symbol": true,
+          "rank": 1,
+          "top": [
+            "ultralytics/engine/trainer.py::BaseTrainer.build_optimizer",
+            "ultralytics/engine/trainer.py::BaseTrainer.optimizer_step",
+            "ultralytics/engine/trainer.py::BaseTrainer",
+            "ultralytics/engine/trainer.py::BaseTrainer.auto_batch",
+            "ultralytics/engine/trainer.py::BaseTrainer._setup_scheduler",
+            "ultralytics/engine/trainer.py::BaseTrainer._build_train_pipeline",
+            "ultralytics/engine/trainer.py::BaseTrainer._setup_train",
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer.auto_batch",
+            "ultralytics/engine/predictor.py::BasePredictor.setup_model",
+            "ultralytics/models/sam/predict.py::SAM2VideoPredictor.get_model"
+          ]
+        },
+        {
+          "question_id": "train-lr-schedule",
+          "category": "training",
+          "mentions_symbol": true,
+          "rank": 1,
+          "top": [
+            "ultralytics/engine/trainer.py::BaseTrainer._setup_scheduler",
+            "ultralytics/models/sam/modules/tiny_encoder.py::TinyViT.set_layer_lr_decay",
+            "ultralytics/engine/trainer.py::BaseTrainer.build_optimizer",
+            "ultralytics/engine/tuner.py::Tuner._local_results_to_array",
+            "ultralytics/engine/trainer.py::BaseTrainer._do_train",
+            "ultralytics/engine/tuner.py::Tuner._mutate",
+            "ultralytics/engine/tuner.py::Tuner.__init__",
+            "ultralytics/engine/tuner.py::Tuner._constrain",
+            "ultralytics/engine/trainer.py::BaseTrainer._setup_train",
+            "ultralytics/engine/trainer.py::BaseTrainer._build_train_pipeline"
+          ]
+        },
+        {
+          "question_id": "train-warmup-bias",
+          "category": "training",
+          "mentions_symbol": true,
+          "rank": 2,
+          "top": [
+            "ultralytics/engine/trainer.py::BaseTrainer._get_warmup_iterations",
+            "ultralytics/engine/trainer.py::BaseTrainer.build_optimizer",
+            "ultralytics/engine/trainer.py::BaseTrainer.optimizer_step",
+            "ultralytics/models/yolo/yoloe/predict.py::YOLOEVPDetectPredictor.setup_model",
+            "ultralytics/engine/trainer.py::BaseTrainer._setup_scheduler",
+            "ultralytics/engine/trainer.py::BaseTrainer.auto_batch",
+            "ultralytics/engine/predictor.py::BasePredictor.setup_model",
+            "ultralytics/engine/predictor.py::BasePredictor.__init__",
+            "ultralytics/engine/trainer.py::BaseTrainer._setup_train",
+            "ultralytics/engine/trainer.py::BaseTrainer.final_eval"
+          ]
+        },
+        {
+          "question_id": "train-freeze",
+          "category": "training",
+          "mentions_symbol": false,
+          "rank": 2,
+          "top": [
+            "ultralytics/engine/trainer.py::BaseTrainer._model_train",
+            "ultralytics/engine/trainer.py::BaseTrainer._setup_train",
+            "ultralytics/data/dataset.py::ClassificationDataset.cache_images",
+            "ultralytics/data/base.py::BaseDataset",
+            "ultralytics/engine/model.py::Model.reset_weights",
+            "ultralytics/models/sam/sam3/decoder.py::TransformerDecoderLayer.forward_ffn",
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer.set_model_names_for_load",
+            "ultralytics/models/yolo/world/train.py::on_pretrain_routine_end",
+            "ultralytics/models/sam/sam3/encoder.py::TransformerEncoder.__init__",
+            "ultralytics/models/sam/predict.py::SAM3VideoSemanticPredictor._cache_backbone_features"
+          ]
+        },
+        {
+          "question_id": "train-grad-accum",
+          "category": "training",
+          "mentions_symbol": false,
+          "rank": null,
+          "top": [
+            "ultralytics/engine/trainer.py::BaseTrainer.final_eval",
+            "ultralytics/models/yolo/obb/val.py::OBBValidator.eval_json",
+            "ultralytics/models/yolo/depth/val.py::DepthValidator",
+            "ultralytics/models/yolo/detect/val.py::DetectionValidator.preprocess",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOETrainer.build_dataset",
+            "ultralytics/models/yolo/yoloe/train.py::ultralytics.models.yolo.yoloe.train",
+            "ultralytics/engine/predictor.py::BasePredictor.setup_model",
+            "ultralytics/models/yolo/yoloe/val.py::ultralytics.models.yolo.yoloe.val",
+            "ultralytics/models/yolo/detect/val.py::DetectionValidator.eval_json",
+            "ultralytics/models/yolo/world/train_world.py::WorldTrainerFromScratch.final_eval"
+          ]
+        },
+        {
+          "question_id": "train-close-mosaic",
+          "category": "training",
+          "mentions_symbol": true,
+          "rank": 2,
+          "top": [
+            "ultralytics/models/yolo/yoloe/train.py::YOLOEVPTrainer._close_dataloader_mosaic",
+            "ultralytics/engine/trainer.py::BaseTrainer._close_dataloader_mosaic",
+            "ultralytics/data/dataset.py::YOLODataset.close_mosaic",
+            "ultralytics/data/dataset.py::YOLOConcatDataset.close_mosaic",
+            "ultralytics/data/augment.py::Mosaic",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOEVPTrainer",
+            "ultralytics/data/augment.py::Mosaic.get_params",
+            "ultralytics/data/augment.py::Mosaic.__init__",
+            "ultralytics/data/augment.py::Mosaic._cat_labels",
+            "ultralytics/data/dataset.py::YOLOConcatDataset"
+          ]
+        },
+        {
+          "question_id": "train-multi-gpu",
+          "category": "training",
+          "mentions_symbol": false,
+          "rank": 1,
+          "top": [
+            "ultralytics/engine/trainer.py::BaseTrainer.train",
+            "ultralytics/engine/trainer.py::BaseTrainer._setup_ddp",
+            "ultralytics/engine/trainer.py::BaseTrainer._setup_train",
+            "ultralytics/engine/trainer.py::BaseTrainer._do_train",
+            "ultralytics/engine/trainer.py::BaseTrainer.__init__",
+            "ultralytics/engine/trainer.py::MultiTrainer.train",
+            "ultralytics/engine/trainer.py::MultiTrainer.__init__",
+            "ultralytics/engine/trainer.py::BaseTrainer",
+            "ultralytics/data/build.py::ultralytics.data.build",
+            "ultralytics/engine/results.py::Results.cuda"
+          ]
+        },
+        {
+          "question_id": "train-epoch-lag",
+          "category": "training",
+          "mentions_symbol": false,
+          "rank": 2,
+          "top": [
+            "ultralytics/data/build.py::seed_worker",
+            "ultralytics/data/build.py::InfiniteDataLoader",
+            "ultralytics/models/yolo/depth/calibrate.py::_rewind",
+            "ultralytics/data/build.py::build_dataloader",
+            "ultralytics/data/build.py::InfiniteDataLoader.__iter__",
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer.get_dataloader",
+            "ultralytics/engine/trainer.py::BaseTrainer.resume_training",
+            "ultralytics/data/build.py::InfiniteDataLoader.close",
+            "ultralytics/data/build.py::InfiniteDataLoader.__del__",
+            "ultralytics/data/build.py::InfiniteDataLoader.reset"
+          ]
+        },
+        {
+          "question_id": "train-autobatch",
+          "category": "training",
+          "mentions_symbol": true,
+          "rank": 1,
+          "top": [
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer.auto_batch",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOEPEFreeTrainer.preprocess_batch",
+            "ultralytics/engine/trainer.py::BaseTrainer.auto_batch",
+            "ultralytics/models/yolo/detect/val.py::DetectionValidator.preprocess",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOEPEFreeTrainer",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOETrainer.build_dataset",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOEVPTrainer",
+            "ultralytics/models/yolo/segment/val.py::SegmentationValidator.preprocess",
+            "ultralytics/models/yolo/detect/val.py::DetectionValidator.build_dataset",
+            "ultralytics/models/yolo/obb/val.py::OBBValidator._prepare_batch"
+          ]
+        },
+        {
+          "question_id": "train-plot-augmented",
+          "category": "training",
+          "mentions_symbol": false,
+          "rank": null,
+          "top": [
+            "ultralytics/data/augment.py::CopyPaste.apply_image",
+            "ultralytics/data/augment.py::CopyPaste.__call__",
+            "ultralytics/data/augment.py::ultralytics.data.augment",
+            "ultralytics/data/augment.py::Albumentations.__init__",
+            "ultralytics/data/base.py::BaseDataset.__init__",
+            "ultralytics/models/sam/predict.py::Predictor.reset_image",
+            "ultralytics/data/augment.py::RandomPerspective.get_params",
+            "ultralytics/data/augment.py::CopyPaste",
+            "ultralytics/data/augment.py::Albumentations.__call__",
+            "ultralytics/data/augment.py::MixUp.__init__"
+          ]
+        },
+        {
+          "question_id": "train-tune",
+          "category": "training",
+          "mentions_symbol": true,
+          "rank": 1,
+          "top": [
+            "ultralytics/engine/model.py::Model.tune",
+            "ultralytics/engine/tuner.py::Tuner.__init__",
+            "ultralytics/engine/tuner.py::ultralytics.engine.tuner",
+            "ultralytics/engine/tuner.py::Tuner.__call__",
+            "ultralytics/engine/tuner.py::Tuner._constrain",
+            "ultralytics/engine/tuner.py::Tuner",
+            "ultralytics/engine/tuner.py::Tuner._mutate",
+            "ultralytics/engine/tuner.py::Tuner._local_results_to_array",
+            "ultralytics/engine/trainer.py::BaseTrainer.build_optimizer",
+            "ultralytics/engine/tuner.py::Tuner._result_record"
+          ]
+        },
+        {
+          "question_id": "data-default-augment",
+          "category": "data",
+          "mentions_symbol": false,
+          "rank": null,
+          "top": [
+            "ultralytics/models/yolo/detect/train.py::ultralytics.models.yolo.detect.train",
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer.auto_batch",
+            "ultralytics/data/dataset.py::GroundingDataset.__init__",
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer._build_train_pipeline",
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer.__init__",
+            "ultralytics/models/yolo/model.py::YOLOWorld.__init__",
+            "ultralytics/models/yolo/detect/__init__.py::ultralytics.models.yolo.detect",
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer.build_dataset",
+            "ultralytics/data/augment.py::ultralytics.data.augment",
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer.set_model_attributes"
+          ]
+        },
+        {
+          "question_id": "data-albumentations",
+          "category": "data",
+          "mentions_symbol": true,
+          "rank": 1,
+          "top": [
+            "ultralytics/data/augment.py::Albumentations.__init__",
+            "ultralytics/models/yolo/__init__.py::ultralytics.models.yolo",
+            "ultralytics/models/yolo/yoloe/train.py::ultralytics.models.yolo.yoloe.train",
+            "ultralytics/data/augment.py::Albumentations",
+            "ultralytics/models/yolo/world/train.py::ultralytics.models.yolo.world.train",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOETrainer.__init__",
+            "ultralytics/data/augment.py::v8_transforms",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOETrainer.build_dataset",
+            "ultralytics/models/yolo/yoloe/__init__.py::ultralytics.models.yolo.yoloe",
+            "ultralytics/models/yolo/model.py::YOLOWorld"
+          ]
+        },
+        {
+          "question_id": "data-rect",
+          "category": "data",
+          "mentions_symbol": true,
+          "rank": 1,
+          "top": [
+            "ultralytics/data/base.py::BaseDataset.set_rectangle",
+            "ultralytics/models/sam/sam3/vitdet.py::ViT.set_imgsz",
+            "ultralytics/models/sam/modules/sam.py::SAMModel.set_imgsz",
+            "ultralytics/models/sam/modules/sam.py::SAM2Model.set_imgsz",
+            "ultralytics/models/sam/sam3/vl_combiner.py::SAM3VLBackbone.set_imgsz",
+            "ultralytics/models/sam/modules/tiny_encoder.py::TinyViT.set_imgsz",
+            "ultralytics/models/sam/sam3/sam3_image.py::SAM3SemanticModel.set_imgsz",
+            "ultralytics/data/augment.py::RandomPerspective.get_params",
+            "ultralytics/data/augment.py::Mosaic.get_params",
+            "ultralytics/models/rtdetr/val.py::RTDETRDataset.load_image"
+          ]
+        },
+        {
+          "question_id": "data-cache",
+          "category": "data",
+          "mentions_symbol": true,
+          "rank": 1,
+          "top": [
+            "ultralytics/data/base.py::BaseDataset.check_cache_ram",
+            "ultralytics/data/base.py::BaseDataset.check_cache_disk",
+            "ultralytics/data/base.py::BaseDataset.cache_images",
+            "ultralytics/data/dataset.py::YOLODataset._load_or_scan_cache",
+            "ultralytics/data/dataset.py::YOLODataset.get_cache_hash",
+            "ultralytics/data/dataset.py::YOLODataset.get_labels",
+            "ultralytics/data/dataset.py::YOLODataset.verify_args",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOETrainer.get_model",
+            "ultralytics/engine/predictor.py::BasePredictor.setup_model",
+            "ultralytics/engine/trainer.py::BaseTrainer.final_eval"
+          ]
+        },
+        {
+          "question_id": "data-no-labels",
+          "category": "data",
+          "mentions_symbol": false,
+          "rank": 1,
+          "top": [
+            "ultralytics/data/dataset.py::YOLODataset.get_labels",
+            "ultralytics/data/dataset.py::YOLODataset.cache_labels",
+            "ultralytics/data/dataset.py::GroundingDataset.get_labels",
+            "ultralytics/data/dataset.py::YOLODataset.get_label_files",
+            "ultralytics/data/dataset.py::GroundingDataset.cache_labels",
+            "ultralytics/data/dataset.py::YOLODataset.verify_args",
+            "ultralytics/models/yolo/world/train_world.py::WorldTrainerFromScratch.plot_training_labels",
+            "ultralytics/engine/trainer.py::BaseTrainer.plot_training_labels",
+            "ultralytics/data/dataset.py::YOLODataset.get_cache_hash",
+            "ultralytics/models/yolo/semantic/train.py::SemanticSegmentationTrainer.plot_training_labels"
+          ]
+        },
+        {
+          "question_id": "data-not-found",
+          "category": "data",
+          "mentions_symbol": false,
+          "rank": 2,
+          "top": [
+            "ultralytics/data/utils.py::find_dataset_yaml",
+            "ultralytics/data/utils.py::check_det_dataset",
+            "ultralytics/models/yolo/world/train_world.py::WorldTrainerFromScratch.check_data_config",
+            "ultralytics/models/yolo/world/train_world.py::WorldTrainerFromScratch.get_dataset",
+            "ultralytics/engine/trainer.py::BaseTrainer.get_dataset",
+            "ultralytics/models/yolo/semantic/train.py::SemanticSegmentationTrainer.get_dataset",
+            "ultralytics/data/__init__.py::ultralytics.data",
+            "ultralytics/engine/validator.py::BaseValidator.build_dataset",
+            "ultralytics/data/utils.py::check_cls_dataset",
+            "ultralytics/data/dataset.py::SemanticDataset"
+          ]
+        },
+        {
+          "question_id": "data-coco-convert",
+          "category": "data",
+          "mentions_symbol": false,
+          "rank": 1,
+          "top": [
+            "ultralytics/data/converter.py::convert_coco",
+            "ultralytics/data/converter.py::ultralytics.data.converter",
+            "ultralytics/models/yolo/segment/val.py::SegmentationValidator.eval_json",
+            "ultralytics/data/dataset.py::YOLODataset.get_labels",
+            "ultralytics/models/yolo/detect/val.py::DetectionValidator.eval_json",
+            "ultralytics/data/dataset.py::YOLODataset",
+            "ultralytics/models/yolo/pose/val.py::PoseValidator.eval_json",
+            "ultralytics/data/dataset.py::GroundingDataset.cache_labels",
+            "ultralytics/data/dataset.py::YOLODataset.update_labels_info",
+            "ultralytics/data/converter.py::convert_dota_to_yolo_obb"
+          ]
+        },
+        {
+          "question_id": "data-mask-convert",
+          "category": "data",
+          "mentions_symbol": false,
+          "rank": 1,
+          "top": [
+            "ultralytics/data/converter.py::convert_segment_masks_to_yolo_seg",
+            "ultralytics/data/dataset.py::PolygonSemanticDataset",
+            "ultralytics/data/converter.py::yolo_bbox2segment",
+            "ultralytics/data/dataset.py::PolygonSemanticDataset.load_mask",
+            "ultralytics/models/yolo/segment/val.py::SegmentationValidator.preprocess",
+            "ultralytics/models/yolo/segment/val.py::SegmentationValidator",
+            "ultralytics/data/augment.py::Mosaic.apply_semantic",
+            "ultralytics/data/augment.py::SemanticFormat.apply_image",
+            "ultralytics/models/yolo/segment/val.py::SegmentationValidator.postprocess",
+            "ultralytics/data/converter.py::ultralytics.data.converter"
+          ]
+        },
+        {
+          "question_id": "data-letterbox-auto",
+          "category": "data",
+          "mentions_symbol": true,
+          "rank": 4,
+          "top": [
+            "ultralytics/data/augment.py::LetterBox.__init__",
+            "ultralytics/data/augment.py::ClassifyLetterBox.__init__",
+            "ultralytics/data/augment.py::ClassifyLetterBox.__call__",
+            "ultralytics/data/augment.py::LetterBox",
+            "ultralytics/data/augment.py::LetterBox.get_params",
+            "ultralytics/data/augment.py::LetterBox.apply_semantic",
+            "ultralytics/data/augment.py::LetterBox.__call__",
+            "ultralytics/data/augment.py::ClassifyLetterBox",
+            "ultralytics/data/augment.py::LetterBox.apply_instances",
+            "ultralytics/data/augment.py::LetterBox._update_labels"
+          ]
+        },
+        {
+          "question_id": "data-multi-rtsp",
+          "category": "data",
+          "mentions_symbol": false,
+          "rank": 3,
+          "top": [
+            "ultralytics/engine/predictor.py::BasePredictor.stream_inference",
+            "ultralytics/engine/predictor.py::BasePredictor.__call__",
+            "ultralytics/data/loaders.py::LoadStreams.__init__",
+            "ultralytics/models/sam/predict.py::SAM3VideoSemanticPredictor._run_single_frame_inference",
+            "ultralytics/models/sam/predict.py::SAM3VideoPredictor.propagate_in_video",
+            "ultralytics/models/sam/predict.py::SAM2VideoPredictor.inference",
+            "ultralytics/engine/predictor.py::BasePredictor.setup_source",
+            "ultralytics/data/loaders.py::LoadStreams",
+            "ultralytics/models/sam/predict.py::SAM2VideoPredictor.propagate_in_video_preflight",
+            "ultralytics/models/sam/predict.py::SAM2VideoPredictor._init_state"
+          ]
+        },
+        {
+          "question_id": "data-rtsp-reconnect",
+          "category": "data",
+          "mentions_symbol": false,
+          "rank": null,
+          "top": [
+            "ultralytics/models/sam/predict.py::SAM2VideoPredictor.propagate_in_video_preflight",
+            "ultralytics/engine/predictor.py::BasePredictor.save_predicted_images",
+            "ultralytics/engine/predictor.py::BasePredictor.stream_inference",
+            "ultralytics/models/sam/predict.py::SAM2VideoPredictor._init_state",
+            "ultralytics/models/sam/predict.py::SAM3VideoPredictor.propagate_in_video",
+            "ultralytics/models/sam/predict.py::SAM2VideoPredictor.init_state",
+            "ultralytics/models/sam/predict.py::SAM3VideoSemanticPredictor.init_state",
+            "ultralytics/models/sam/predict.py::SAM2VideoPredictor._get_empty_mask_ptr",
+            "ultralytics/models/sam/predict.py::SAM2VideoPredictor.setup_source",
+            "ultralytics/models/sam/model.py::SAM.predict"
+          ]
+        },
+        {
+          "question_id": "predict-stream",
+          "category": "prediction",
+          "mentions_symbol": true,
+          "rank": 2,
+          "top": [
+            "ultralytics/engine/model.py::Model.__call__",
+            "ultralytics/engine/model.py::Model.predict",
+            "ultralytics/models/yolo/model.py::YOLOE",
+            "ultralytics/engine/predictor.py::BasePredictor.predict_cli",
+            "ultralytics/engine/predictor.py::BasePredictor.__call__",
+            "ultralytics/engine/predictor.py::BasePredictor.stream_inference",
+            "ultralytics/engine/predictor.py::ultralytics.engine.predictor",
+            "ultralytics/models/yolo/model.py::YOLOE.predict",
+            "ultralytics/models/sam/model.py::SAM.predict",
+            "ultralytics/models/sam/model.py::SAM.__call__"
+          ]
+        },
+        {
+          "question_id": "predict-returns-list",
+          "category": "prediction",
+          "mentions_symbol": false,
+          "rank": 10,
+          "top": [
+            "ultralytics/engine/results.py::Boxes.cls",
+            "ultralytics/models/yolo/obb/predict.py::OBBPredictor.construct_result",
+            "ultralytics/models/yolo/detect/predict.py::DetectionPredictor.construct_result",
+            "ultralytics/engine/results.py::Boxes.__init__",
+            "ultralytics/engine/results.py::Boxes",
+            "ultralytics/models/sam/sam3/sam3_image.py::SAM3SemanticModel._update_scores_and_boxes",
+            "ultralytics/engine/results.py::Boxes.conf",
+            "ultralytics/models/yolo/detect/val.py::DetectionValidator.plot_predictions",
+            "ultralytics/models/yolo/classify/val.py::ClassificationValidator.postprocess",
+            "ultralytics/engine/model.py::Model.__call__"
+          ]
+        },
+        {
+          "question_id": "predict-box-size",
+          "category": "prediction",
+          "mentions_symbol": false,
+          "rank": 7,
+          "top": [
+            "ultralytics/data/utils.py::exif_size",
+            "ultralytics/models/yolo/detect/predict.py::DetectionPredictor.get_obj_feats",
+            "ultralytics/models/yolo/pose/val.py::PoseValidator.gather_stats",
+            "ultralytics/engine/predictor.py::BasePredictor.show",
+            "ultralytics/models/yolo/detect/predict.py::DetectionPredictor.construct_result",
+            "ultralytics/engine/results.py::Results.summary",
+            "ultralytics/engine/results.py::Boxes.xywh",
+            "ultralytics/engine/results.py::Results.verbose",
+            "ultralytics/models/yolo/detect/predict.py::DetectionPredictor",
+            "ultralytics/engine/results.py::Boxes"
+          ]
+        },
+        {
+          "question_id": "predict-plot-no-boxes",
+          "category": "prediction",
+          "mentions_symbol": false,
+          "rank": null,
+          "top": [
+            "ultralytics/models/sam/amg.py::batched_mask_to_box",
+            "ultralytics/data/augment.py::LoadVisualPrompt.make_mask",
+            "ultralytics/models/sam/sam3/sam3_image.py::SAM3SemanticModel._run_segmentation_heads",
+            "ultralytics/engine/results.py::Masks",
+            "ultralytics/models/yolo/segment/predict.py::SegmentationPredictor.construct_result",
+            "ultralytics/models/sam/sam3/maskformer_segmentation.py::MaskPredictor.forward",
+            "ultralytics/models/sam/modules/sam.py::SAM2Model._use_mask_as_output",
+            "ultralytics/models/sam/predict.py::Predictor.postprocess",
+            "ultralytics/models/sam/sam3/maskformer_segmentation.py::SegmentationHead._embed_pixels",
+            "ultralytics/models/yolo/segment/predict.py::SegmentationPredictor.postprocess"
+          ]
+        },
+        {
+          "question_id": "predict-crop",
+          "category": "prediction",
+          "mentions_symbol": false,
+          "rank": 1,
+          "top": [
+            "ultralytics/engine/results.py::Results.save_crop",
+            "ultralytics/data/split_dota.py::crop_and_save",
+            "ultralytics/models/yolo/semantic/val.py::SemanticSegmentationValidator.save_pred_masks",
+            "ultralytics/engine/results.py::Results.save",
+            "ultralytics/data/augment.py::CenterCrop.__init__",
+            "ultralytics/models/yolo/segment/val.py::SegmentationValidator.save_one_txt",
+            "ultralytics/engine/results.py::Results.save_txt",
+            "ultralytics/models/yolo/classify/predict.py::ClassificationPredictor.pre_transform",
+            "ultralytics/engine/predictor.py::BasePredictor.save_predicted_images",
+            "ultralytics/models/yolo/detect/val.py::DetectionValidator.save_one_txt"
+          ]
+        },
+        {
+          "question_id": "predict-seg-masks",
+          "category": "prediction",
+          "mentions_symbol": false,
+          "rank": 1,
+          "top": [
+            "ultralytics/models/yolo/segment/predict.py::SegmentationPredictor.construct_result",
+            "ultralytics/models/sam/sam3/maskformer_segmentation.py::ultralytics.models.sam.sam3.maskformer_segmentation",
+            "ultralytics/models/sam/modules/decoders.py::ultralytics.models.sam.modules.decoders",
+            "ultralytics/models/sam/sam3/maskformer_segmentation.py::SegmentationHead.__init__",
+            "ultralytics/engine/results.py::Masks",
+            "ultralytics/engine/results.py::SemanticMask",
+            "ultralytics/models/sam/sam3/maskformer_segmentation.py::MaskPredictor.__init__",
+            "ultralytics/models/sam/modules/decoders.py::SAM2MaskDecoder",
+            "ultralytics/models/sam/modules/decoders.py::SAM2MaskDecoder.predict_masks",
+            "ultralytics/models/sam/modules/sam.py::SAMModel"
+          ]
+        },
+        {
+          "question_id": "predict-cls-top5",
+          "category": "prediction",
+          "mentions_symbol": false,
+          "rank": 3,
+          "top": [
+            "ultralytics/engine/results.py::Probs.top1conf",
+            "ultralytics/engine/results.py::Probs.top1",
+            "ultralytics/engine/results.py::Probs.top5",
+            "ultralytics/engine/results.py::Probs",
+            "ultralytics/engine/results.py::Probs.__init__",
+            "ultralytics/engine/results.py::Probs.top5conf",
+            "ultralytics/engine/model.py::Model.names",
+            "ultralytics/models/yolo/classify/val.py::ClassificationValidator.get_desc",
+            "ultralytics/models/yolo/model.py::YOLOE.get_vocab",
+            "ultralytics/models/yolo/classify/val.py::ClassificationValidator.update_metrics"
+          ]
+        },
+        {
+          "question_id": "val-vs-predict",
+          "category": "validation",
+          "mentions_symbol": true,
+          "rank": null,
+          "top": [
+            "ultralytics/models/yolo/detect/predict.py::DetectionPredictor.construct_result",
+            "ultralytics/models/yolo/detect/val.py::DetectionValidator._prepare_pred",
+            "ultralytics/models/yolo/detect/val.py::DetectionValidator.plot_predictions",
+            "ultralytics/models/yolo/detect/val.py::ultralytics.models.yolo.detect.val",
+            "ultralytics/models/yolo/semantic/val.py::SemanticSegmentationValidator.plot_predictions",
+            "ultralytics/engine/validator.py::BaseValidator.__call__",
+            "ultralytics/models/yolo/detect/predict.py::DetectionPredictor.construct_results",
+            "ultralytics/models/yolo/classify/val.py::ClassificationValidator.plot_predictions",
+            "ultralytics/models/yolo/detect/val.py::DetectionValidator.__init__",
+            "ultralytics/models/yolo/detect/val.py::DetectionValidator.postprocess"
+          ]
+        },
+        {
+          "question_id": "val-test-split",
+          "category": "validation",
+          "mentions_symbol": false,
+          "rank": 7,
+          "top": [
+            "ultralytics/models/yolo/world/train_world.py::WorldTrainerFromScratch.final_eval",
+            "ultralytics/engine/model.py::Model.eval",
+            "ultralytics/engine/trainer.py::BaseTrainer.final_eval",
+            "ultralytics/engine/validator.py::BaseValidator.get_model",
+            "ultralytics/engine/validator.py::ultralytics.engine.validator",
+            "ultralytics/models/yolo/semantic/train.py::SemanticSegmentationTrainer.get_validator",
+            "ultralytics/engine/validator.py::BaseValidator.__call__",
+            "ultralytics/models/yolo/world/train.py::on_pretrain_routine_end",
+            "ultralytics/engine/trainer.py::BaseTrainer.validate",
+            "ultralytics/models/yolo/world/val.py::WorldValidator.__call__"
+          ]
+        },
+        {
+          "question_id": "export-openvino",
+          "category": "export",
+          "mentions_symbol": false,
+          "rank": 1,
+          "top": [
+            "ultralytics/engine/exporter.py::Exporter.export_openvino",
+            "ultralytics/engine/exporter.py::ultralytics.engine.exporter",
+            "ultralytics/engine/exporter.py::Exporter.export_imx",
+            "ultralytics/engine/exporter.py::Exporter",
+            "ultralytics/engine/exporter.py::Exporter.export_qnn",
+            "ultralytics/engine/exporter.py::Exporter.export_engine",
+            "ultralytics/engine/exporter.py::Exporter.export_onnx",
+            "ultralytics/models/yolo/__init__.py::ultralytics.models.yolo",
+            "ultralytics/engine/exporter.py::export_formats",
+            "ultralytics/engine/predictor.py::BasePredictor.setup_model"
+          ]
+        },
+        {
+          "question_id": "export-tensorrt",
+          "category": "export",
+          "mentions_symbol": false,
+          "rank": 1,
+          "top": [
+            "ultralytics/engine/exporter.py::Exporter.export_engine",
+            "ultralytics/engine/exporter.py::Exporter.export_onnx",
+            "ultralytics/engine/exporter.py::Exporter.__call__",
+            "ultralytics/engine/model.py::Model.export",
+            "ultralytics/engine/exporter.py::ultralytics.engine.exporter",
+            "ultralytics/engine/exporter.py::NMSModel.__init__",
+            "ultralytics/engine/exporter.py::Exporter.export_saved_model",
+            "ultralytics/engine/exporter.py::QNNModel",
+            "ultralytics/engine/exporter.py::export_formats",
+            "ultralytics/engine/exporter.py::Exporter.export_hailo"
+          ]
+        },
+        {
+          "question_id": "export-onnx-dynamic",
+          "category": "export",
+          "mentions_symbol": false,
+          "rank": 1,
+          "top": [
+            "ultralytics/engine/exporter.py::Exporter.export_onnx",
+            "ultralytics/engine/exporter.py::NMSModel.__init__",
+            "ultralytics/engine/exporter.py::NMSModel",
+            "ultralytics/engine/exporter.py::NMSModel.forward",
+            "ultralytics/engine/model.py::Model.export",
+            "ultralytics/engine/exporter.py::Exporter.export_hailo",
+            "ultralytics/engine/exporter.py::Exporter.export_mnn",
+            "ultralytics/engine/exporter.py::Exporter.__call__",
+            "ultralytics/engine/exporter.py::QNNModel",
+            "ultralytics/engine/exporter.py::Exporter.export_ascend"
+          ]
+        },
+        {
+          "question_id": "export-coreml-nms",
+          "category": "export",
+          "mentions_symbol": true,
+          "rank": 3,
+          "top": [
+            "ultralytics/models/yolo/detect/val.py::DetectionValidator.postprocess",
+            "ultralytics/engine/exporter.py::NMSModel.forward",
+            "ultralytics/engine/exporter.py::NMSModel",
+            "ultralytics/models/nas/val.py::NASValidator.postprocess",
+            "ultralytics/engine/exporter.py::Exporter.export_coreml",
+            "ultralytics/models/nas/val.py::NASValidator",
+            "ultralytics/models/yolo/detect/predict.py::DetectionPredictor.postprocess",
+            "ultralytics/engine/exporter.py::NMSModel.__init__",
+            "ultralytics/models/yolo/detect/predict.py::ultralytics.models.yolo.detect.predict",
+            "ultralytics/models/nas/predict.py::NASPredictor"
+          ]
+        },
+        {
+          "question_id": "model-fastsam-prompts",
+          "category": "models",
+          "mentions_symbol": true,
+          "rank": 1,
+          "top": [
+            "ultralytics/models/fastsam/predict.py::FastSAMPredictor.prompt",
+            "ultralytics/models/fastsam/predict.py::FastSAMPredictor.postprocess",
+            "ultralytics/models/sam/modules/sam.py::SAM2Model._forward_sam_heads",
+            "ultralytics/models/sam/modules/decoders.py::SAM2MaskDecoder.forward",
+            "ultralytics/models/sam/modules/sam.py::SAM2Model._use_mask_as_output",
+            "ultralytics/models/fastsam/predict.py::FastSAMPredictor",
+            "ultralytics/models/sam/modules/sam.py::SAMModel.__init__",
+            "ultralytics/models/sam/modules/sam.py::SAM2Model.__init__",
+            "ultralytics/models/sam/modules/sam.py::SAM3Model.__init__",
+            "ultralytics/models/fastsam/predict.py::FastSAMPredictor.__init__"
+          ]
+        },
+        {
+          "question_id": "model-yoloworld-classes",
+          "category": "models",
+          "mentions_symbol": false,
+          "rank": 7,
+          "top": [
+            "ultralytics/models/yolo/model.py::YOLOWorld",
+            "ultralytics/models/yolo/model.py::YOLOE.set_vocab",
+            "ultralytics/models/yolo/model.py::YOLOE.get_vocab",
+            "ultralytics/models/yolo/world/val.py::WorldValidator",
+            "ultralytics/models/yolo/__init__.py::ultralytics.models.yolo",
+            "ultralytics/models/yolo/classify/train.py::ClassificationTrainer.set_model_attributes",
+            "ultralytics/models/yolo/model.py::YOLOWorld.set_classes",
+            "ultralytics/models/yolo/model.py::YOLOE.set_classes",
+            "ultralytics/models/yolo/world/val.py::ultralytics.models.yolo.world.val",
+            "ultralytics/models/yolo/model.py::YOLOWorld.__init__"
+          ]
+        },
+        {
+          "question_id": "model-rtdetr-train",
+          "category": "models",
+          "mentions_symbol": false,
+          "rank": 5,
+          "top": [
+            "ultralytics/models/rtdetr/__init__.py::ultralytics.models.rtdetr",
+            "ultralytics/engine/model.py::ultralytics.engine.model",
+            "ultralytics/engine/trainer.py::BaseTrainer",
+            "ultralytics/engine/model.py::Model",
+            "ultralytics/models/rtdetr/train.py::RTDETRTrainer",
+            "ultralytics/models/rtdetr/train.py::ultralytics.models.rtdetr.train",
+            "ultralytics/models/rtdetr/predict.py::ultralytics.models.rtdetr.predict",
+            "ultralytics/engine/trainer.py::ultralytics.engine.trainer",
+            "ultralytics/models/yolo/world/train.py::ultralytics.models.yolo.world.train",
+            "ultralytics/engine/trainer.py::BaseTrainer.final_eval"
+          ]
+        },
+        {
+          "question_id": "model-sam2-dynamic",
+          "category": "models",
+          "mentions_symbol": false,
+          "rank": null,
+          "top": [
+            "ultralytics/models/sam/predict.py::SAM3VideoSemanticPredictor._tracker_add_new_objects",
+            "ultralytics/models/sam/predict.py::SAM2VideoPredictor._obj_id_to_idx",
+            "ultralytics/models/sam/predict.py::SAM2VideoPredictor",
+            "ultralytics/models/sam/modules/sam.py::SAM2Model",
+            "ultralytics/models/sam/modules/sam.py::SAM2Model.__init__",
+            "ultralytics/models/sam/modules/sam.py::SAM2Model._track_step",
+            "ultralytics/models/sam/modules/sam.py::SAM2Model.track_step",
+            "ultralytics/models/sam/predict.py::SAM3VideoSemanticPredictor._tracker_update_memories",
+            "ultralytics/models/sam/predict.py::SAM2VideoPredictor.remove_object",
+            "ultralytics/models/sam/predict.py::SAM2VideoPredictor._init_state"
+          ]
+        }
+      ]
+    },
+    {
+      "model": "BAAI/bge-small-en-v1.5",
+      "params_m": 33,
+      "dimensions": 384,
+      "hit_at_1": 0.525,
+      "hit_at_5": 0.775,
+      "hit_at_5_ci95": [
+        0.65,
+        0.9
+      ],
+      "mrr_at_10": 0.62625,
+      "median_query_latency_ms": 116.98856149450876,
+      "questions": [
+        {
+          "question_id": "train-resume",
+          "category": "training",
+          "mentions_symbol": false,
+          "rank": 1,
+          "top": [
+            "ultralytics/engine/trainer.py::BaseTrainer.resume_training",
+            "ultralytics/engine/trainer.py::BaseTrainer.check_resume",
+            "ultralytics/engine/model.py::Model.train",
+            "ultralytics/engine/trainer.py::BaseTrainer._handle_nan_recovery",
+            "ultralytics/engine/trainer.py::BaseTrainer.save_model",
+            "ultralytics/models/yolo/depth/calibrate.py::_rewind",
+            "ultralytics/engine/trainer.py::BaseTrainer._do_train",
+            "ultralytics/engine/trainer.py::BaseTrainer._load_checkpoint_state",
+            "ultralytics/engine/trainer.py::BaseTrainer._setup_train",
+            "ultralytics/engine/model.py::Model._val_data"
+          ]
+        },
+        {
+          "question_id": "train-optimizer-auto",
+          "category": "training",
+          "mentions_symbol": true,
+          "rank": 1,
+          "top": [
+            "ultralytics/engine/trainer.py::BaseTrainer.build_optimizer",
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer.auto_batch",
+            "ultralytics/engine/trainer.py::BaseTrainer",
+            "ultralytics/engine/trainer.py::BaseTrainer.optimizer_step",
+            "ultralytics/engine/trainer.py::BaseTrainer.auto_batch",
+            "ultralytics/engine/predictor.py::BasePredictor",
+            "ultralytics/engine/trainer.py::BaseTrainer._setup_scheduler",
+            "ultralytics/models/fastsam/predict.py::FastSAMPredictor",
+            "ultralytics/engine/trainer.py::BaseTrainer._build_train_pipeline",
+            "ultralytics/models/fastsam/predict.py::FastSAMPredictor.set_prompts"
+          ]
+        },
+        {
+          "question_id": "train-lr-schedule",
+          "category": "training",
+          "mentions_symbol": true,
+          "rank": 2,
+          "top": [
+            "ultralytics/models/sam/modules/tiny_encoder.py::TinyViT.set_layer_lr_decay",
+            "ultralytics/engine/trainer.py::BaseTrainer._setup_scheduler",
+            "ultralytics/engine/tuner.py::Tuner.__init__",
+            "ultralytics/engine/tuner.py::Tuner",
+            "ultralytics/engine/predictor.py::ultralytics.engine.predictor",
+            "ultralytics/engine/tuner.py::Tuner._mutate",
+            "ultralytics/engine/trainer.py::BaseTrainer.build_optimizer",
+            "ultralytics/engine/predictor.py::BasePredictor.stream_inference",
+            "ultralytics/models/sam/modules/memory_attention.py::MemoryAttentionLayer._forward_sa",
+            "ultralytics/engine/predictor.py::BasePredictor.predict_cli"
+          ]
+        },
+        {
+          "question_id": "train-warmup-bias",
+          "category": "training",
+          "mentions_symbol": true,
+          "rank": 1,
+          "top": [
+            "ultralytics/engine/trainer.py::BaseTrainer.build_optimizer",
+            "ultralytics/engine/tuner.py::Tuner.__init__",
+            "ultralytics/engine/trainer.py::BaseTrainer.optimizer_step",
+            "ultralytics/models/sam/modules/tiny_encoder.py::TinyViT.set_layer_lr_decay",
+            "ultralytics/engine/predictor.py::BasePredictor",
+            "ultralytics/engine/trainer.py::BaseTrainer",
+            "ultralytics/engine/trainer.py::BaseTrainer._get_warmup_iterations",
+            "ultralytics/data/augment.py::classify_augmentations",
+            "ultralytics/models/sam/modules/tiny_encoder.py::TinyViT.no_weight_decay_keywords",
+            "ultralytics/models/sam/sam3/maskformer_segmentation.py::PixelDecoder.__init__"
+          ]
+        },
+        {
+          "question_id": "train-freeze",
+          "category": "training",
+          "mentions_symbol": false,
+          "rank": null,
+          "top": [
+            "ultralytics/models/sam/modules/sam.py::SAM2Model._prepare_backbone_features",
+            "ultralytics/models/sam/modules/tiny_encoder.py::TinyViT.set_layer_lr_decay",
+            "ultralytics/models/sam/sam3/encoder.py::TransformerEncoder.__init__",
+            "ultralytics/models/sam/sam3/encoder.py::TransformerEncoder",
+            "ultralytics/models/sam/sam3/vitdet.py::ViT",
+            "ultralytics/models/sam/modules/tiny_encoder.py::ConvLayer",
+            "ultralytics/engine/trainer.py::BaseTrainer._model_train",
+            "ultralytics/models/sam/modules/encoders.py::FpnNeck.__init__",
+            "ultralytics/models/sam/modules/sam.py::SAM2Model",
+            "ultralytics/models/sam/modules/encoders.py::FpnNeck"
+          ]
+        },
+        {
+          "question_id": "train-grad-accum",
+          "category": "training",
+          "mentions_symbol": false,
+          "rank": null,
+          "top": [
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer.preprocess_batch",
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer.auto_batch",
+            "ultralytics/models/yolo/yoloe/predict.py::YOLOEVPDetectPredictor",
+            "ultralytics/models/yolo/segment/val.py::SegmentationValidator.postprocess",
+            "ultralytics/models/yolo/yoloe/predict.py::YOLOEVPDetectPredictor._prompts_to_tensor",
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer",
+            "ultralytics/models/yolo/detect/val.py::DetectionValidator.preprocess",
+            "ultralytics/models/yolo/segment/predict.py::SegmentationPredictor.postprocess",
+            "ultralytics/models/yolo/segment/val.py::SegmentationValidator._process_batch",
+            "ultralytics/models/yolo/segment/val.py::SegmentationValidator.preprocess"
+          ]
+        },
+        {
+          "question_id": "train-close-mosaic",
+          "category": "training",
+          "mentions_symbol": true,
+          "rank": 1,
+          "top": [
+            "ultralytics/engine/trainer.py::BaseTrainer._close_dataloader_mosaic",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOEVPTrainer._close_dataloader_mosaic",
+            "ultralytics/data/augment.py::Mosaic",
+            "ultralytics/data/dataset.py::YOLODataset.close_mosaic",
+            "ultralytics/data/dataset.py::YOLOConcatDataset.close_mosaic",
+            "ultralytics/data/augment.py::Mosaic.__init__",
+            "ultralytics/engine/trainer.py::BaseTrainer",
+            "ultralytics/data/augment.py::Mosaic.apply_image",
+            "ultralytics/data/augment.py::Mosaic._cat_labels",
+            "ultralytics/data/augment.py::Mosaic.apply_instances"
+          ]
+        },
+        {
+          "question_id": "train-multi-gpu",
+          "category": "training",
+          "mentions_symbol": false,
+          "rank": 1,
+          "top": [
+            "ultralytics/engine/trainer.py::BaseTrainer.train",
+            "ultralytics/engine/trainer.py::BaseTrainer._setup_ddp",
+            "ultralytics/data/build.py::build_dataloader",
+            "ultralytics/engine/trainer.py::BaseTrainer._do_train",
+            "ultralytics/engine/trainer.py::BaseTrainer._build_train_pipeline",
+            "ultralytics/engine/trainer.py::BaseTrainer._setup_train",
+            "ultralytics/engine/trainer.py::BaseTrainer",
+            "ultralytics/engine/trainer.py::MultiTrainer.__init__",
+            "ultralytics/engine/trainer.py::MultiTrainer.train",
+            "ultralytics/engine/trainer.py::BaseTrainer.build_optimizer"
+          ]
+        },
+        {
+          "question_id": "train-epoch-lag",
+          "category": "training",
+          "mentions_symbol": false,
+          "rank": 3,
+          "top": [
+            "ultralytics/models/yolo/depth/calibrate.py::_rewind",
+            "ultralytics/engine/trainer.py::BaseTrainer.resume_training",
+            "ultralytics/data/build.py::InfiniteDataLoader",
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer.get_dataloader",
+            "ultralytics/engine/trainer.py::BaseTrainer.check_resume",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOEVPTrainer._close_dataloader_mosaic",
+            "ultralytics/data/build.py::build_dataloader",
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer.set_model_names_for_load",
+            "ultralytics/models/yolo/world/train.py::WorldTrainer.build_dataset",
+            "ultralytics/models/yolo/world/train.py::on_pretrain_routine_end"
+          ]
+        },
+        {
+          "question_id": "train-autobatch",
+          "category": "training",
+          "mentions_symbol": true,
+          "rank": 1,
+          "top": [
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer.auto_batch",
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer.preprocess_batch",
+            "ultralytics/models/yolo/depth/train.py::DepthTrainer.preprocess_batch",
+            "ultralytics/models/yolo/segment/val.py::SegmentationValidator.preprocess",
+            "ultralytics/engine/trainer.py::BaseTrainer.auto_batch",
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer",
+            "ultralytics/models/yolo/segment/val.py::SegmentationValidator._prepare_batch",
+            "ultralytics/models/yolo/detect/val.py::DetectionValidator.preprocess",
+            "ultralytics/models/yolo/classify/train.py::ClassificationTrainer.preprocess_batch",
+            "ultralytics/models/yolo/world/train.py::WorldTrainer.preprocess_batch"
+          ]
+        },
+        {
+          "question_id": "train-plot-augmented",
+          "category": "training",
+          "mentions_symbol": false,
+          "rank": null,
+          "top": [
+            "ultralytics/data/augment.py::LetterBox.__init__",
+            "ultralytics/data/augment.py::ultralytics.data.augment",
+            "ultralytics/data/augment.py::classify_augmentations",
+            "ultralytics/data/augment.py::LetterBox.__call__",
+            "ultralytics/data/augment.py::LetterBox.apply_image",
+            "ultralytics/data/augment.py::BaseTransform.apply_image",
+            "ultralytics/data/augment.py::LoadVisualPrompt.get_visuals",
+            "ultralytics/data/augment.py::LetterBox",
+            "ultralytics/data/augment.py::SemanticFormat.apply_image",
+            "ultralytics/data/augment.py::LoadVisualPrompt.apply_image"
+          ]
+        },
+        {
+          "question_id": "train-tune",
+          "category": "training",
+          "mentions_symbol": true,
+          "rank": 1,
+          "top": [
+            "ultralytics/engine/model.py::Model.tune",
+            "ultralytics/engine/tuner.py::Tuner",
+            "ultralytics/engine/tuner.py::ultralytics.engine.tuner",
+            "ultralytics/engine/tuner.py::Tuner.__init__",
+            "ultralytics/engine/tuner.py::Tuner._constrain",
+            "ultralytics/engine/tuner.py::Tuner._mutate",
+            "ultralytics/engine/tuner.py::Tuner.__call__",
+            "ultralytics/engine/tuner.py::Tuner._local_results_to_array",
+            "ultralytics/engine/tuner.py::Tuner._best_result_index",
+            "ultralytics/engine/tuner.py::Tuner._best_metrics"
+          ]
+        },
+        {
+          "question_id": "data-default-augment",
+          "category": "data",
+          "mentions_symbol": false,
+          "rank": 3,
+          "top": [
+            "ultralytics/engine/model.py::Model.train",
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer",
+            "ultralytics/data/augment.py::v8_transforms",
+            "ultralytics/data/dataset.py::YOLOMultiModalDataset",
+            "ultralytics/data/augment.py::classify_augmentations",
+            "ultralytics/data/augment.py::MixUp",
+            "ultralytics/data/augment.py::MixUp.__init__",
+            "ultralytics/data/augment.py::RandomPerspective",
+            "ultralytics/models/yolo/semantic/train.py::SemanticSegmentationTrainer",
+            "ultralytics/data/augment.py::RandomHSV.apply_image"
+          ]
+        },
+        {
+          "question_id": "data-albumentations",
+          "category": "data",
+          "mentions_symbol": true,
+          "rank": 1,
+          "top": [
+            "ultralytics/data/augment.py::Albumentations",
+            "ultralytics/data/augment.py::Albumentations.__init__",
+            "ultralytics/data/augment.py::Albumentations.__call__",
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer",
+            "ultralytics/models/yolo/model.py::YOLO",
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer.build_dataset",
+            "ultralytics/models/yolo/semantic/train.py::SemanticSegmentationTrainer",
+            "ultralytics/data/dataset.py::YOLODataset",
+            "ultralytics/models/yolo/world/train.py::WorldTrainer",
+            "ultralytics/models/yolo/world/train.py::WorldTrainer.build_dataset"
+          ]
+        },
+        {
+          "question_id": "data-rect",
+          "category": "data",
+          "mentions_symbol": true,
+          "rank": 3,
+          "top": [
+            "ultralytics/models/sam/sam3/vitdet.py::ViT.set_imgsz",
+            "ultralytics/models/sam/modules/tiny_encoder.py::TinyViT.set_imgsz",
+            "ultralytics/data/base.py::BaseDataset.set_rectangle",
+            "ultralytics/models/sam/modules/sam.py::SAMModel.set_imgsz",
+            "ultralytics/models/sam/sam3/vl_combiner.py::SAM3VLBackbone.set_imgsz",
+            "ultralytics/models/sam/modules/sam.py::SAM3Model.set_imgsz",
+            "ultralytics/models/sam/modules/encoders.py::ImageEncoderViT.__init__",
+            "ultralytics/models/sam/modules/sam.py::SAM2Model.set_imgsz",
+            "ultralytics/models/rtdetr/val.py::RTDETRDataset.load_image",
+            "ultralytics/models/sam/sam3/vitdet.py::ViT.__init__"
+          ]
+        },
+        {
+          "question_id": "data-cache",
+          "category": "data",
+          "mentions_symbol": true,
+          "rank": 1,
+          "top": [
+            "ultralytics/data/base.py::BaseDataset.check_cache_ram",
+            "ultralytics/data/base.py::BaseDataset.check_cache_disk",
+            "ultralytics/data/dataset.py::YOLODataset._load_or_scan_cache",
+            "ultralytics/data/base.py::BaseDataset.cache_images",
+            "ultralytics/data/dataset.py::ClassificationDataset",
+            "ultralytics/data/dataset.py::YOLODataset.cache_labels",
+            "ultralytics/models/sam/predict.py::SAM2VideoPredictor._get_maskmem_pos_enc",
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer.auto_batch",
+            "ultralytics/data/dataset.py::YOLODataset.get_cache_hash",
+            "ultralytics/data/base.py::BaseDataset.load_image"
+          ]
+        },
+        {
+          "question_id": "data-no-labels",
+          "category": "data",
+          "mentions_symbol": false,
+          "rank": 1,
+          "top": [
+            "ultralytics/data/dataset.py::YOLODataset.get_labels",
+            "ultralytics/data/dataset.py::YOLODataset.cache_labels",
+            "ultralytics/data/dataset.py::YOLODataset",
+            "ultralytics/data/dataset.py::GroundingDataset.cache_labels",
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer.plot_training_samples",
+            "ultralytics/models/yolo/depth/train.py::DepthTrainer.plot_training_labels",
+            "ultralytics/data/dataset.py::YOLODataset.get_label_files",
+            "ultralytics/models/yolo/classify/train.py::ClassificationTrainer.plot_training_samples",
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer.plot_training_labels",
+            "ultralytics/data/dataset.py::YOLODataset.get_cache_hash"
+          ]
+        },
+        {
+          "question_id": "data-not-found",
+          "category": "data",
+          "mentions_symbol": false,
+          "rank": 1,
+          "top": [
+            "ultralytics/data/utils.py::check_det_dataset",
+            "ultralytics/data/utils.py::find_dataset_yaml",
+            "ultralytics/models/yolo/world/train_world.py::WorldTrainerFromScratch.get_dataset",
+            "ultralytics/data/utils.py::check_cls_dataset",
+            "ultralytics/engine/trainer.py::BaseTrainer.get_dataset",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOEVPTrainer.build_dataset",
+            "ultralytics/models/yolo/yoloe/train.py::YOLOETrainerFromScratch.build_dataset",
+            "ultralytics/models/yolo/classify/val.py::ClassificationValidator.get_dataloader",
+            "ultralytics/models/yolo/world/train_world.py::WorldTrainerFromScratch.build_dataset",
+            "ultralytics/models/yolo/world/train_world.py::WorldTrainerFromScratch.check_data_config"
+          ]
+        },
+        {
+          "question_id": "data-coco-convert",
+          "category": "data",
+          "mentions_symbol": false,
+          "rank": 1,
+          "top": [
+            "ultralytics/data/converter.py::convert_coco",
+            "ultralytics/models/yolo/pose/val.py::PoseValidator.pred_to_json",
+            "ultralytics/data/converter.py::ultralytics.data.converter",
+            "ultralytics/models/yolo/detect/val.py::DetectionValidator",
+            "ultralytics/data/dataset.py::YOLODataset",
+            "ultralytics/models/yolo/obb/val.py::OBBValidator.pred_to_json",
+            "ultralytics/data/converter.py::convert_ndjson_to_yolo",
+            "ultralytics/data/dataset.py::YOLODataset.get_labels",
+            "ultralytics/models/yolo/detect/val.py::DetectionValidator.pred_to_json",
+            "ultralytics/models/yolo/detect/val.py::DetectionValidator.coco_evaluate"
+          ]
+        },
+        {
+          "question_id": "data-mask-convert",
+          "category": "data",
+          "mentions_symbol": false,
+          "rank": 1,
+          "top": [
+            "ultralytics/data/converter.py::convert_segment_masks_to_yolo_seg",
+            "ultralytics/data/dataset.py::PolygonSemanticDataset",
+            "ultralytics/data/converter.py::yolo_bbox2segment",
+            "ultralytics/data/utils.py::ultralytics.data.utils",
+            "ultralytics/data/dataset.py::YOLODataset",
+            "ultralytics/models/yolo/segment/predict.py::SegmentationPredictor.construct_result",
+            "ultralytics/models/yolo/segment/val.py::SegmentationValidator.preprocess",
+            "ultralytics/data/augment.py::Format._format_segments",
+            "ultralytics/models/yolo/segment/val.py::SegmentationValidator.scale_preds",
+            "ultralytics/data/converter.py::convert_dota_to_yolo_obb"
+          ]
+        },
+        {
+          "question_id": "data-letterbox-auto",
+          "category": "data",
+          "mentions_symbol": true,
+          "rank": 1,
+          "top": [
+            "ultralytics/data/augment.py::LetterBox",
+            "ultralytics/data/augment.py::ClassifyLetterBox",
+            "ultralytics/data/augment.py::LetterBox.__init__",
+            "ultralytics/data/augment.py::ClassifyLetterBox.__call__",
+            "ultralytics/data/augment.py::LetterBox.get_params",
+            "ultralytics/data/augment.py::LetterBox._update_labels",
+            "ultralytics/data/augment.py::LetterBox.__call__",
+            "ultralytics/data/augment.py::ClassifyLetterBox.__init__",
+            "ultralytics/data/augment.py::LetterBox.apply_image",
+            "ultralytics/data/augment.py::RandomLoadText.__init__"
+          ]
+        },
+        {
+          "question_id": "data-multi-rtsp",
+          "category": "data",
+          "mentions_symbol": false,
+          "rank": null,
+          "top": [
+            "ultralytics/engine/predictor.py::BasePredictor.stream_inference",
+            "ultralytics/data/build.py::load_inference_source",
+            "ultralytics/models/sam/predict.py::SAM3VideoSemanticPredictor.inference",
+            "ultralytics/models/sam/predict.py::SAM2VideoPredictor.propagate_in_video_preflight",
+            "ultralytics/models/sam/predict.py::SAM2VideoPredictor._run_single_frame_inference",
+            "ultralytics/engine/predictor.py::BasePredictor.__call__",
+            "ultralytics/models/sam/predict.py::SAM2VideoPredictor._consolidate_temp_output_across_obj",
+            "ultralytics/models/sam/predict.py::SAM3VideoPredictor.propagate_in_video",
+            "ultralytics/models/sam/predict.py::SAM2VideoPredictor.inference",
+            "ultralytics/models/sam/predict.py::SAM2VideoPredictor"
+          ]
+        },
+        {
+          "question_id": "data-rtsp-reconnect",
+          "category": "data",
+          "mentions_symbol": false,
+          "rank": 10,
+          "top": [
+            "ultralytics/engine/predictor.py::ultralytics.engine.predictor",
+            "ultralytics/engine/predictor.py::BasePredictor.stream_inference",
+            "ultralytics/models/sam/predict.py::SAM2VideoPredictor._get_empty_mask_ptr",
+            "ultralytics/models/sam/predict.py::SAM2VideoPredictor._reset_tracking_results",
+            "ultralytics/models/sam/predict.py::SAM2VideoPredictor",
+            "ultralytics/models/sam/predict.py::SAM2VideoPredictor.propagate_in_video_preflight",
+            "ultralytics/models/sam/predict.py::SAM2VideoPredictor._consolidate_temp_output_across_obj",
+            "ultralytics/models/sam/predict.py::SAM2VideoPredictor._prune_non_cond_memory",
+            "ultralytics/engine/predictor.py::BasePredictor.predict_cli",
+            "ultralytics/data/loaders.py::LoadStreams.update"
+          ]
+        },
+        {
+          "question_id": "predict-stream",
+          "category": "prediction",
+          "mentions_symbol": true,
+          "rank": 2,
+          "top": [
+            "ultralytics/engine/predictor.py::ultralytics.engine.predictor",
+            "ultralytics/engine/predictor.py::BasePredictor.stream_inference",
+            "ultralytics/engine/predictor.py::BasePredictor.__call__",
+            "ultralytics/engine/model.py::Model.predict",
+            "ultralytics/models/yolo/model.py::YOLOE.predict",
+            "ultralytics/engine/model.py::Model.__call__",
+            "ultralytics/engine/predictor.py::BasePredictor.predict_cli",
+            "ultralytics/models/fastsam/model.py::FastSAM.predict",
+            "ultralytics/engine/predictor.py::BasePredictor",
+            "ultralytics/models/yolo/model.py::YOLOE"
+          ]
+        },
+        {
+          "question_id": "predict-returns-list",
+          "category": "prediction",
+          "mentions_symbol": false,
+          "rank": 6,
+          "top": [
+            "ultralytics/models/rtdetr/predict.py::RTDETRPredictor.postprocess",
+            "ultralytics/models/yolo/segment/predict.py::SegmentationPredictor.construct_result",
+            "ultralytics/engine/results.py::Boxes.cls",
+            "ultralytics/models/yolo/segment/predict.py::SegmentationPredictor.construct_results",
+            "ultralytics/models/yolo/model.py::YOLOE.predict",
+            "ultralytics/engine/model.py::Model.predict",
+            "ultralytics/models/fastsam/predict.py::FastSAMPredictor.prompt",
+            "ultralytics/models/sam/predict.py::SAM3SemanticPredictor._inference_features",
+            "ultralytics/engine/predictor.py::ultralytics.engine.predictor",
+            "ultralytics/models/sam/sam3/sam3_image.py::SAM3SemanticModel._update_scores_and_boxes"
+          ]
+        },
+        {
+          "question_id": "predict-box-size",
+          "category": "prediction",
+          "mentions_symbol": false,
+          "rank": null,
+          "top": [
+            "ultralytics/models/yolo/detect/val.py::DetectionValidator.gather_stats",
+            "ultralytics/models/yolo/detect/val.py::DetectionValidator._gather_image_metrics",
+            "ultralytics/engine/results.py::Masks.xy",
+            "ultralytics/models/yolo/pose/val.py::PoseValidator",
+            "ultralytics/engine/results.py::Results.summary",
+            "ultralytics/data/augment.py::LoadVisualPrompt.get_visuals",
+            "ultralytics/data/utils.py::polygons2masks_overlap",
+            "ultralytics/models/yolo/detect/val.py::DetectionValidator.scale_preds",
+            "ultralytics/data/utils.py::polygon2mask",
+            "ultralytics/data/augment.py::LetterBox.__init__"
+          ]
+        },
+        {
+          "question_id": "predict-plot-no-boxes",
+          "category": "prediction",
+          "mentions_symbol": false,
+          "rank": null,
+          "top": [
+            "ultralytics/models/sam/amg.py::batched_mask_to_box",
+            "ultralytics/models/yolo/segment/predict.py::SegmentationPredictor.construct_result",
+            "ultralytics/engine/results.py::Masks",
+            "ultralytics/data/augment.py::RandomPerspective.apply_segments",
+            "ultralytics/data/augment.py::LoadVisualPrompt.get_visuals",
+            "ultralytics/data/augment.py::LoadVisualPrompt.make_mask",
+            "ultralytics/models/sam/predict.py::SAM3VideoSemanticPredictor._suppress_detections_close_to_boundary",
+            "ultralytics/models/fastsam/utils.py::adjust_bboxes_to_image_border",
+            "ultralytics/data/dataset.py::GroundingDataset.cache_labels",
+            "ultralytics/models/sam/predict.py::Predictor.inference"
+          ]
+        },
+        {
+          "question_id": "predict-crop",
+          "category": "prediction",
+          "mentions_symbol": false,
+          "rank": 1,
+          "top": [
+            "ultralytics/engine/results.py::Results.save_crop",
+            "ultralytics/data/split_dota.py::crop_and_save",
+            "ultralytics/data/split_dota.py::split_images_and_labels",
+            "ultralytics/engine/results.py::Results.save_txt",
+            "ultralytics/data/split_dota.py::split_test",
+            "ultralytics/models/yolo/detect/val.py::DetectionValidator.save_one_txt",
+            "ultralytics/data/split.py::autosplit",
+            "ultralytics/models/yolo/segment/val.py::SegmentationValidator.save_one_txt",
+            "ultralytics/data/utils.py::ultralytics.data.utils",
+            "ultralytics/models/yolo/detect/val.py::DetectionValidator"
+          ]
+        },
+        {
+          "question_id": "predict-seg-masks",
+          "category": "prediction",
+          "mentions_symbol": false,
+          "rank": 2,
+          "top": [
+            "ultralytics/models/sam/predict.py::Predictor.inference",
+            "ultralytics/engine/results.py::Masks",
+            "ultralytics/models/yolo/segment/predict.py::SegmentationPredictor.construct_result",
+            "ultralytics/models/sam/predict.py::Predictor.prompt_inference",
+            "ultralytics/models/sam/sam3/maskformer_segmentation.py::MaskPredictor.forward",
+            "ultralytics/models/sam/sam3/maskformer_segmentation.py::SegmentationHead",
+            "ultralytics/models/sam/modules/decoders.py::SAM2MaskDecoder",
+            "ultralytics/models/sam/modules/sam.py::SAMModel",
+            "ultralytics/models/sam/modules/decoders.py::MaskDecoder",
+            "ultralytics/models/sam/sam3/maskformer_segmentation.py::ultralytics.models.sam.sam3.maskformer_segmentation"
+          ]
+        },
+        {
+          "question_id": "predict-cls-top5",
+          "category": "prediction",
+          "mentions_symbol": false,
+          "rank": 1,
+          "top": [
+            "ultralytics/engine/results.py::Probs.top5conf",
+            "ultralytics/engine/results.py::Probs.top1conf",
+            "ultralytics/engine/model.py::Model.names",
+            "ultralytics/engine/results.py::Probs",
+            "ultralytics/engine/results.py::Probs.top5",
+            "ultralytics/engine/results.py::Probs.top1",
+            "ultralytics/models/yolo/model.py::YOLOE.get_vocab",
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer.get_class_counts",
+            "ultralytics/models/yolo/model.py::YOLOWorld.set_classes",
+            "ultralytics/models/yolo/model.py::YOLOE.set_classes"
+          ]
+        },
+        {
+          "question_id": "val-vs-predict",
+          "category": "validation",
+          "mentions_symbol": true,
+          "rank": 4,
+          "top": [
+            "ultralytics/models/yolo/detect/val.py::DetectionValidator.plot_predictions",
+            "ultralytics/models/yolo/classify/val.py::ClassificationValidator",
+            "ultralytics/models/yolo/model.py::YOLOE.predict",
+            "ultralytics/engine/model.py::Model.predict",
+            "ultralytics/models/yolo/semantic/val.py::SemanticSegmentationValidator.plot_predictions",
+            "ultralytics/models/yolo/detect/val.py::DetectionValidator.plot_val_samples",
+            "ultralytics/models/yolo/classify/val.py::ClassificationValidator.plot_predictions",
+            "ultralytics/models/sam/predict.py::Predictor.set_image",
+            "ultralytics/models/yolo/depth/val.py::DepthValidator.plot_predictions",
+            "ultralytics/models/rtdetr/predict.py::RTDETRPredictor.postprocess"
+          ]
+        },
+        {
+          "question_id": "val-test-split",
+          "category": "validation",
+          "mentions_symbol": false,
+          "rank": 5,
+          "top": [
+            "ultralytics/engine/model.py::Model.eval",
+            "ultralytics/engine/validator.py::BaseValidator.get_model",
+            "ultralytics/models/yolo/world/train_world.py::WorldTrainerFromScratch.final_eval",
+            "ultralytics/models/yolo/depth/train.py::DepthTrainer.final_eval",
+            "ultralytics/engine/validator.py::BaseValidator.__call__",
+            "ultralytics/engine/trainer.py::BaseTrainer.final_eval",
+            "ultralytics/models/yolo/world/train.py::on_pretrain_routine_end",
+            "ultralytics/data/split_dota.py::split_trainval",
+            "ultralytics/models/yolo/world/train_world.py::WorldTrainerFromScratch.get_dataset",
+            "ultralytics/data/split_dota.py::split_test"
+          ]
+        },
+        {
+          "question_id": "export-openvino",
+          "category": "export",
+          "mentions_symbol": false,
+          "rank": 1,
+          "top": [
+            "ultralytics/engine/exporter.py::Exporter.export_openvino",
+            "ultralytics/engine/exporter.py::Exporter",
+            "ultralytics/engine/exporter.py::ultralytics.engine.exporter",
+            "ultralytics/engine/exporter.py::Exporter.__call__",
+            "ultralytics/engine/exporter.py::export_formats",
+            "ultralytics/engine/exporter.py::Exporter.export_qnn",
+            "ultralytics/engine/exporter.py::Exporter.export_saved_model",
+            "ultralytics/engine/exporter.py::Exporter.export_rknn",
+            "ultralytics/engine/exporter.py::Exporter.export_litert",
+            "ultralytics/models/yolo/model.py::YOLO.__init__"
+          ]
+        },
+        {
+          "question_id": "export-tensorrt",
+          "category": "export",
+          "mentions_symbol": false,
+          "rank": 1,
+          "top": [
+            "ultralytics/engine/exporter.py::Exporter.export_engine",
+            "ultralytics/engine/exporter.py::Exporter.export_onnx",
+            "ultralytics/engine/model.py::Model.export",
+            "ultralytics/engine/exporter.py::Exporter.__call__",
+            "ultralytics/engine/exporter.py::Exporter.export_saved_model",
+            "ultralytics/engine/exporter.py::Exporter.export_rknn",
+            "ultralytics/engine/exporter.py::ultralytics.engine.exporter",
+            "ultralytics/engine/exporter.py::Exporter.export_ascend",
+            "ultralytics/engine/exporter.py::Exporter",
+            "ultralytics/engine/exporter.py::Exporter._transform_fn"
+          ]
+        },
+        {
+          "question_id": "export-onnx-dynamic",
+          "category": "export",
+          "mentions_symbol": false,
+          "rank": 1,
+          "top": [
+            "ultralytics/engine/exporter.py::Exporter.export_onnx",
+            "ultralytics/engine/exporter.py::Exporter.__call__",
+            "ultralytics/engine/model.py::Model.export",
+            "ultralytics/engine/exporter.py::Exporter.export_qnn",
+            "ultralytics/engine/exporter.py::NMSModel.forward",
+            "ultralytics/engine/exporter.py::Exporter.export_mnn",
+            "ultralytics/engine/exporter.py::QNNModel",
+            "ultralytics/engine/exporter.py::Exporter.export_rknn",
+            "ultralytics/engine/exporter.py::NMSModel",
+            "ultralytics/engine/exporter.py::Exporter.export_hailo"
+          ]
+        },
+        {
+          "question_id": "export-coreml-nms",
+          "category": "export",
+          "mentions_symbol": true,
+          "rank": 2,
+          "top": [
+            "ultralytics/engine/exporter.py::Exporter.__call__",
+            "ultralytics/engine/exporter.py::Exporter.export_coreml",
+            "ultralytics/models/yolo/detect/val.py::DetectionValidator.postprocess",
+            "ultralytics/engine/exporter.py::NMSModel",
+            "ultralytics/engine/exporter.py::NMSModel.forward",
+            "ultralytics/engine/exporter.py::Exporter.export_hailo",
+            "ultralytics/engine/exporter.py::NMSModel.__init__",
+            "ultralytics/models/yolo/detect/val.py::DetectionValidator._check_max_det",
+            "ultralytics/models/nas/val.py::NASValidator.postprocess",
+            "ultralytics/models/sam/predict.py::SAM3VideoSemanticPredictor.__init__"
+          ]
+        },
+        {
+          "question_id": "model-fastsam-prompts",
+          "category": "models",
+          "mentions_symbol": true,
+          "rank": 1,
+          "top": [
+            "ultralytics/models/fastsam/predict.py::FastSAMPredictor.prompt",
+            "ultralytics/models/fastsam/predict.py::FastSAMPredictor.postprocess",
+            "ultralytics/models/fastsam/predict.py::FastSAMPredictor",
+            "ultralytics/models/fastsam/model.py::FastSAM.predict",
+            "ultralytics/models/fastsam/model.py::FastSAM",
+            "ultralytics/models/sam/predict.py::SAM2VideoPredictor.add_new_prompts",
+            "ultralytics/models/fastsam/predict.py::FastSAMPredictor.set_prompts",
+            "ultralytics/models/sam/predict.py::SAM2VideoPredictor.inference",
+            "ultralytics/models/sam/modules/encoders.py::PromptEncoder.forward",
+            "ultralytics/models/sam/sam3/geometry_encoders.py::Prompt"
+          ]
+        },
+        {
+          "question_id": "model-yoloworld-classes",
+          "category": "models",
+          "mentions_symbol": false,
+          "rank": 3,
+          "top": [
+            "ultralytics/models/yolo/model.py::YOLOWorld",
+            "ultralytics/models/yolo/model.py::YOLOE.set_classes",
+            "ultralytics/models/yolo/model.py::YOLOWorld.set_classes",
+            "ultralytics/models/yolo/world/val.py::WorldValidator",
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer.set_model_names_for_load",
+            "ultralytics/models/yolo/classify/train.py::ClassificationTrainer.set_model_attributes",
+            "ultralytics/models/yolo/world/train.py::WorldTrainer",
+            "ultralytics/models/yolo/model.py::YOLOE.get_vocab",
+            "ultralytics/models/yolo/model.py::YOLOE.set_vocab",
+            "ultralytics/models/yolo/model.py::YOLO"
+          ]
+        },
+        {
+          "question_id": "model-rtdetr-train",
+          "category": "models",
+          "mentions_symbol": false,
+          "rank": 1,
+          "top": [
+            "ultralytics/models/rtdetr/train.py::RTDETRTrainer",
+            "ultralytics/models/rtdetr/val.py::RTDETRDataset",
+            "ultralytics/models/nas/model.py::NAS",
+            "ultralytics/models/yolo/model.py::YOLO",
+            "ultralytics/models/rtdetr/model.py::ultralytics.models.rtdetr.model",
+            "ultralytics/models/rtdetr/model.py::RTDETR",
+            "ultralytics/models/yolo/world/train.py::WorldTrainer",
+            "ultralytics/engine/trainer.py::ultralytics.engine.trainer",
+            "ultralytics/models/yolo/pose/train.py::PoseTrainer",
+            "ultralytics/models/yolo/detect/train.py::DetectionTrainer"
+          ]
+        },
+        {
+          "question_id": "model-sam2-dynamic",
+          "category": "models",
+          "mentions_symbol": false,
+          "rank": null,
+          "top": [
+            "ultralytics/models/sam/predict.py::SAM3VideoSemanticPredictor._tracker_add_new_objects",
+            "ultralytics/models/sam/modules/sam.py::SAM2Model._track_step",
+            "ultralytics/models/sam/modules/sam.py::SAM2Model.track_step",
+            "ultralytics/models/sam/predict.py::SAM2VideoPredictor.add_new_prompts",
+            "ultralytics/models/sam/predict.py::SAM3VideoSemanticPredictor._det_track_one_frame",
+            "ultralytics/models/sam/build_sam3.py::build_interactive_sam3",
+            "ultralytics/models/sam/predict.py::SAM2VideoPredictor.inference",
+            "ultralytics/models/sam/predict.py::SAM3VideoSemanticPredictor.inference",
+            "ultralytics/models/sam/predict.py::SAM2DynamicInteractivePredictor.track_step",
+            "ultralytics/models/sam/predict.py::SAM3VideoSemanticPredictor.run_tracker_update_execution_phase"
+          ]
+        }
+      ]
+    }
+  ],
+  "atlas_agreement": {
+    "model": "BAAI/bge-small-en-v1.5",
+    "overlap_at_5": 0.99,
+    "hit_at_5_exact": 0.775,
+    "hit_at_5_atlas": 0.775
+  }
+}

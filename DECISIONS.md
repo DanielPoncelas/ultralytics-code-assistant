@@ -93,7 +93,7 @@ Every significant design decision, with the alternatives considered and the trad
 
 ## D12. Embeddings: local sentence-transformers, pinned revisions, 4 candidates, chosen with data
 
-- **Decision:** the model is configurable among 4 pre-selected candidates, each pinned to an exact Hugging Face revision. Provisional default: `Qwen/Qwen3-Embedding-0.6B`.
+- **Decision:** the model is configurable among 4 pre-selected candidates, each pinned to an exact Hugging Face revision. Qwen3-Embedding-0.6B was the provisional default. **The evaluation chose `BAAI/bge-small-en-v1.5`** (see D18).
 - **Candidates and why:**
   - **Qwen3-Embedding-0.6B** (596M, Apache-2.0, 32k ctx): strong code retrieval results on MTEB for its size, and instruction-aware queries. We use a **task-specific instruction** instead of the default "web search" one, as Qwen recommends.
   - **ibm-granite/granite-embedding-english-r2** (149M, Apache-2.0, 8k ctx): ModernBERT architecture, trained with code retrieval data, 4× smaller than Qwen.
@@ -104,7 +104,7 @@ Every significant design decision, with the alternatives considered and the trad
   - `embeddinggemma-300m`: gated, so a reviewer must accept terms.
   - `Qodo-Embed-1-1.5B`: custom licence and slow.
   - **`nomic-ai/CodeRankEmbed`** (initially a candidate): it needs `trust_remote_code`, and its 2024 modelling code **crashes with transformers 5** (`'NomicBertModel' object has no attribute 'get_extended_attention_mask'`). Remote code runs arbitrary downloaded Python (a security risk) and breaks when libraries move on. **Rule adopted: only models natively supported by `transformers`.**
-- **Final choice is made with data** in the retrieval evaluation (Recall@5 / MRR on our own question set). **The rule is fixed in advance:** pick the best Recall@5. If a smaller model is within 3 points, pick the smaller one.
+- **Final choice is made with data** in the retrieval evaluation, on our own question set. **The rule is fixed in advance:** pick the best Hit@5 (written as "Recall@5" in the first draft; it means at least one relevant chunk in the top 5). If a smaller model is within 3 points, pick the smaller one.
 - **Asymmetric encoding:** queries get the model's instruction prefix (Qwen only; the others use none) and documents don't. Vectors are L2-normalized.
 
 ## D13. Hardware: auto-detect GPU, CPU-only PyTorch by default, optional CUDA (supersedes "CPU-only")
@@ -125,7 +125,12 @@ Every significant design decision, with the alternatives considered and the trad
 - **Why groups, not extras:** uv can make a *group* default, but not an *extra*. With extras, a plain `uv run` silently replaced the CPU build with the multi-GB PyPI/CUDA build (verified with `uv sync --dry-run`).
 - **Trade-offs:**
   - GPU users type a longer command, and only for `index`. Answering questions embeds one short query, which takes milliseconds on CPU.
-  - Vectors from GPU fp16 and CPU fp32 differ in the last decimals. That doesn't change rankings in practice, but they aren't bit-identical.
+  - Vectors from GPU fp16 and CPU fp32 aren't bit-identical. **Verified for the chosen model** (bge-small, full corpus computed both ways):
+    - per-chunk cosine between the two versions ≥ 0.9995;
+    - identical Hit@1, Hit@5 and MRR on the 40 evaluation questions;
+    - the rank of the expected answer unchanged for every question;
+    - 2/40 top-5 lists differ only in the order of near-tied lower positions.
+- **Measured full indexing with the chosen model** (bge-small, from scratch): 395 s on the laptop CPU (i7-10750H, peak RAM ~1 GB) vs 104 s on the GTX 1650 Ti.
 
 ## D14. On-disk embedding cache (doubles as a shareable snapshot)
 
@@ -146,14 +151,87 @@ Every significant design decision, with the alternatives considered and the trad
 - **Sizing:** ~1,500 docs × (1,024 floats + text) ≈ 15–20 MB, well under the 512 MB free tier.
 - **Trade-off:** `replace_all` treats the collection as holding one index version. Multiple versions or models side by side would need separate collections, or a version field in every query.
 
+## D16. Retrieval: over-fetch, deduplicate by symbol, numCandidates = 20× limit, pre-filters
+
+- **Decision:** `Retriever.search` works in four steps:
+  1. embed the query with the index's model;
+  2. run `$vectorSearch` with `limit = 3k` and `numCandidates = 20 × limit`;
+  3. collapse parts of the same symbol, keeping the best-scoring one;
+  4. return k distinct code units.
+
+  Optional pre-filters on `folder`, `task` and `kind` are translated into an Atlas `filter` clause.
+- **Why over-fetch and deduplicate:** a long function split into 3 parts could otherwise fill 3 of the 5 slots (observed: `ultralytics.engine.exporter` parts 1 and 2 both in a top-5). Distinct units give the LLM more varied evidence.
+- **Why 20×:** `$vectorSearch` is approximate (HNSW). MongoDB's guidance is `numCandidates` ≥ 20 × `limit` for near-exact recall. **Measured:** the top-5 overlaps 99.0% with an exact search, with identical Hit@5 (D17).
+- **Fail-fast compatibility check:** each document stores `embedding_model`. If the index was built with a different model than the one used for queries, `search` refuses to run. Vectors from different models live in unrelated spaces, and comparing them returns confident nonsense.
+- **Trade-offs:**
+  - Pre-filters need the user (or a future router) to know the task.
+  - Deduplication hides the other parts of a long function. The generation step can fetch sibling parts if needed.
+
+## D17. Retrieval evaluation methodology
+
+- **Questions:** 46 in `eval/questions.toml`, **each sourced from a real Ultralytics GitHub issue** (linked), paraphrased into a self-contained question:
+  - 40 in scope: training 12, data 11, prediction 7, validation 2, export 4, specific models 4;
+  - 6 out of scope (answers in `utils/`, `nn/` or `cfg/`), kept for the answer-quality evaluation;
+  - 14 of the in-scope questions name a symbol or argument, and 26 are plain language.
+- **Labels:** the relevant `path::symbol` pairs were written **by reading the source before running any model**, and committed before the first run (`8ca7a9d` predates the results). The loader fails if a label doesn't match a real chunk.
+- **Metrics:**
+  - Hit@1 and Hit@5: at least one relevant symbol in the top k;
+  - MRR@10;
+  - a 95% bootstrap CI on Hit@5;
+  - median CPU latency to embed a query.
+
+  Hit@5 is the primary metric because the LLM will see about 5 chunks.
+- **Exact search for model comparison:** brute-force cosine over each model's cached vectors. This isolates model quality from the ANN index and needs no re-upload per model. A separate run checks that Atlas' ANN returns the same top-5 for the deployed model (99.0% overlap).
+- **Known weaknesses:**
+  - **Small n.** One question = 2.5 points, and the CIs of all models overlap.
+  - **A single labeller** (no inter-annotator agreement).
+  - **Labels may be incomplete.** Another chunk could also answer a question and be counted as a miss.
+  - The questions were written with knowledge of the codebase.
+
+  Mitigations for later: more questions mined automatically from issues, and a second labeller.
+
+## D18. Embedding model chosen: `BAAI/bge-small-en-v1.5`
+
+- **Results** (`eval/results/retrieval.md`):
+
+  | Model | Params | Hit@1 | Hit@5 | MRR@10 | Query (CPU) |
+  |---|---|---|---|---|---|
+  | Qwen3-Embedding-0.6B | 596M | 47.5% | **80.0%** | 0.608 | 822 ms |
+  | **bge-small-en-v1.5** | **33M** | **52.5%** | 77.5% | **0.626** | **119 ms** |
+  | Granite Embedding R2 | 149M | 47.5% | 77.5% | 0.607 | 199 ms |
+  | GTE-ModernBERT | 149M | 45.0% | 72.5% | 0.574 | 189 ms |
+
+- **Rule applied:** Qwen has the best Hit@5, but bge-small is 1 question (2.5 points) behind with 18× fewer parameters, so bge-small wins. It also has the best Hit@1 and MRR.
+- **What the data says beyond the rule:**
+  - **The embedding model isn't the bottleneck.** 4 questions are missed by *every* model: gradient accumulation, plotting augmented samples, the `list` return type, masks without boxes. Their answers are a few lines inside long methods, or use vocabulary different from the question's ("width and height" vs `xywh`). Better chunking or lexical matching would help more than a bigger model.
+  - **The subgroups point in different directions:**
+    - questions that name a symbol: bge-small 100% vs Qwen 85.7% (n=14);
+    - plain-language questions: Qwen 76.9% vs bge-small 65.4% (n=26, a difference of 3 questions).
+
+    Neither difference is significant at this sample size, but the plain-language gap is worth watching. It's also exactly where lexical (hybrid) search would *not* help, so a larger eval set should decide whether to revisit the model.
+- **Practical consequences** (they matter for reviewers and production):
+  - query embedding is 7× faster on CPU (119 vs 822 ms);
+  - the model download is ~130 MB instead of 1.2 GB;
+  - **full indexing on a laptop CPU becomes practical** (see D13). With Qwen it was 9+ hours.
+- **Caveat:** bge-small reads at most 512 tokens, and **498 of 1,532 chunks (32.5%) are truncated** when embedded. Only the header, signature, docstring and the start of the body are seen. It still matches the larger models, which suggests the contextual header and docstrings carry most of the retrieval signal (D11). The LLM always receives the full, untruncated code. A follow-up experiment: a smaller chunk budget (~2,000 chars) to remove the truncation, re-scored with this same evaluation.
+
 ---
 
 ## Known limitations (running list)
 
 - **Atlas database user has the Atlas Admin role** (created by Atlas' automated security setup). Acceptable for the assignment. In production: a least-privilege user with `readWrite` on the app database only, and ideally separate credentials for the indexer (write) and the chat app (read).
 - **Retrieval only covers `models/`, `engine/` and `data/`** (assignment scope). Questions about `ultralytics/utils`, `nn` or `cfg` (e.g. default hyperparameters in `default.yaml`, or `EarlyStopping` in `utils/torch_utils.py`) can't be grounded. The assistant must say so rather than guess.
+- **Retrieval misses** on 9/40 evaluation questions (Hit@5 77.5%). The main failure modes are:
+  - logic buried in long methods (`_do_train`, `_setup_train`);
+  - a vocabulary gap between user language and API names;
+  - near-duplicate model families (SAM2 vs SAM3 predictors).
+
+  See the failure analysis in `eval/results/retrieval.md`.
 - **Free-tier services** (Atlas M0, OpenRouter `:free` models) have no SLA, shared resources and daily quotas.
 
 ## Future work (running list)
 
 - **API-served embeddings as an alternative backend.** OpenRouter serves open-source embedding models, e.g. `qwen/qwen3-embedding-8b`: Apache-2.0, 13× larger than our 0.6B, $0.01 per million tokens. Indexing the whole corpus (~500k tokens) would cost about $0.005. This would remove PyTorch and the 1.2 GB model download from the install, and it would index in ~1–2 minutes on any machine. Trade-offs: the account needs paid credits; the provider can't be pinned to a model revision, so vectors may drift; there's a runtime dependency on a third party (we saw upstream 429s on free LLMs); and the code leaves the machine. Not done because the assignment emphasises free tiers and self-contained reproducibility. A pluggable `Embedder` backend would make it a config switch.
+- **Hybrid search (vector + full-text).** Combine `$vectorSearch` with an Atlas Search (BM25) index on code, symbol names and docstrings, fused with reciprocal rank fusion. This targets misses where the question shares rare words with the code (`accumulate`, `freeze`, `RTSP`). It would be measured with the same evaluation before adoption.
+- **A larger, double-labelled evaluation set** (100+ questions mined from issues and discussions), so that differences of a few points become measurable.
+- **Chunk-size experiment for small-context models:** a 2,000-char budget removes bge-small's truncation (32.5% of chunks). Compare against the current 4,000.

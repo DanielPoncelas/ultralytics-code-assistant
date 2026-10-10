@@ -3,10 +3,13 @@
 import time
 from dataclasses import dataclass
 from itertools import batched
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pymongo import MongoClient, ReplaceOne
 from pymongo.operations import SearchIndexModel
+
+if TYPE_CHECKING:
+    from code_assistant.config import Settings
 
 EMBEDDING_FIELD = "embedding"
 # Metadata fields usable as pre-filters in $vectorSearch (e.g. only search `task: "segment"`).
@@ -26,8 +29,52 @@ class ChunkStore:
         self.collection = self._client[database][collection]
         self.index_name = index_name
 
+    @classmethod
+    def from_settings(cls, settings: "Settings") -> "ChunkStore":
+        return cls(
+            settings.mongodb_uri.get_secret_value(),
+            settings.mongodb_database,
+            settings.mongodb_collection,
+            settings.vector_index_name,
+        )
+
+    def __enter__(self) -> "ChunkStore":
+        return self
+
+    def __exit__(self, *exc_info: object) -> None:
+        self.close()
+
     def close(self) -> None:
         self._client.close()
+
+    def vector_search(
+        self,
+        query_vector: list[float],
+        limit: int,
+        num_candidates: int,
+        filters: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
+        """Approximate nearest-neighbour search. Returns documents (without vectors) + `score`."""
+        stage: dict[str, Any] = {
+            "index": self.index_name,
+            "path": EMBEDDING_FIELD,
+            "queryVector": query_vector,
+            "numCandidates": num_candidates,
+            "limit": limit,
+        }
+        if filters:
+            stage["filter"] = filters
+        pipeline = [
+            {"$vectorSearch": stage},
+            {"$set": {"score": {"$meta": "vectorSearchScore"}}},
+            {"$unset": EMBEDDING_FIELD},  # 1,024 floats per hit we don't need to transfer
+        ]
+        return list(self.collection.aggregate(pipeline))
+
+    def indexed_model(self) -> str | None:
+        """Embedding model the stored vectors were built with (None if the collection is empty)."""
+        doc = self.collection.find_one({}, {"embedding_model": 1})
+        return doc["embedding_model"] if doc else None
 
     def replace_all(self, documents: list[dict[str, Any]], batch_size: int = 200) -> SyncResult:
         """Make the collection contain exactly `documents` (idempotent upsert by `_id`)."""
