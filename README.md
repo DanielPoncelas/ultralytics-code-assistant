@@ -138,9 +138,9 @@ Each was answered end to end several times, with both embedding models and the d
 | *What does close_mosaic do, and at which point of training is mosaic augmentation switched off?* ([#14886](https://github.com/ultralytics/ultralytics/issues/14886)) | Mosaic, copy-paste, mixup and cutmix are turned off for the last `close_mosaic` epochs. Once `epoch >= epochs - close_mosaic`, `_close_dataloader_mosaic` rebuilds the dataset's transforms. |
 | *Which data augmentations are applied by default when training a detection model?* ([#2412](https://github.com/ultralytics/ultralytics/issues/2412)) | `v8_transforms`: Mosaic, RandomPerspective and CopyPaste, then MixUp, CutMix, Albumentations, HSV colour jitter and flips, each controlled by a hyperparameter. |
 | *How do I set my own class names for open-vocabulary detection with YOLO-World?* ([#10038](https://github.com/ultralytics/ultralytics/issues/10038)) | `model.set_classes([...])`. It updates the class names (dropping the background entry) and resets the predictor, so the next prediction uses them. |
-| *How does the TensorRT export work? Does it go through ONNX first?* ([#1225](https://github.com/ultralytics/ultralytics/issues/1225)) | Yes: `export_engine` exports ONNX first, then `onnx2engine` builds the `.engine` file. It needs a GPU and takes the workspace, dynamic-shape and INT8 calibration options. |
+| *How does the TensorRT export work? Does it go through ONNX first?* ([#1225](https://github.com/ultralytics/ultralytics/issues/1225)) | Yes: `export_engine` exports ONNX first, then `onnx2engine` builds the `.engine` file, passing options such as INT8 quantization, dynamic shapes and the workspace size. |
 
-The questions the assistant gets wrong are described under [Limitations](#limitations).
+The full answers, unedited and with the sources they used, are in [docs/examples.md](docs/examples.md). The questions the assistant gets wrong are described under [Limitations](#limitations).
 
 ## Design notes
 
@@ -257,6 +257,8 @@ Each decision is logged in [DECISIONS.md](DECISIONS.md), with the alternatives c
 - **D14:** ship the embeddings; **D25:** an optional paid model; **D27:** stricter retrieval metrics.
 
 ## Evaluation
+
+The full story (what was tried, in which order, with which rule, and how the judges were checked) is in [EVALUATION.md](EVALUATION.md). In short:
 
 **Question set.** 46 questions from real GitHub issues: 40 that the indexed code can answer, and 6 that it can't. Before any run, each in-scope question was labelled with the code that answers it, its 2–3 key facts and the exact evidence lines (`eval/questions.toml`).
 
