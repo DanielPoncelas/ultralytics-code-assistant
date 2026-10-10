@@ -102,7 +102,7 @@ These transforms are composed into a single `Compose` object that is used by the
 transforms = v8_transforms(
     dataset,
     imgsz=640,
-    hyp=hyp   # contains all the hyper‑parameters above
+    hyp=hyp,  # contains all the hyper‑parameters above
 )
 ```
 
@@ -159,11 +159,11 @@ To export a YOLO model to ONNX with dynamic batch size and NMS included in the g
 
 ```python
 model.export(
-    format="onnx",    # ONNX format
-    dynamic=True,     # Enable dynamic batch size
-    nms=True,         # Include NMS in the graph
-    batch=16,         # Maximum batch size (required when dynamic=True)
-    simplify=True     # Optional: simplify the ONNX model
+    format="onnx",  # ONNX format
+    dynamic=True,  # Enable dynamic batch size
+    nms=True,  # Include NMS in the graph
+    batch=16,  # Maximum batch size (required when dynamic=True)
+    simplify=True,  # Optional: simplify the ONNX model
 )
 ```
 
