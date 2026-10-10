@@ -36,8 +36,8 @@ You don't need to create the vector search index by hand. The indexing command c
 1. Clone the repository and enter it:
 
    ```bash
-   git clone https://github.com/DanielPoncelas/<repo-name>.git
-   cd <repo-name>
+   git clone https://github.com/DanielPoncelas/ultralytics-code-assistant.git
+   cd ultralytics-code-assistant
    ```
 
 2. Create your environment file and fill in the two values obtained in [Accounts](#accounts):
