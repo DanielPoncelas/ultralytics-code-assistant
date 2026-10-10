@@ -110,3 +110,16 @@ def test_choose_llm_without_out_of_scope_questions_does_not_exclude_models():
     assert only_in_scope.oos_refusal_rate is None
     chosen, _ = choose_llm([only_in_scope])
     assert chosen is only_in_scope
+
+
+def test_answer_record_round_trips_through_json():
+    import json
+    from dataclasses import asdict
+
+    from code_assistant.evaluation.answer_runner import record_from_dict
+
+    original = record("q", covered=(True, False), claims=("x",))
+
+    assert record_from_dict(json.loads(json.dumps(asdict(original)))) == original
+    failed = record("q", verdict=False)
+    assert record_from_dict(json.loads(json.dumps(asdict(failed)))) == failed

@@ -245,6 +245,9 @@ def eval_answers(
     questions: Annotated[Path, typer.Option(help="Question file.")] = Path("eval/questions.toml"),
     output: Annotated[Path, typer.Option(help="Report directory.")] = Path("eval/results"),
     limit: Annotated[int | None, typer.Option(help="Only the first N questions.")] = None,
+    retry_failed: Annotated[
+        bool, typer.Option(help="Only re-run answers that failed in the existing results.")
+    ] = False,
 ) -> None:
     """Generate answers with each LLM, grade them with an LLM judge, and choose an LLM.
 
@@ -253,9 +256,16 @@ def eval_answers(
     least 10 credits get 1,000/day.
     """
     from code_assistant.evaluation.answer_eval import JUDGE_MODEL
-    from code_assistant.evaluation.answer_runner import run_answer_evaluation
+    from code_assistant.evaluation.answer_runner import retry_failed_answers, run_answer_evaluation
 
     settings = get_settings()
+    if retry_failed:
+        evaluation = retry_failed_answers(
+            settings, questions, output, judge_model=judge or JUDGE_MODEL, log=typer.echo
+        )
+        typer.echo(f"{OK} Chosen LLM: {evaluation.chosen.model}. {evaluation.reason}")
+        typer.echo(f"{OK} Report: {evaluation.markdown_path}")
+        return
     evaluation = run_answer_evaluation(
         settings,
         models or list(settings.llm_models),

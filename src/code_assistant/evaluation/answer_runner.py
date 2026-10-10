@@ -3,7 +3,7 @@
 import json
 import time
 from collections.abc import Callable, Sequence
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 
 from code_assistant.config import Settings
@@ -13,6 +13,7 @@ from code_assistant.evaluation.answer_eval import (
     AnswerRecord,
     JudgeParseError,
     LLMResult,
+    Verdict,
     build_judge_messages,
     choose_llm,
     parse_verdict,
@@ -91,6 +92,75 @@ def run_answer_evaluation(
         results.append(result)
     judge.close()
 
+    return _write_reports(results, questions, judge_model, settings, output_dir)
+
+
+def retry_failed_answers(
+    settings: Settings,
+    questions_path: Path,
+    output_dir: Path,
+    judge_model: str = JUDGE_MODEL,
+    log: Callable[[str], None] = print,
+) -> AnswerEvaluation:
+    """Re-run only the answers that failed (transient provider/judge errors) and re-report.
+
+    Every model keeps exactly the same sources and judge, so a retried answer is graded under
+    the same conditions as the others; the report counts how many needed a retry.
+    """
+    jsonl_path = output_dir / "answers.jsonl"
+    records = [record_from_dict(json.loads(line)) for line in jsonl_path.read_text().splitlines()]
+    by_id = {q.id: q for q in load_questions(questions_path)}
+    failed = [r for r in records if r.error]
+    log(f"Retrying {len(failed)} failed answers ...")
+    sources = _retrieve_all(settings, [by_id[qid] for qid in {r.question_id for r in failed}], log)
+    throttle = Throttle(MIN_SECONDS_BETWEEN_REQUESTS)
+    judge = OpenRouterClient.from_settings(settings, models=[judge_model], max_retries=4)
+    judge.max_tokens = JUDGE_MAX_TOKENS
+    for index, record in enumerate(records):
+        if not record.error:
+            continue
+        llm = OpenRouterClient.from_settings(settings, models=[record.model], max_retries=4)
+        q = by_id[record.question_id]
+        retried = _answer_and_grade(llm, judge, throttle, settings, q, sources[q.id])
+        records[index] = replace(retried, retried=True)
+        log(f"  {record.model} / {q.id}: {'still failing' if retried.error else 'ok'}")
+        llm.close()
+    judge.close()
+
+    results: dict[str, LLMResult] = {}
+    for record in records:
+        results.setdefault(record.model, LLMResult(record.model)).records.append(record)
+    questions = [by_id[qid] for qid in dict.fromkeys(r.question_id for r in records)]
+    return _write_reports(list(results.values()), questions, judge_model, settings, output_dir)
+
+
+def record_from_dict(data: dict) -> AnswerRecord:
+    verdict = data.get("verdict")
+    return AnswerRecord(
+        **{
+            **data,
+            "sources": tuple(data["sources"]),
+            "citations": tuple(data["citations"]),
+            "invalid_citations": tuple(data["invalid_citations"]),
+            "verdict": Verdict(
+                facts_covered=tuple(verdict["facts_covered"]),
+                unsupported_claims=tuple(verdict["unsupported_claims"]),
+                refused=verdict["refused"],
+                comment=verdict.get("comment", ""),
+            )
+            if verdict
+            else None,
+        }
+    )
+
+
+def _write_reports(
+    results: list[LLMResult],
+    questions: Sequence[EvalQuestion],
+    judge_model: str,
+    settings: Settings,
+    output_dir: Path,
+) -> "AnswerEvaluation":
     output_dir.mkdir(parents=True, exist_ok=True)
     markdown_path, jsonl_path = output_dir / "answers.md", output_dir / "answers.jsonl"
     with jsonl_path.open("w") as f:  # raw data first, so nothing is lost if a later step fails

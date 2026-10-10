@@ -115,6 +115,7 @@ class AnswerRecord:
     invalid_citations: tuple[int, ...]
     verdict: Verdict | None
     error: str = ""  # generation or judging failure
+    retried: bool = False  # re-run after a transient failure in the first pass
 
     @property
     def grounded(self) -> bool:

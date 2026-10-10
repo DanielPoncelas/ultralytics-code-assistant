@@ -47,6 +47,10 @@ def render_answers_markdown(
         "deterministically.",
         '  - *OOS refusal*: out-of-scope questions answered with "couldn\'t find it".',
         "  - *False refusal*: refused although the right code was retrieved.",
+        "- **Transient failures:** answers that failed because of provider rate limits or judge "
+        "errors in the first pass were re-run once under identical conditions "
+        f"({sum(r.retried for res in results for r in res.records)} answers in total); answers "
+        "that still fail count as 0.",
         "",
         "## Results",
         "",
