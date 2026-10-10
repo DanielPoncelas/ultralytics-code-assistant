@@ -400,6 +400,24 @@ Every significant design decision, with the alternatives considered and the trad
 - **Opt-out:** `RERANK_MODEL=` (empty) disables it. The chat's "Rerank the sources" checkbox turns it off per question, e.g. to compare both orders in a demo, and `search --no-rerank` does the same in the CLI.
 - **Not re-measured:** the answer evaluation (`eval/results/answers.md`) and `docs/examples.md` were produced with vector-only retrieval.
 
+## D27. Evidence coverage: a stricter retrieval metric
+
+- **Why:** Hit@k counts a question as solved if *one* relevant code unit is retrieved. Answers often need several. `val-vs-predict` is a hit at rank 2 (`Model.val`), yet the answer missed its point because the `conf` defaults in `Model.predict` and `BaseValidator.__init__` weren't retrieved.
+- **What:** every question already labels its evidence as `path:start-end` ranges (101 ranges, all inside the indexed folders). **Evidence@6** is the share of those non-blank lines that are in the 6 sources, averaged over questions. **Full evidence@6** is the share of questions where all of it is.
+- **How a line counts as retrieved:** it must be in a retrieved function or method chunk with the same path and line range. Class and module summaries report their whole source range but contain only part of it, so for them the line's text must also appear in the chunk (tested; on `val-vs-predict` the `Model` summary spanning lines 35–1275 correctly doesn't cover line 540).
+- **Result** (`eval/results/search.md`):
+
+  | | Hit@6 | Evidence@6 | Full evidence@6 |
+  |---|---|---|---|
+  | Vector only | 80.0% | 50.8% | 7.5% |
+  | Hybrid (RRF) | 77.5% | 50.7% | 15.0% |
+  | Reranked | 92.5% | **63.3%** | **20.0%** |
+
+- **Reading:**
+  - The reranker's gain holds under the stricter metric (+12.5 points).
+  - The gap between 92.5% and 20% shows where retrieval falls short: it finds *a* relevant piece, rarely *all* of them.
+  - Evidence ranges were labelled generously (some cover a whole method), so Full evidence is a strict lower bound. Evidence@6 is the main number for the next experiments.
+
 ---
 
 ## Known limitations (running list)
