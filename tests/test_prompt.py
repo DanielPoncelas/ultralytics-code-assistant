@@ -82,3 +82,18 @@ def test_extract_citations_ignores_code_and_indexing_but_keeps_runs():
     )
 
     assert extract_citations(text) == [1, 2, 3, 4, 5]
+
+
+def test_rewrite_messages_contain_only_the_users_previous_questions():
+    from code_assistant.prompt import build_rewrite_messages
+
+    history = [
+        {"role": "user", "content": "How does NMS work?"},
+        {"role": "assistant", "content": "It applies a class-wise box offset..."},
+    ]
+
+    _, user = build_rewrite_messages("Can it be disabled?", history)
+
+    assert "How does NMS work?" in user["content"]
+    assert "class-wise box offset" not in user["content"]
+    assert user["content"].endswith("Latest message: Can it be disabled?")
