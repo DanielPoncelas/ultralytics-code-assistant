@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     cache_dir: Path = Path(".cache")
 
     # Embedding model (must be a key of `embeddings.EMBEDDING_MODELS`).
-    embedding_model: str = "Qwen/Qwen3-Embedding-0.6B"
+    embedding_model: str = "BAAI/bge-small-en-v1.5"
     # "cuda", "mps" or "cpu". Empty = auto-detect the fastest available device.
     embedding_device: str | None = None
 
