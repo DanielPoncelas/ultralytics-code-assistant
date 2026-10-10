@@ -238,12 +238,12 @@ Ruled out:
 
 | Model | Hit@1 | Hit@5 (95% CI) | MRR@10 | Query time (CPU) |
 |---|---|---|---|---|
-| Qwen3-Embedding-0.6B | 47.5% | **80.0%** (67.5–92.5) | 0.608 | 822 ms |
-| **bge-small-en-v1.5** ✅ | **52.5%** | 77.5% (65.0–90.0) | **0.626** | **119 ms** |
-| Granite Embedding R2 | 47.5% | 77.5% (65.0–90.0) | 0.607 | 199 ms |
-| GTE-ModernBERT | 45.0% | 72.5% (57.5–85.0) | 0.574 | 189 ms |
+| Qwen3-Embedding-0.6B | 47.5% | **80.0%** (67.5–92.5) | 0.608 | 764 ms |
+| **bge-small-en-v1.5** ✅ | **52.5%** | 77.5% (65.0–90.0) | **0.626** | **117 ms** |
+| Granite Embedding R2 | 47.5% | 77.5% (65.0–90.0) | 0.607 | 188 ms |
+| GTE-ModernBERT | 45.0% | 72.5% (57.5–85.0) | 0.574 | 173 ms |
 
-**Chosen: `BAAI/bge-small-en-v1.5`.** It's one question behind the best model on Hit@5 and ahead on Hit@1 and MRR. It's also 18× smaller, embeds a query 7× faster on CPU, and makes indexing from scratch practical on any laptop. Trade-offs:
+**Chosen: `BAAI/bge-small-en-v1.5`.** It's one question behind the best model on Hit@5 and ahead on Hit@1 and MRR. It's also 18× smaller, embeds a query 6.5× faster on CPU, and makes indexing from scratch practical on any laptop. Trade-offs:
 - **Truncation:** it reads at most 512 tokens, so 32.5% of chunks are truncated when embedded. The LLM still receives the full code.
 - **Plain-language questions:** Qwen does better on questions that name no symbol (76.9% vs 65.4%, n=26). That's not significant at this sample size, but it's worth re-checking on a larger set.
 
@@ -285,7 +285,7 @@ The candidates were two code-specialised models (Cohere, Poolside) and one gener
 
 **Honest limitations:**
 - **Even the best free model states only about half of the key facts.**
-- **It cites a source in only 45% of its answers.**
+- **Only about half of its answers (52.5%) cite their sources correctly.**
 - **It sometimes answers out-of-scope questions with a plausible misreading instead of declining.** Example: tuner search-space bounds presented as default hyperparameters (example 5 above).
 - **Free models are non-deterministic and their availability changes by the hour.**
 - **Reasoning models (Cohere, dots-3) spend part of the token budget thinking.** The evaluation ran with 2,000 output tokens, which truncated 3 of Cohere's 46 answers. The default is now 4,000 and truncated answers are flagged.

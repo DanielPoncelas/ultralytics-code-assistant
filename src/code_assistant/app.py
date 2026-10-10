@@ -22,13 +22,15 @@ from pymongo.errors import PyMongoError
 
 from code_assistant.assistant import Answer, CodeAssistant
 from code_assistant.llm import LLMError
+from code_assistant.prompt import map_prose, replace_citations
 from code_assistant.retrieval import SearchResult
 
 logger = logging.getLogger(__name__)
 
 # Subset of ultralytics.utils.plotting.Colors (the palette YOLO draws detections with),
 # skipping the near-white and the navy that is used for text.
-PALETTE = ("042AFF", "0BDBEB", "00DFB7", "FF6FDD", "FF444F", "BD00FF")
+# Only colours that reach WCAG AA (4.5:1) with white or navy label text.
+PALETTE = ("042AFF", "0BDBEB", "00DFB7", "FF6FDD", "FC6D2F", "BD00FF")
 
 EXAMPLES = {
     "Resume an interrupted training run": "My training run was interrupted at epoch 63. How do I "
@@ -55,12 +57,20 @@ def source_color(number: int) -> str:
     return f"#{PALETTE[(number - 1) % len(PALETTE)]}"
 
 
-def label_text_color(hex_color: str) -> str:
-    """Readable text colour on a palette swatch (WCAG relative luminance)."""
+def _luminance(hex_color: str) -> float:
     channels = [int(hex_color.lstrip("#")[i : i + 2], 16) / 255 for i in (0, 2, 4)]
     r, g, b = (c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4 for c in channels)
-    luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b
-    return "#111F68" if luminance > 0.35 else "#FFFFFF"
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+def contrast(a: str, b: str) -> float:
+    high, low = sorted((_luminance(a), _luminance(b)), reverse=True)
+    return (high + 0.05) / (low + 0.05)
+
+
+def label_text_color(hex_color: str) -> str:
+    """White or navy, whichever contrasts more with the swatch (WCAG)."""
+    return max(("#FFFFFF", "#111F68"), key=lambda ink: contrast(hex_color, ink))
 
 
 def citation_url(source: SearchResult, number: int) -> str:
@@ -72,32 +82,36 @@ def citation_url(source: SearchResult, number: int) -> str:
     return f"{base}?source={number}#{fragment}"
 
 
-_CITATION = re.compile(r"(?<![\w\])])[\[【](\d+(?:\s*,\s*\d+)*)[\]】](?!\()")
-_FENCE = re.compile(r"(```.*?(?:```|\Z))", re.DOTALL)
-_INLINE_CODE = re.compile(r"(`[^`\n]*`)")
-
-
 def linkify_citations(text: str, sources: Sequence[SearchResult]) -> str:
-    """Turn [n] citations into links to source n, leaving code untouched.
+    """Turn [n] citations into links to source n (same parsing rules as the metrics).
 
-    Numbers that don't match a source stay as plain text, so a wrong citation is visible
-    rather than silently linked somewhere.
+    A run with a number that matches no source stays plain text, so a wrong citation is
+    visible rather than silently linked somewhere.
     """
 
-    def replace(match: re.Match[str]) -> str:
-        numbers = [int(n) for n in match.group(1).split(",")]
+    def link(numbers: list[int], original: str) -> str:
         if not all(1 <= n <= len(sources) for n in numbers):
-            return match.group(0)
+            return original
         return "".join(f"[{n}]({citation_url(sources[n - 1], n)})" for n in numbers)
 
-    parts = []
-    for block in _FENCE.split(text):
-        if block.startswith("```"):
-            parts.append(block)
-            continue
-        for span in _INLINE_CODE.split(block):
-            parts.append(span if span.startswith("`") else _CITATION.sub(replace, span))
-    return "".join(parts)
+    return replace_citations(text, link)
+
+
+_IMAGE = re.compile(r"!\[")
+
+
+def render_answer(text: str, sources: Sequence[SearchResult]) -> str:
+    """Model output -> safe Markdown for the chat.
+
+    Gradio's sanitiser removes scripts but keeps style attributes, forms and remote images,
+    which model output could use to cover the page or to send data out. Outside code, `<`
+    is escaped (no raw HTML) and images become plain links (nothing is fetched).
+    """
+
+    def neutralise(prose: str) -> str:
+        return _IMAGE.sub("[", prose.replace("<", "&lt;"))
+
+    return linkify_citations(map_prose(text, neutralise), sources)
 
 
 def render_sources(
@@ -127,6 +141,7 @@ def render_sources(
             f"<details><summary>Show code</summary><pre><code>{html.escape(source.code)}"
             "</code></pre></details></article>"
         )
+    cited = [n for n in cited if 1 <= n <= len(sources)]
     if answered:
         note = (
             f"{len(cited)} of {len(sources)} retrieved code units are cited in the answer. "
@@ -215,7 +230,7 @@ def respond(
     try:
         for event in assistant.ask_stream(question, history=history, filters=filters):
             if isinstance(event, Answer):
-                chat[-1] = {"role": "assistant", "content": linkify_citations(event.text, sources)}
+                chat[-1] = {"role": "assistant", "content": render_answer(event.text, sources)}
                 history = [
                     *history,
                     {"role": "user", "content": question},
@@ -225,7 +240,7 @@ def respond(
                 yield keep, chat, history, cited, render_status(event)
             elif isinstance(event, str):
                 partial += event
-                chat[-1] = {"role": "assistant", "content": linkify_citations(partial, sources)}
+                chat[-1] = {"role": "assistant", "content": render_answer(partial, sources)}
                 yield keep, chat, history, keep, keep
             else:
                 sources = event
@@ -233,7 +248,8 @@ def respond(
                 yield keep, chat, history, render_sources(sources), render_status(stage=stage)
     except LLMError as exc:
         logger.warning("LLM failure: %s", exc)
-        chat[-1] = {"role": "assistant", "content": partial or NO_ANSWER}
+        content = render_answer(partial, sources) if partial else NO_ANSWER
+        chat[-1] = {"role": "assistant", "content": content}
         yield keep, chat, history, keep, render_status(error=f"No answer. {_summary(exc)}")
     except PyMongoError as exc:
         logger.warning("Search failure: %s", exc)
@@ -242,8 +258,10 @@ def respond(
         yield keep, chat, history, render_sources([]), render_status(error=error)
     except Exception as exc:  # never leave the UI hanging on an unexpected error
         logger.exception("Unexpected error while answering")
-        chat[-1] = {"role": "assistant", "content": partial or "Something went wrong."}
-        yield keep, chat, history, keep, render_status(error=f"Unexpected error: {exc!r}"[:300])
+        content = render_answer(partial, sources) if partial else "Something went wrong."
+        chat[-1] = {"role": "assistant", "content": content}
+        error = f"Unexpected error ({type(exc).__name__}). See the server log for details."
+        yield keep, chat, history, keep, render_status(error=error)
 
 
 def _summary(exc: LLMError) -> str:
@@ -323,17 +341,38 @@ def build_app(assistant: CodeAssistant, tag: str, tasks: Sequence[str]) -> gr.Bl
 
             return handler
 
-        textbox.submit(handle, [textbox, chatbot, history, folder, task], outputs)
+        # One answer at a time per conversation: lock the question box and the examples while
+        # an answer streams (Gradio captures the chat when an event fires, so a second,
+        # overlapping answer would overwrite the first), and unlock them afterwards.
+        controls = [textbox, *(button for button, _ in example_buttons)]
+
+        def lock():
+            return [gr.update(interactive=False)] * len(controls)
+
+        def unlock():
+            return [gr.update(interactive=True)] * len(controls)
+
+        answering = [textbox.submit(lock, None, controls, queue=False).then(
+            handle, [textbox, chatbot, history, folder, task], outputs
+        )]  # fmt: skip
         for button, question in example_buttons:
-            button.click(ask_example(question), [chatbot, history, folder, task], outputs)
+            answering.append(
+                button.click(lock, None, controls, queue=False).then(
+                    ask_example(question), [chatbot, history, folder, task], outputs
+                )
+            )
+        for event in answering:
+            event.then(unlock, None, controls, queue=False)
 
         def reset():
-            return "", [], [], render_sources([]), ""
+            unlocked = [gr.update(interactive=True)] * (len(controls) - 1)
+            return gr.update(value="", interactive=True), [], [], render_sources([]), "", *unlocked
 
-        clear.click(reset, None, outputs)
-        # The chat's own bin icon only empties the chat: reset history and sources with it,
-        # so the next question doesn't carry a conversation the user can no longer see.
-        chatbot.clear(reset, None, outputs)
+        reset_outputs = [*outputs, *controls[1:]]
+        # Both reset the hidden history and sources too, and stop an answer that is still
+        # streaming (otherwise its next update would bring the old conversation back).
+        clear.click(reset, None, reset_outputs, cancels=answering)
+        chatbot.clear(reset, None, reset_outputs, cancels=answering)
     return demo
 
 

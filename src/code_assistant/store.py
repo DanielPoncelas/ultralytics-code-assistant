@@ -104,12 +104,26 @@ class ChunkStore:
             return "updated"
         return "unchanged"
 
-    def wait_until_queryable(self, timeout_s: float = 300, poll_s: float = 5) -> None:
-        """Atlas builds search indexes asynchronously; block until ours is ready."""
+    def wait_until_queryable(
+        self, dimensions: int, timeout_s: float = 300, poll_s: float = 5
+    ) -> None:
+        """Atlas builds search indexes asynchronously; block until ours serves `dimensions`.
+
+        After an update the old definition can still report READY, so the definition is
+        checked too; a FAILED build raises immediately instead of waiting for the timeout.
+        """
+        expected = vector_index_definition(dimensions)
         deadline = time.monotonic() + timeout_s
         while time.monotonic() < deadline:
             index = next(iter(self.collection.list_search_indexes(self.index_name)), None)
-            if index and index.get("queryable") and index.get("status") == "READY":
+            if index and index.get("status") == "FAILED":
+                raise RuntimeError(f"Vector index {self.index_name!r} build failed: {index}")
+            if (
+                index
+                and index.get("queryable")
+                and index.get("status") == "READY"
+                and index.get("latestDefinition") == expected
+            ):
                 return
             time.sleep(poll_s)
         raise TimeoutError(f"Vector index {self.index_name!r} not ready after {timeout_s}s")

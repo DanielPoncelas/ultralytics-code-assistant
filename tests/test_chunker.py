@@ -223,3 +223,11 @@ def test_every_non_blank_line_appears_in_some_chunk():
             line for line in source.splitlines() if line.strip() and line.strip() not in covered
         ]
         assert missing == []
+
+
+def test_form_feed_and_bom_do_not_shift_lines():
+    source = '﻿def f():\n    s = "a\x0cb"\n    return 1\n'
+
+    (func,) = by_name(chunk_source(source, PATH), "f")
+
+    assert func.code.endswith("return 1") and (func.start_line, func.end_line) == (1, 3)

@@ -33,7 +33,10 @@ def fetch_source(repo_url: str, tag: str, expected_commit: str, cache_dir: Path)
 
 def iter_python_files(checkout: Path, source_dirs: tuple[str, ...]) -> list[Path]:
     """All `.py` files under the configured directories, in a deterministic order."""
-    return sorted(path for d in source_dirs for path in (checkout / d).rglob("*.py"))
+    missing = [d for d in source_dirs if not (checkout / d).is_dir()]
+    if missing:
+        raise FileNotFoundError(f"Source directories not found in {checkout}: {missing}")
+    return sorted({path for d in source_dirs for path in (checkout / d).rglob("*.py")})
 
 
 def _git(*args: str) -> str:

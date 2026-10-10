@@ -196,10 +196,10 @@ Every significant design decision, with the alternatives considered and the trad
 
   | Model | Params | Hit@1 | Hit@5 | MRR@10 | Query (CPU) |
   |---|---|---|---|---|---|
-  | Qwen3-Embedding-0.6B | 596M | 47.5% | **80.0%** | 0.608 | 822 ms |
-  | **bge-small-en-v1.5** | **33M** | **52.5%** | 77.5% | **0.626** | **119 ms** |
-  | Granite Embedding R2 | 149M | 47.5% | 77.5% | 0.607 | 199 ms |
-  | GTE-ModernBERT | 149M | 45.0% | 72.5% | 0.574 | 189 ms |
+  | Qwen3-Embedding-0.6B | 596M | 47.5% | **80.0%** | 0.608 | 764 ms |
+  | **bge-small-en-v1.5** | **33M** | **52.5%** | 77.5% | **0.626** | **117 ms** |
+  | Granite Embedding R2 | 149M | 47.5% | 77.5% | 0.607 | 188 ms |
+  | GTE-ModernBERT | 149M | 45.0% | 72.5% | 0.574 | 173 ms |
 
 - **Rule applied:** Qwen has the best Hit@5, but bge-small is 1 question (2.5 points) behind with 18× fewer parameters, so bge-small wins. It also has the best Hit@1 and MRR.
 - **What the data says beyond the rule:**
@@ -210,7 +210,7 @@ Every significant design decision, with the alternatives considered and the trad
 
     Neither difference is significant at this sample size, but the plain-language gap is worth watching. It's also exactly where lexical (hybrid) search would *not* help, so a larger eval set should decide whether to revisit the model.
 - **Practical consequences** (they matter for reviewers and production):
-  - query embedding is 7× faster on CPU (119 vs 822 ms);
+  - query embedding is 6.5× faster on CPU (117 vs 764 ms);
   - the model download is ~130 MB instead of 1.2 GB;
   - **full indexing on a laptop CPU becomes practical** (see D13). With Qwen it was 9+ hours.
 - **Caveat:** bge-small reads at most 512 tokens, and **498 of 1,532 chunks (32.5%) are truncated** when embedded. Only the header, signature, docstring and the start of the body are seen. It still matches the larger models, which suggests the contextual header and docstrings carry most of the retrieval signal (D11). The LLM always receives the full, untruncated code. A follow-up experiment: a smaller chunk budget (~2,000 chars) to remove the truncation, re-scored with this same evaluation.
@@ -303,14 +303,14 @@ Every significant design decision, with the alternatives considered and the trad
   - **Gemma-4-31B was rate-limited upstream** (Google AI Studio's shared free pool) for 37 of 46 questions, and for 3 of 3 probes afterwards. Gemma-4-26B, the same pool, was blocked as well.
   - Gemma-31B was replaced by **dots-3-note-preview**, which was responding, and evaluated with `--append` (identical sources and judge).
   - An **availability clause was added to the rule after the run**: models failing more than 50% of requests are reported as *unavailable* rather than ranked. Without it, Gemma would have been labelled "ineligible for not declining out-of-scope questions", which would be false: it simply didn't answer. The clause doesn't change the ranking of the other models.
-  - **Transient failures** (rate limits, 13 answers across Laguna, Cohere and dots-3) were re-run once under identical conditions (`--retry-failed`). They count as 0 if they still fail.
+  - **Transient failures** (rate limits, 11 answers across Laguna, Cohere and dots-3) were re-run once under identical conditions (`--retry-failed`). They count as 0 if they still fail.
 - **Results** (`eval/results/answers.md`):
 
   | Model | Coverage | Fully correct | Grounded | Citations OK | OOS declined | False refusals | Median latency |
   |---|---|---|---|---|---|---|---|
-  | **Cohere North-Mini-Code** | **53.8%** | **32.5%** | 77.8% | 45.0% | 3/6 | **0%** | 10.1 s |
-  | dots-3-note-preview | 42.9% | 20.0% | **82.2%** | **72.5%** | 3/6 | **0%** | 15.9 s |
-  | Laguna-S 2.1 | 36.2% | 12.5% | 80.4% | 60.0% | 4/6 | 18.8% | **8.5 s** |
+  | **Cohere North-Mini-Code** | **53.8%** | **32.5%** | 77.8% | 52.5% | 3/6 | **0%** | 10.1 s |
+  | dots-3-note-preview | 42.9% | 20.0% | **82.2%** | **80.0%** | 3/6 | **0%** | 15.9 s |
+  | Laguna-S 2.1 | 36.2% | 12.5% | 80.4% | 65.0% | 4/6 | 18.8% | **8.5 s** |
 
 - **Rule applied:** all three are eligible, and Cohere has the best coverage, 11 points clear of the next (above the 5-point tie margin).
 - **Findings worth knowing:**
@@ -318,6 +318,8 @@ Every significant design decision, with the alternatives considered and the trad
   - **Cohere misreads, consistently, when the answer isn't indexed.** Asked for the default learning rate (it lives in `cfg/default.yaml`, not indexed), it twice presented the Tuner's search-space lower bounds as "the defaults". The judge flagged it. For a question about activation functions, it answered with an unrelated SAM component.
   - **Cohere and dots-3 are reasoning models.** Part of `max_tokens` goes to hidden reasoning (37 of 97 tokens in a probe). At the evaluation's 2,000-token budget, about 3 of Cohere's and 6 of dots-3's answers were cut off or empty. One example: Cohere returned an empty completion for `val-vs-predict` on every retry. That's not a rate limit. In the app, the fallback chain covers this case, since an empty completion moves to the next model. **Fixed after the evaluation:** the budget is now 4,000, `finish_reason` is recorded, and truncated answers are flagged. The evaluation was not re-run (~184 requests); with Cohere 11 points ahead, the fix can't change the decision.
   - **The judge makes mistakes too.** For `oos-analytics`, Cohere answered "I couldn't find information about usage analytics… in the indexed source code", but the judge marked it as *not declined*. Cohere's true out-of-scope count is therefore 4/6. This motivated the blind human review of the judge (`eval review` / `eval agreement`).
+  - **Citation metric corrected after a code review:** the first parser also counted code like `results[0]` or `[640, 640]` as citations. Recomputed from the stored answers with the code-aware parser (no new requests), "Citations OK" went from 45.0/72.5/60.0% to the values above. Rankings are unchanged.
+  - **Known judge bias (not corrected):** the judge sometimes repeats a missing key fact as an "unsupported claim", so the grounded rate is somewhat underestimated (e.g. Cohere ~82% instead of 77.8% by a reviewer's recount). It doesn't affect the decision: the 11-point coverage gap decides before the grounded tie-break. The fix would be grading groundedness in a separate call that doesn't see the key facts.
   - **Cohere sometimes cites as 【4】.** The citation parser now accepts it. No evaluation answer used it, so the metrics are unaffected.
 - **Fallback chain order:** by coverage, one model per provider (Cohere → dots-3 → Laguna). An outage at one provider, like Google's today, doesn't take the assistant down.
 - **What would improve answers most** (measured gaps, not guesses):

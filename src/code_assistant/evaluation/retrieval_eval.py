@@ -39,10 +39,12 @@ class ModelResult:
     query_latency_ms: list[float] = field(default_factory=list)
 
     def hits(self, k: int, outcomes: Sequence[QuestionOutcome] | None = None) -> list[float]:
-        return [float(o.rank is not None and o.rank <= k) for o in (outcomes or self.outcomes)]
+        subset = self.outcomes if outcomes is None else outcomes
+        return [float(o.rank is not None and o.rank <= k) for o in subset]
 
     def hit_at(self, k: int, outcomes: Sequence[QuestionOutcome] | None = None) -> float:
-        return statistics.fmean(self.hits(k, outcomes))
+        hits = self.hits(k, outcomes)
+        return statistics.fmean(hits) if hits else float("nan")  # empty subset
 
     @property
     def mrr(self) -> float:

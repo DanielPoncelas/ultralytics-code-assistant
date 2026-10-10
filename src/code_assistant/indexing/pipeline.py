@@ -94,8 +94,14 @@ def load_chunks(
     chunks = [
         chunk
         for path in files
-        for chunk in chunk_source(path.read_text(encoding="utf-8"), str(path.relative_to(checkout)))
+        # as_posix: chunk paths, ids and permalinks must not depend on the OS (Windows "\\").
+        for chunk in chunk_source(
+            path.read_text(encoding="utf-8"), path.relative_to(checkout).as_posix()
+        )
     ]
+    if not chunks:
+        # Uploading nothing would delete every stored chunk (replace_all keeps only these).
+        raise ValueError(f"No Python code found under {settings.source_dirs} in {checkout}")
     log(f"Chunked {len(files)} files into {len(chunks)} chunks")
     return source, files, chunks
 
@@ -147,7 +153,7 @@ def run_indexing(
             result = store.replace_all(documents)
             index_status = store.ensure_vector_index(int(vectors.shape[1]))
             log(f"Vector index {index_status}; waiting until it is queryable ...")
-            store.wait_until_queryable()
+            store.wait_until_queryable(int(vectors.shape[1]))
 
     return IndexReport(
         files=len(files),
