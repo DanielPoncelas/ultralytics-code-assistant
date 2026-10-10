@@ -1,0 +1,51 @@
+import pytest
+from pydantic import ValidationError
+
+from code_assistant.config import Settings
+
+URI = "mongodb+srv://user:supersecret@cluster.example.mongodb.net/"
+KEY = "sk-or-v1-supersecret"
+
+
+@pytest.fixture(autouse=True)
+def isolated_env(monkeypatch, tmp_path):
+    """Run each test with no real `.env` and no inherited credentials."""
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("MONGODB_URI", raising=False)
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+
+
+def test_loads_from_environment(monkeypatch):
+    monkeypatch.setenv("MONGODB_URI", URI)
+    monkeypatch.setenv("OPENROUTER_API_KEY", KEY)
+
+    settings = Settings()
+
+    assert settings.mongodb_uri.get_secret_value() == URI
+    assert settings.openrouter_api_key.get_secret_value() == KEY
+    assert settings.mongodb_database == "code_assistant"
+
+
+def test_loads_from_dotenv_file(tmp_path):
+    (tmp_path / ".env").write_text(f"MONGODB_URI={URI}\nOPENROUTER_API_KEY={KEY}\n")
+
+    settings = Settings()
+
+    assert settings.openrouter_api_key.get_secret_value() == KEY
+
+
+def test_missing_variables_fail_with_their_names():
+    with pytest.raises(ValidationError) as exc_info:
+        Settings()
+
+    missing = {err["loc"][0] for err in exc_info.value.errors()}
+    assert missing == {"mongodb_uri", "openrouter_api_key"}
+
+
+def test_secrets_are_not_exposed_in_repr(monkeypatch):
+    monkeypatch.setenv("MONGODB_URI", URI)
+    monkeypatch.setenv("OPENROUTER_API_KEY", KEY)
+
+    rendered = repr(Settings())
+
+    assert "supersecret" not in rendered
