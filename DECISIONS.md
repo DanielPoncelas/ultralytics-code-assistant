@@ -317,7 +317,7 @@ Every significant design decision, with the alternatives considered and the trad
   - **Cohere sometimes cites as 【4】.** The citation parser now accepts it. No evaluation answer used it, so the metrics are unaffected.
 - **Fallback chain order:** by coverage, one model per provider (Cohere → dots-3 → Laguna). An outage at one provider, like Google's today, doesn't take the assistant down.
 - **What would improve answers most** (measured gaps, not guesses):
-  1. **Retrieval:** in 4/40 questions no model's sources contained the answer.
+  1. **Retrieval:** in 8 of 40 in-scope questions the relevant code was not among the 6 sources (Hit@6 = 80%), so no model could fully answer them.
   2. **Indexing `cfg/`**, so default-value questions have real answers to retrieve.
   3. **A stronger, paid model** for production.
   4. **Prompt work against misreading** (e.g. "a search space is not a default").
