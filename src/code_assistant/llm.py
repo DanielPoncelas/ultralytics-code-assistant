@@ -8,7 +8,7 @@ which one actually answered, plus every failed attempt.
 
 import json
 import time
-from collections.abc import Iterator, Sequence
+from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
@@ -46,6 +46,10 @@ class Completion:
 class _ModelFailure(Exception):
     """This model failed before producing text; the next one should be tried."""
 
+    def __init__(self, message: str, retryable: bool = True) -> None:
+        super().__init__(message)
+        self.retryable = retryable  # transient (429, 5xx, network) vs. model behaviour
+
 
 class OpenRouterClient:
     def __init__(
@@ -56,13 +60,22 @@ class OpenRouterClient:
         temperature: float = 0.0,
         max_tokens: int = 2000,
         timeout_s: float = 90.0,
+        max_retries: int = 0,
+        retry_backoff_s: float = 2.0,
         http_client: httpx.Client | None = None,
+        sleep: Callable[[float], None] = time.sleep,
     ) -> None:
         if not models:
             raise ValueError("At least one model is required")
         self.models = tuple(models)
         self.temperature = temperature
         self.max_tokens = max_tokens
+        # Retries of the *same* model on transient errors before falling back. Interactive use
+        # keeps 0 (falling back is faster than waiting); evaluation uses retries so that a
+        # momentary rate limit isn't scored as a model failure.
+        self.max_retries = max_retries
+        self.retry_backoff_s = retry_backoff_s
+        self._sleep = sleep
         self._http = http_client or httpx.Client(base_url=base_url, timeout=timeout_s)
         self._http.headers.update(
             {
@@ -75,9 +88,10 @@ class OpenRouterClient:
 
     @classmethod
     def from_settings(
-        cls, settings: "Settings", models: Sequence[str] | None = None
+        cls, settings: "Settings", models: Sequence[str] | None = None, max_retries: int = 0
     ) -> "OpenRouterClient":
         return cls(
+            max_retries=max_retries,
             api_key=settings.openrouter_api_key.get_secret_value(),
             models=models or settings.llm_models,
             base_url=settings.openrouter_base_url,
@@ -95,24 +109,28 @@ class OpenRouterClient:
         """Return the first non-empty answer, trying models in order."""
         failures: list[Attempt] = []
         for model in self.models:
-            started = time.perf_counter()
-            try:
-                data = self._post(model, messages)
-                text = (data["choices"][0]["message"].get("content") or "").strip()
-                if not text:
-                    raise _ModelFailure("empty completion")
-            except _ModelFailure as exc:
-                failures.append(Attempt(model, str(exc)))
-                continue
-            usage = data.get("usage") or {}
-            return Completion(
-                text=text,
-                model=data.get("model", model),
-                latency_s=time.perf_counter() - started,
-                failed_attempts=tuple(failures),
-                prompt_tokens=usage.get("prompt_tokens"),
-                completion_tokens=usage.get("completion_tokens"),
-            )
+            for retry in range(self.max_retries + 1):
+                started = time.perf_counter()
+                try:
+                    data = self._post(model, messages)
+                    text = (data["choices"][0]["message"].get("content") or "").strip()
+                    if not text:
+                        raise _ModelFailure("empty completion", retryable=False)
+                except _ModelFailure as exc:
+                    failures.append(Attempt(model, str(exc)))
+                    if exc.retryable and retry < self.max_retries:
+                        self._sleep(self.retry_backoff_s * 2**retry)
+                        continue
+                    break
+                usage = data.get("usage") or {}
+                return Completion(
+                    text=text,
+                    model=data.get("model", model),
+                    latency_s=time.perf_counter() - started,
+                    failed_attempts=tuple(failures),
+                    prompt_tokens=usage.get("prompt_tokens"),
+                    completion_tokens=usage.get("completion_tokens"),
+                )
         raise LLMError(_summary(failures))
 
     def stream(self, messages: list[Message]) -> Iterator[str | Completion]:
@@ -136,7 +154,7 @@ class OpenRouterClient:
                         parts.append(delta)
                         yield delta
                 if not "".join(parts).strip():
-                    raise _ModelFailure("empty completion")
+                    raise _ModelFailure("empty completion", retryable=False)
             except _ModelFailure as exc:
                 if parts:
                     raise LLMError(f"{model} failed mid-answer: {exc}") from exc

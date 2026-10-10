@@ -231,3 +231,39 @@ def eval_retrieval(
             f"{OK} Atlas vs exact search: top-5 overlap {evaluation.agreement.overlap_at_5:.1%}"
         )
     typer.echo(f"{OK} Report: {evaluation.markdown_path} (raw data: {evaluation.json_path})")
+
+
+@eval_app.command("answers")
+def eval_answers(
+    models: Annotated[
+        list[str] | None,
+        typer.Option("--model", help="LLM(s) to compare (repeatable). Default: LLM_MODELS."),
+    ] = None,
+    judge: Annotated[
+        str | None, typer.Option(help="Judge model (default: Nemotron-3-Super).")
+    ] = None,
+    questions: Annotated[Path, typer.Option(help="Question file.")] = Path("eval/questions.toml"),
+    output: Annotated[Path, typer.Option(help="Report directory.")] = Path("eval/results"),
+    limit: Annotated[int | None, typer.Option(help="Only the first N questions.")] = None,
+) -> None:
+    """Generate answers with each LLM, grade them with an LLM judge, and choose an LLM.
+
+    Needs ~2 OpenRouter requests per question and model (answer + judge): with 46 questions,
+    ~92 per model. Free accounts get 50 free-model requests/day; accounts that purchased at
+    least 10 credits get 1,000/day.
+    """
+    from code_assistant.evaluation.answer_eval import JUDGE_MODEL
+    from code_assistant.evaluation.answer_runner import run_answer_evaluation
+
+    settings = get_settings()
+    evaluation = run_answer_evaluation(
+        settings,
+        models or list(settings.llm_models),
+        questions,
+        output,
+        judge_model=judge or JUDGE_MODEL,
+        limit=limit,
+        log=typer.echo,
+    )
+    typer.echo(f"{OK} Chosen LLM: {evaluation.chosen.model}. {evaluation.reason}")
+    typer.echo(f"{OK} Report: {evaluation.markdown_path} (raw data: {evaluation.jsonl_path})")

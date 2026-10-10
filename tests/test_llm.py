@@ -146,3 +146,38 @@ def test_stream_does_not_switch_models_after_text_was_shown():
     assert next(stream) == "partial"
     with pytest.raises(LLMError, match="failed mid-answer"):
         list(stream)
+
+
+def test_complete_retries_same_model_on_transient_errors_with_backoff():
+    responses = iter([httpx.Response(429, text="busy"), httpx.Response(503, text="down")])
+    sleeps = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return next(responses, httpx.Response(200, json=completion_body("ok", "a/model")))
+
+    http = httpx.Client(base_url="https://t", transport=httpx.MockTransport(handler))
+    client = OpenRouterClient("k", ["a/model"], max_retries=3, retry_backoff_s=1.0,
+                              http_client=http, sleep=sleeps.append)  # fmt: skip
+
+    result = client.complete(MESSAGES)
+
+    assert result.model == "a/model"
+    assert sleeps == [1.0, 2.0]  # exponential backoff
+    assert len(result.failed_attempts) == 2
+
+
+def test_complete_does_not_retry_empty_completions():
+    calls = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        return httpx.Response(200, json=completion_body("", "a/model"))
+
+    http = httpx.Client(base_url="https://t", transport=httpx.MockTransport(handler))
+    client = OpenRouterClient(
+        "k", ["a/model"], max_retries=3, http_client=http, sleep=lambda s: None
+    )
+
+    with pytest.raises(LLMError, match="empty completion"):
+        client.complete(MESSAGES)
+    assert len(calls) == 1
