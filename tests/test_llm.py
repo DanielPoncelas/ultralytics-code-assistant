@@ -200,3 +200,66 @@ def test_stream_captures_finish_reason():
 
     completion = list(make_client(handler).stream(MESSAGES))[-1]
     assert completion.finish_reason == "stop" and not completion.truncated
+
+
+def test_stream_falls_back_after_whitespace_only_output():
+    def handler(request: httpx.Request) -> httpx.Response:
+        if json.loads(request.content)["model"] == "a/model":
+            return httpx.Response(200, content=sse(chunk("\n\n"), {"error": {"message": "x"}}))
+        return httpx.Response(200, content=sse(chunk("ok", "b/model")))
+
+    events = list(make_client(handler).stream(MESSAGES))
+
+    assert events[0] == "ok" and events[-1].model == "b/model"
+
+
+def test_stream_first_token_deadline_survives_keep_alives():
+    import time
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if json.loads(request.content)["model"] == "a/model":
+            time.sleep(0.3)  # queued: only keep-alives arrive before the deadline
+            return httpx.Response(200, content=b": OPENROUTER PROCESSING\n\n" * 5)
+        return httpx.Response(200, content=sse(chunk("ok", "b/model")))
+
+    client = make_client(handler)
+    client.first_token_timeout_s = 0.2
+
+    final = list(client.stream(MESSAGES))[-1]
+
+    assert final.model == "b/model"
+    assert "first token" in final.failed_attempts[0].error
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        httpx.Response(200, text="<html>Bad gateway</html>"),
+        httpx.Response(200, json={"choices": []}),
+        httpx.Response(200, json={"choices": [{"message": None}]}),
+    ],
+)
+def test_complete_falls_back_on_malformed_bodies(bad):
+    def handler(request: httpx.Request) -> httpx.Response:
+        if json.loads(request.content)["model"] == "a/model":
+            return bad
+        return httpx.Response(200, json=completion_body("ok", "b/model"))
+
+    assert make_client(handler).complete(MESSAGES).model == "b/model"
+
+
+def test_permanent_client_errors_are_not_retried():
+    calls = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        return httpx.Response(400, text="context too long")
+
+    http = httpx.Client(base_url="https://t", transport=httpx.MockTransport(handler))
+    client = OpenRouterClient(
+        "k", ["a/model"], max_retries=4, http_client=http, sleep=lambda s: None
+    )
+
+    with pytest.raises(LLMError):
+        client.complete(MESSAGES)
+    assert len(calls) == 1

@@ -69,6 +69,7 @@ class OpenRouterClient:
         timeout_s: float = 90.0,
         max_retries: int = 0,
         retry_backoff_s: float = 2.0,
+        first_token_timeout_s: float | None = None,
         http_client: httpx.Client | None = None,
         sleep: Callable[[float], None] = time.sleep,
     ) -> None:
@@ -82,6 +83,7 @@ class OpenRouterClient:
         # momentary rate limit isn't scored as a model failure.
         self.max_retries = max_retries
         self.retry_backoff_s = retry_backoff_s
+        self.first_token_timeout_s = first_token_timeout_s  # streaming only
         self._sleep = sleep
         self._http = http_client or httpx.Client(base_url=base_url, timeout=timeout_s)
         self._http.headers.update(
@@ -104,6 +106,7 @@ class OpenRouterClient:
         timeout = settings.llm_interactive_timeout_s if interactive else settings.llm_timeout_s
         return cls(
             max_retries=max_retries,
+            first_token_timeout_s=settings.llm_interactive_timeout_s if interactive else None,
             api_key=settings.openrouter_api_key.get_secret_value(),
             models=models or settings.llm_models,
             base_url=settings.openrouter_base_url,
@@ -125,7 +128,10 @@ class OpenRouterClient:
                 started = time.perf_counter()
                 try:
                     data = self._post(model, messages)
-                    text = (data["choices"][0]["message"].get("content") or "").strip()
+                    try:
+                        text = (data["choices"][0]["message"].get("content") or "").strip()
+                    except (KeyError, IndexError, TypeError, AttributeError) as exc:
+                        raise _ModelFailure(f"malformed response: {str(data)[:100]}") from exc
                     if not text:
                         raise _ModelFailure("empty completion", retryable=False)
                 except _ModelFailure as exc:
@@ -156,21 +162,32 @@ class OpenRouterClient:
         for model in self.models:
             started = time.perf_counter()
             parts: list[str] = []
+            shown = False  # True once real text reached the caller: no fallback after that
             reported_model, usage, finish_reason = model, {}, None
+            deadline = started + self.first_token_timeout_s if self.first_token_timeout_s else None
             try:
                 for event in self._stream_events(model, messages):
-                    reported_model = event.get("model", reported_model)
+                    if not shown and deadline and time.perf_counter() > deadline:
+                        raise _ModelFailure("timed out waiting for the first token")
+                    if event is None:  # keep-alive
+                        continue
+                    reported_model = event.get("model") or reported_model
                     usage = event.get("usage") or usage
-                    choices = event.get("choices") or [{}]
-                    finish_reason = choices[0].get("finish_reason") or finish_reason
-                    delta = (choices[0].get("delta") or {}).get("content") or ""
-                    if delta:
-                        parts.append(delta)
+                    choice = (event.get("choices") or [None])[0] or {}
+                    finish_reason = choice.get("finish_reason") or finish_reason
+                    delta = (choice.get("delta") or {}).get("content")
+                    if not isinstance(delta, str) or not delta:
+                        continue
+                    parts.append(delta)
+                    if shown:
                         yield delta
-                if not "".join(parts).strip():
+                    elif "".join(parts).strip():  # hold back leading whitespace
+                        shown = True
+                        yield "".join(parts)
+                if not shown:
                     raise _ModelFailure("empty completion", retryable=False)
             except _ModelFailure as exc:
-                if parts:
+                if shown:
                     raise LLMError(f"{model} failed mid-answer: {exc}") from exc
                 failures.append(Attempt(model, str(exc)))
                 continue
@@ -208,13 +225,25 @@ class OpenRouterClient:
         except httpx.HTTPError as exc:
             raise _ModelFailure(f"network error: {exc!r}") from exc
         _check_status(response)
-        data = response.json()
+        try:
+            data = response.json()
+        except ValueError as exc:  # e.g. an HTML error page from a proxy
+            raise _ModelFailure(f"malformed response: {response.text[:100]}") from exc
+        if not isinstance(data, dict):
+            raise _ModelFailure(f"malformed response: {str(data)[:100]}")
         if "error" in data:  # OpenRouter can report provider errors with HTTP 200
             raise _ModelFailure(f"provider error: {data['error']}")
         return data
 
-    def _stream_events(self, model: str, messages: list[Message]) -> Iterator[dict[str, Any]]:
-        """Parse OpenRouter's server-sent events into JSON chunks."""
+    def _stream_events(
+        self, model: str, messages: list[Message]
+    ) -> Iterator[dict[str, Any] | None]:
+        """Parse OpenRouter's server-sent events into JSON chunks (None for keep-alives).
+
+        Keep-alives are surfaced so the caller can enforce a first-token deadline: httpx's
+        timeout only limits the gap between bytes, and OpenRouter sends keep-alive comments
+        while a model is queued or reasoning, so a slow model would never time out.
+        """
         try:
             with self._http.stream(
                 "POST", "/chat/completions", json=self._payload(model, messages, stream=True)
@@ -224,7 +253,8 @@ class OpenRouterClient:
                     _check_status(response)
                 for line in response.iter_lines():
                     if not line.startswith("data: "):
-                        continue  # blank lines and keep-alive comments (": OPENROUTER PROCESSING")
+                        yield None  # blank line or keep-alive (": OPENROUTER PROCESSING")
+                        continue
                     data = line.removeprefix("data: ")
                     if data == "[DONE]":
                         return
@@ -232,6 +262,8 @@ class OpenRouterClient:
                         event = json.loads(data)
                     except json.JSONDecodeError as exc:
                         raise _ModelFailure(f"malformed stream chunk: {data[:100]}") from exc
+                    if not isinstance(event, dict):
+                        raise _ModelFailure(f"malformed stream chunk: {data[:100]}")
                     if "error" in event:
                         raise _ModelFailure(f"provider error: {event['error']}")
                     yield event
@@ -248,7 +280,9 @@ def _check_status(response: httpx.Response) -> None:
             f"OpenRouter returned {response.status_code} ({FATAL_STATUS[response.status_code]}): "
             f"{detail}"
         )
-    raise _ModelFailure(f"HTTP {response.status_code}: {detail}")
+    # 408/429/5xx are transient; other 4xx (bad request, no endpoint, moderation) are not.
+    transient = response.status_code in (408, 429) or response.status_code >= 500
+    raise _ModelFailure(f"HTTP {response.status_code}: {detail}", retryable=transient)
 
 
 def _summary(failures: list[Attempt]) -> str:
