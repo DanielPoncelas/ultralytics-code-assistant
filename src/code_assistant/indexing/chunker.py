@@ -8,6 +8,8 @@ Chunk types:
   plus the signature of each top-level function and class.
 
 Nothing is lost: every line of a file ends up in a function/method chunk or in a summary.
+Comments between statements (which `ast` does not see) are attached to the statement that
+follows them, as in "# NOTE: kept for backward compatibility" above a class.
 Units longer than `max_chars` are split at statement boundaries, never mid-statement.
 """
 
@@ -62,7 +64,7 @@ class _ChunkBuilder:
         self, node: FunctionNode, kind: ChunkKind, parent: ast.ClassDef | None
     ) -> list[Chunk]:
         qualified_name = f"{parent.name}.{node.name}" if parent else node.name
-        start, end = _start_line(node), node.end_lineno or node.lineno
+        start, end = self._start_line(node), node.end_lineno or node.lineno
         boundaries = {
             stmt.lineno
             for stmt in ast.walk(node)
@@ -80,18 +82,18 @@ class _ChunkBuilder:
         )
 
     def _class_chunks(self, node: ast.ClassDef) -> list[Chunk]:
-        start, end = _start_line(node), node.end_lineno or node.lineno
+        start, end = self._start_line(node), node.end_lineno or node.lineno
         body_indent = " " * node.body[0].col_offset
 
-        # Header: decorators + `class X(...):` line(s), verbatim.
-        pieces: list[list[str]] = [self.lines[start - 1 : node.body[0].lineno - 1]]
+        # Header: comments, decorators and `class X(...):` line(s), verbatim.
+        pieces: list[list[str]] = [self.lines[start - 1 : self._start_line(node.body[0]) - 1]]
         methods: list[FunctionNode] = []
         for stmt in node.body:
             if isinstance(stmt, FunctionNode):
                 methods.append(stmt)
                 pieces.append(_signature_stub(stmt, body_indent))
             else:  # docstring, attributes, nested classes...: kept verbatim
-                pieces.append(self.lines[_start_line(stmt) - 1 : stmt.end_lineno])
+                pieces.append(self.lines[self._start_line(stmt) - 1 : stmt.end_lineno])
 
         summary = self._make_chunks(
             self._split_pieces(pieces, start, end),
@@ -112,13 +114,16 @@ class _ChunkBuilder:
     def _module_summary(self) -> list[Chunk]:
         pieces: list[list[str]] = []
         for stmt in self.tree.body:
+            if isinstance(stmt, FunctionNode | ast.ClassDef):
+                pieces.append(self._leading_comments(stmt))
             if isinstance(stmt, FunctionNode):
                 pieces.append(_signature_stub(stmt, indent=""))
             elif isinstance(stmt, ast.ClassDef):
                 header = f"class {stmt.name}({', '.join(ast.unparse(b) for b in stmt.bases)}):"
                 pieces.append([header, *_docstring_stub(stmt, "    ")])
             else:  # docstring, imports, constants, __all__, if/try blocks...: kept verbatim
-                pieces.append(self.lines[_start_line(stmt) - 1 : stmt.end_lineno])
+                pieces.append(self.lines[self._start_line(stmt) - 1 : stmt.end_lineno])
+        pieces = [piece for piece in pieces if piece]
         if not pieces:
             return []
         return self._make_chunks(
@@ -129,6 +134,24 @@ class _ChunkBuilder:
             .removesuffix(".__init__"),
             docstring=ast.get_docstring(self.tree),
         )
+
+    def _start_line(self, node: ast.stmt) -> int:
+        """First line of a statement, including its decorators and the comments right above it."""
+        first = _decorated_start(node)
+        line = first - 1  # 1-based line just above
+        while line >= 1 and (
+            self.lines[line - 1].strip().startswith("#") or not self.lines[line - 1].strip()
+        ):
+            line -= 1
+        # `line` is now the previous code line (or 0); skip blank lines down to the first comment.
+        start = line + 1
+        while start < first and not self.lines[start - 1].strip():
+            start += 1
+        return start
+
+    def _leading_comments(self, node: ast.stmt) -> list[str]:
+        """The comment lines attached above a statement (used in summaries)."""
+        return self.lines[self._start_line(node) - 1 : _decorated_start(node) - 1]
 
     # -- splitting -------------------------------------------------------------------
 
@@ -208,7 +231,7 @@ def _split_ranges(
 # -- AST helpers ---------------------------------------------------------------------
 
 
-def _start_line(node: ast.stmt) -> int:
+def _decorated_start(node: ast.stmt) -> int:
     """First line of a statement, including its decorators."""
     decorators = getattr(node, "decorator_list", [])
     return min([node.lineno, *(d.lineno for d in decorators)])

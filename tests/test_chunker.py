@@ -177,3 +177,49 @@ def test_split_never_cuts_inside_a_multiline_statement():
     for part in by_name(chunk_source(source, PATH, max_chars=1000, overlap_lines=0), "long"):
         # every part must be parseable on its own -> no statement was cut in half
         ast.parse(textwrap.dedent(part.code).replace("def long():", "if True:"))
+
+
+COMMENTED = textwrap.dedent(
+    """\
+    # License header
+
+    import os
+
+    # Cache version: bump to invalidate old caches
+    CACHE_VERSION = "1.0"
+
+
+    # NOTE: keep this class for backward compatibility
+    @dataclass
+    class Legacy:
+        # Default size used when none is given
+        size = 640
+
+        # Kept for older callers
+        def old(self):
+            return 1
+    """
+)
+
+
+def test_comments_between_statements_are_attached_to_the_next_statement():
+    chunks = chunk_source(COMMENTED, PATH)
+    (module,) = by_name(chunks, "ultralytics.engine.sample")
+    (legacy,) = by_name(chunks, "Legacy")
+    (old,) = by_name(chunks, "Legacy.old")
+
+    assert "# Cache version: bump to invalidate old caches" in module.code
+    assert "# NOTE: keep this class for backward compatibility" in module.code
+    assert legacy.code.startswith("# NOTE: keep this class for backward compatibility\n@dataclass")
+    assert "# Default size used when none is given" in legacy.code
+    assert old.code.startswith("# Kept for older callers\ndef old(self):")
+    assert old.start_line == 15  # line numbers include the attached comment
+
+
+def test_every_non_blank_line_appears_in_some_chunk():
+    for source in (SAMPLE, COMMENTED):
+        covered = {line.strip() for c in chunk_source(source, PATH) for line in c.code.splitlines()}
+        missing = [
+            line for line in source.splitlines() if line.strip() and line.strip() not in covered
+        ]
+        assert missing == []
