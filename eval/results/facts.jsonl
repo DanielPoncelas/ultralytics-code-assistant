@@ -1,0 +1,120 @@
+{"model": "Vector only", "question_id": "train-resume", "verdict": {"facts_covered": [true, true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Vector only", "question_id": "train-optimizer-auto", "verdict": {"facts_covered": [true, true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Vector only", "question_id": "train-lr-schedule", "verdict": {"facts_covered": [true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Vector only", "question_id": "train-warmup-bias", "verdict": {"facts_covered": [true, false]}, "rejected_quotes": 0, "error": ""}
+{"model": "Vector only", "question_id": "train-freeze", "verdict": {"facts_covered": [false, false]}, "rejected_quotes": 0, "error": ""}
+{"model": "Vector only", "question_id": "train-grad-accum", "verdict": {"facts_covered": [false, false]}, "rejected_quotes": 0, "error": ""}
+{"model": "Vector only", "question_id": "train-close-mosaic", "verdict": {"facts_covered": [false, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Vector only", "question_id": "train-multi-gpu", "verdict": {"facts_covered": [true, false, false]}, "rejected_quotes": 2, "error": ""}
+{"model": "Vector only", "question_id": "train-epoch-lag", "verdict": {"facts_covered": [false, false]}, "rejected_quotes": 1, "error": ""}
+{"model": "Vector only", "question_id": "train-autobatch", "verdict": {"facts_covered": [false, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Vector only", "question_id": "train-plot-augmented", "verdict": {"facts_covered": [false, false]}, "rejected_quotes": 0, "error": ""}
+{"model": "Vector only", "question_id": "train-tune", "verdict": {"facts_covered": [true, true, false]}, "rejected_quotes": 0, "error": ""}
+{"model": "Vector only", "question_id": "data-default-augment", "verdict": {"facts_covered": [true, true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Vector only", "question_id": "data-albumentations", "verdict": {"facts_covered": [true, true, false]}, "rejected_quotes": 0, "error": ""}
+{"model": "Vector only", "question_id": "data-rect", "verdict": {"facts_covered": [true, true, false]}, "rejected_quotes": 0, "error": ""}
+{"model": "Vector only", "question_id": "data-cache", "verdict": {"facts_covered": [false, true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Vector only", "question_id": "data-no-labels", "verdict": {"facts_covered": [false, true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Vector only", "question_id": "data-not-found", "verdict": {"facts_covered": [false, true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Vector only", "question_id": "data-coco-convert", "verdict": {"facts_covered": [true, true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Vector only", "question_id": "data-mask-convert", "verdict": {"facts_covered": [true, true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Vector only", "question_id": "data-letterbox-auto", "verdict": {"facts_covered": [true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Vector only", "question_id": "data-multi-rtsp", "verdict": {"facts_covered": [false, false, false]}, "rejected_quotes": 0, "error": ""}
+{"model": "Vector only", "question_id": "data-rtsp-reconnect", "verdict": {"facts_covered": [false, false]}, "rejected_quotes": 0, "error": ""}
+{"model": "Vector only", "question_id": "predict-stream", "verdict": {"facts_covered": [true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Vector only", "question_id": "predict-returns-list", "verdict": {"facts_covered": [true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Vector only", "question_id": "predict-box-size", "verdict": {"facts_covered": [false, false]}, "rejected_quotes": 0, "error": ""}
+{"model": "Vector only", "question_id": "predict-plot-no-boxes", "verdict": {"facts_covered": [false, false]}, "rejected_quotes": 0, "error": ""}
+{"model": "Vector only", "question_id": "predict-crop", "verdict": {"facts_covered": [true, false, false]}, "rejected_quotes": 1, "error": ""}
+{"model": "Vector only", "question_id": "predict-seg-masks", "verdict": {"facts_covered": [true, false, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Vector only", "question_id": "predict-cls-top5", "verdict": {"facts_covered": [true, true, false]}, "rejected_quotes": 0, "error": ""}
+{"model": "Vector only", "question_id": "val-vs-predict", "verdict": {"facts_covered": [true, false, false]}, "rejected_quotes": 0, "error": ""}
+{"model": "Vector only", "question_id": "val-test-split", "verdict": {"facts_covered": [false, false, false]}, "rejected_quotes": 0, "error": ""}
+{"model": "Vector only", "question_id": "export-openvino", "verdict": {"facts_covered": [true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Vector only", "question_id": "export-tensorrt", "verdict": {"facts_covered": [true, true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Vector only", "question_id": "export-onnx-dynamic", "verdict": {"facts_covered": [false, false, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Vector only", "question_id": "export-coreml-nms", "verdict": {"facts_covered": [true, true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Vector only", "question_id": "model-fastsam-prompts", "verdict": {"facts_covered": [true, true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Vector only", "question_id": "model-yoloworld-classes", "verdict": {"facts_covered": [true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Vector only", "question_id": "model-rtdetr-train", "verdict": {"facts_covered": [false, false, false]}, "rejected_quotes": 0, "error": ""}
+{"model": "Vector only", "question_id": "model-sam2-dynamic", "verdict": {"facts_covered": [false, false, false]}, "rejected_quotes": 0, "error": ""}
+{"model": "Hybrid (vector + keyword, RRF)", "question_id": "train-resume", "verdict": {"facts_covered": [true, true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Hybrid (vector + keyword, RRF)", "question_id": "train-optimizer-auto", "verdict": {"facts_covered": [true, true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Hybrid (vector + keyword, RRF)", "question_id": "train-lr-schedule", "verdict": {"facts_covered": [true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Hybrid (vector + keyword, RRF)", "question_id": "train-warmup-bias", "verdict": {"facts_covered": [true, false]}, "rejected_quotes": 0, "error": ""}
+{"model": "Hybrid (vector + keyword, RRF)", "question_id": "train-freeze", "verdict": {"facts_covered": [false, false]}, "rejected_quotes": 0, "error": ""}
+{"model": "Hybrid (vector + keyword, RRF)", "question_id": "train-grad-accum", "verdict": {"facts_covered": [false, false]}, "rejected_quotes": 0, "error": ""}
+{"model": "Hybrid (vector + keyword, RRF)", "question_id": "train-close-mosaic", "verdict": {"facts_covered": [false, false]}, "rejected_quotes": 1, "error": ""}
+{"model": "Hybrid (vector + keyword, RRF)", "question_id": "train-multi-gpu", "verdict": {"facts_covered": [false, true, false]}, "rejected_quotes": 0, "error": ""}
+{"model": "Hybrid (vector + keyword, RRF)", "question_id": "train-epoch-lag", "verdict": {"facts_covered": [true, false]}, "rejected_quotes": 1, "error": ""}
+{"model": "Hybrid (vector + keyword, RRF)", "question_id": "train-autobatch", "verdict": {"facts_covered": [false, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Hybrid (vector + keyword, RRF)", "question_id": "train-plot-augmented", "verdict": {"facts_covered": [false, false]}, "rejected_quotes": 0, "error": ""}
+{"model": "Hybrid (vector + keyword, RRF)", "question_id": "train-tune", "verdict": {"facts_covered": [true, true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Hybrid (vector + keyword, RRF)", "question_id": "data-default-augment", "verdict": null, "rejected_quotes": 0, "error": "judge: All models failed:\n  - nvidia/nemotron-3-super-120b-a12b:free: empty completion"}
+{"model": "Hybrid (vector + keyword, RRF)", "question_id": "data-albumentations", "verdict": {"facts_covered": [true, true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Hybrid (vector + keyword, RRF)", "question_id": "data-rect", "verdict": {"facts_covered": [false, false, false]}, "rejected_quotes": 0, "error": ""}
+{"model": "Hybrid (vector + keyword, RRF)", "question_id": "data-cache", "verdict": {"facts_covered": [true, true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Hybrid (vector + keyword, RRF)", "question_id": "data-no-labels", "verdict": {"facts_covered": [false, true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Hybrid (vector + keyword, RRF)", "question_id": "data-not-found", "verdict": {"facts_covered": [true, true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Hybrid (vector + keyword, RRF)", "question_id": "data-coco-convert", "verdict": {"facts_covered": [true, true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Hybrid (vector + keyword, RRF)", "question_id": "data-mask-convert", "verdict": {"facts_covered": [true, true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Hybrid (vector + keyword, RRF)", "question_id": "data-letterbox-auto", "verdict": {"facts_covered": [true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Hybrid (vector + keyword, RRF)", "question_id": "data-multi-rtsp", "verdict": {"facts_covered": [false, false, false]}, "rejected_quotes": 0, "error": ""}
+{"model": "Hybrid (vector + keyword, RRF)", "question_id": "data-rtsp-reconnect", "verdict": {"facts_covered": [true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Hybrid (vector + keyword, RRF)", "question_id": "predict-stream", "verdict": {"facts_covered": [true, false]}, "rejected_quotes": 0, "error": ""}
+{"model": "Hybrid (vector + keyword, RRF)", "question_id": "predict-returns-list", "verdict": {"facts_covered": [false, false]}, "rejected_quotes": 0, "error": ""}
+{"model": "Hybrid (vector + keyword, RRF)", "question_id": "predict-box-size", "verdict": {"facts_covered": [false, false]}, "rejected_quotes": 0, "error": ""}
+{"model": "Hybrid (vector + keyword, RRF)", "question_id": "predict-plot-no-boxes", "verdict": {"facts_covered": [false, false]}, "rejected_quotes": 0, "error": ""}
+{"model": "Hybrid (vector + keyword, RRF)", "question_id": "predict-crop", "verdict": {"facts_covered": [true, true, false]}, "rejected_quotes": 0, "error": ""}
+{"model": "Hybrid (vector + keyword, RRF)", "question_id": "predict-seg-masks", "verdict": {"facts_covered": [false, false, false]}, "rejected_quotes": 0, "error": ""}
+{"model": "Hybrid (vector + keyword, RRF)", "question_id": "predict-cls-top5", "verdict": {"facts_covered": [true, true, false]}, "rejected_quotes": 0, "error": ""}
+{"model": "Hybrid (vector + keyword, RRF)", "question_id": "val-vs-predict", "verdict": {"facts_covered": [true, false, false]}, "rejected_quotes": 0, "error": ""}
+{"model": "Hybrid (vector + keyword, RRF)", "question_id": "val-test-split", "verdict": {"facts_covered": [false, false, false]}, "rejected_quotes": 0, "error": ""}
+{"model": "Hybrid (vector + keyword, RRF)", "question_id": "export-openvino", "verdict": {"facts_covered": [true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Hybrid (vector + keyword, RRF)", "question_id": "export-tensorrt", "verdict": {"facts_covered": [true, true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Hybrid (vector + keyword, RRF)", "question_id": "export-onnx-dynamic", "verdict": {"facts_covered": [false, false, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Hybrid (vector + keyword, RRF)", "question_id": "export-coreml-nms", "verdict": {"facts_covered": [true, true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Hybrid (vector + keyword, RRF)", "question_id": "model-fastsam-prompts", "verdict": {"facts_covered": [true, true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Hybrid (vector + keyword, RRF)", "question_id": "model-yoloworld-classes", "verdict": {"facts_covered": [true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Hybrid (vector + keyword, RRF)", "question_id": "model-rtdetr-train", "verdict": {"facts_covered": [false, false, false]}, "rejected_quotes": 0, "error": ""}
+{"model": "Hybrid (vector + keyword, RRF)", "question_id": "model-sam2-dynamic", "verdict": {"facts_covered": [false, false, false]}, "rejected_quotes": 0, "error": ""}
+{"model": "Reranked (nvidia/llama-nemotron-rerank-vl-1b-v2:free)", "question_id": "train-resume", "verdict": {"facts_covered": [false, true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Reranked (nvidia/llama-nemotron-rerank-vl-1b-v2:free)", "question_id": "train-optimizer-auto", "verdict": {"facts_covered": [false, true, true]}, "rejected_quotes": 1, "error": ""}
+{"model": "Reranked (nvidia/llama-nemotron-rerank-vl-1b-v2:free)", "question_id": "train-lr-schedule", "verdict": {"facts_covered": [true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Reranked (nvidia/llama-nemotron-rerank-vl-1b-v2:free)", "question_id": "train-warmup-bias", "verdict": {"facts_covered": [true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Reranked (nvidia/llama-nemotron-rerank-vl-1b-v2:free)", "question_id": "train-freeze", "verdict": {"facts_covered": [false, false]}, "rejected_quotes": 0, "error": ""}
+{"model": "Reranked (nvidia/llama-nemotron-rerank-vl-1b-v2:free)", "question_id": "train-grad-accum", "verdict": {"facts_covered": [false, false]}, "rejected_quotes": 0, "error": ""}
+{"model": "Reranked (nvidia/llama-nemotron-rerank-vl-1b-v2:free)", "question_id": "train-close-mosaic", "verdict": {"facts_covered": [true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Reranked (nvidia/llama-nemotron-rerank-vl-1b-v2:free)", "question_id": "train-multi-gpu", "verdict": {"facts_covered": [true, true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Reranked (nvidia/llama-nemotron-rerank-vl-1b-v2:free)", "question_id": "train-epoch-lag", "verdict": {"facts_covered": [true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Reranked (nvidia/llama-nemotron-rerank-vl-1b-v2:free)", "question_id": "train-autobatch", "verdict": {"facts_covered": [false, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Reranked (nvidia/llama-nemotron-rerank-vl-1b-v2:free)", "question_id": "train-plot-augmented", "verdict": {"facts_covered": [false, false]}, "rejected_quotes": 0, "error": ""}
+{"model": "Reranked (nvidia/llama-nemotron-rerank-vl-1b-v2:free)", "question_id": "train-tune", "verdict": {"facts_covered": [true, true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Reranked (nvidia/llama-nemotron-rerank-vl-1b-v2:free)", "question_id": "data-default-augment", "verdict": {"facts_covered": [true, true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Reranked (nvidia/llama-nemotron-rerank-vl-1b-v2:free)", "question_id": "data-albumentations", "verdict": {"facts_covered": [true, true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Reranked (nvidia/llama-nemotron-rerank-vl-1b-v2:free)", "question_id": "data-rect", "verdict": {"facts_covered": [true, true, false]}, "rejected_quotes": 0, "error": ""}
+{"model": "Reranked (nvidia/llama-nemotron-rerank-vl-1b-v2:free)", "question_id": "data-cache", "verdict": {"facts_covered": [false, true, false]}, "rejected_quotes": 0, "error": ""}
+{"model": "Reranked (nvidia/llama-nemotron-rerank-vl-1b-v2:free)", "question_id": "data-no-labels", "verdict": {"facts_covered": [false, false, false]}, "rejected_quotes": 0, "error": ""}
+{"model": "Reranked (nvidia/llama-nemotron-rerank-vl-1b-v2:free)", "question_id": "data-not-found", "verdict": {"facts_covered": [false, true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Reranked (nvidia/llama-nemotron-rerank-vl-1b-v2:free)", "question_id": "data-coco-convert", "verdict": {"facts_covered": [true, true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Reranked (nvidia/llama-nemotron-rerank-vl-1b-v2:free)", "question_id": "data-mask-convert", "verdict": {"facts_covered": [true, true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Reranked (nvidia/llama-nemotron-rerank-vl-1b-v2:free)", "question_id": "data-letterbox-auto", "verdict": {"facts_covered": [false, true]}, "rejected_quotes": 1, "error": ""}
+{"model": "Reranked (nvidia/llama-nemotron-rerank-vl-1b-v2:free)", "question_id": "data-multi-rtsp", "verdict": {"facts_covered": [true, true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Reranked (nvidia/llama-nemotron-rerank-vl-1b-v2:free)", "question_id": "data-rtsp-reconnect", "verdict": {"facts_covered": [true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Reranked (nvidia/llama-nemotron-rerank-vl-1b-v2:free)", "question_id": "predict-stream", "verdict": {"facts_covered": [false, true]}, "rejected_quotes": 1, "error": ""}
+{"model": "Reranked (nvidia/llama-nemotron-rerank-vl-1b-v2:free)", "question_id": "predict-returns-list", "verdict": {"facts_covered": [false, false]}, "rejected_quotes": 0, "error": ""}
+{"model": "Reranked (nvidia/llama-nemotron-rerank-vl-1b-v2:free)", "question_id": "predict-box-size", "verdict": {"facts_covered": [true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Reranked (nvidia/llama-nemotron-rerank-vl-1b-v2:free)", "question_id": "predict-plot-no-boxes", "verdict": {"facts_covered": [true, false]}, "rejected_quotes": 0, "error": ""}
+{"model": "Reranked (nvidia/llama-nemotron-rerank-vl-1b-v2:free)", "question_id": "predict-crop", "verdict": {"facts_covered": [true, false, false]}, "rejected_quotes": 1, "error": ""}
+{"model": "Reranked (nvidia/llama-nemotron-rerank-vl-1b-v2:free)", "question_id": "predict-seg-masks", "verdict": {"facts_covered": [true, false, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Reranked (nvidia/llama-nemotron-rerank-vl-1b-v2:free)", "question_id": "predict-cls-top5", "verdict": {"facts_covered": [true, true, false]}, "rejected_quotes": 1, "error": ""}
+{"model": "Reranked (nvidia/llama-nemotron-rerank-vl-1b-v2:free)", "question_id": "val-vs-predict", "verdict": {"facts_covered": [false, false, false]}, "rejected_quotes": 0, "error": ""}
+{"model": "Reranked (nvidia/llama-nemotron-rerank-vl-1b-v2:free)", "question_id": "val-test-split", "verdict": {"facts_covered": [false, false, false]}, "rejected_quotes": 0, "error": ""}
+{"model": "Reranked (nvidia/llama-nemotron-rerank-vl-1b-v2:free)", "question_id": "export-openvino", "verdict": {"facts_covered": [true, false]}, "rejected_quotes": 0, "error": ""}
+{"model": "Reranked (nvidia/llama-nemotron-rerank-vl-1b-v2:free)", "question_id": "export-tensorrt", "verdict": {"facts_covered": [true, true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Reranked (nvidia/llama-nemotron-rerank-vl-1b-v2:free)", "question_id": "export-onnx-dynamic", "verdict": {"facts_covered": [false, false, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Reranked (nvidia/llama-nemotron-rerank-vl-1b-v2:free)", "question_id": "export-coreml-nms", "verdict": {"facts_covered": [true, true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Reranked (nvidia/llama-nemotron-rerank-vl-1b-v2:free)", "question_id": "model-fastsam-prompts", "verdict": {"facts_covered": [true, true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Reranked (nvidia/llama-nemotron-rerank-vl-1b-v2:free)", "question_id": "model-yoloworld-classes", "verdict": {"facts_covered": [true, true]}, "rejected_quotes": 0, "error": ""}
+{"model": "Reranked (nvidia/llama-nemotron-rerank-vl-1b-v2:free)", "question_id": "model-rtdetr-train", "verdict": {"facts_covered": [false, false, false]}, "rejected_quotes": 0, "error": ""}
+{"model": "Reranked (nvidia/llama-nemotron-rerank-vl-1b-v2:free)", "question_id": "model-sam2-dynamic", "verdict": {"facts_covered": [true, true, false]}, "rejected_quotes": 0, "error": ""}
