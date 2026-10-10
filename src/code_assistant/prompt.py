@@ -39,18 +39,28 @@ code snippets from the sources when they help, and Markdown formatting.
 MAX_HISTORY_TURNS = 3  # previous question/answer pairs kept for follow-ups
 
 REWRITE_PROMPT = """\
-You turn the user's latest message into a standalone search query for the Ultralytics \
-YOLO source code. Use the conversation only to resolve what the message refers to (e.g. \
-"it", "that", "the same for segmentation"). If the latest message starts a new topic, \
-return it unchanged. Reply with the query only, on one line, without quotes or explanation.
+Rewrite the user's latest message as a short, standalone question about the Ultralytics \
+YOLO code, using their previous questions only to resolve what it refers to ("it", \
+"that", "the same for segmentation"). Write a natural question of at most 15 words, and \
+do not add details the user didn't ask about. If the latest message is already \
+standalone or starts a new topic, return it unchanged.
+
+Example: previous question "How does NMS work?", latest message "Can it be disabled?" \
+-> How can NMS be disabled in Ultralytics YOLO?
+
+Reply with the question only, on one line.
 """
 
 
 def build_rewrite_messages(question: str, history: Sequence[Message]) -> list[Message]:
-    """Conversation (answers shortened) + latest message, for query rewriting."""
-    turns = [f"{m['role']}: {m['content'][:500]}" for m in list(history)[-2 * MAX_HISTORY_TURNS :]]
-    conversation = "\n".join(turns)
-    user = f"Conversation:\n{conversation}\n\nLatest message: {question}"
+    """The user's previous questions + the latest message, for query rewriting.
+
+    Assistant answers are left out on purpose: the model tended to copy details from them
+    into the query (e.g. "class-wise box offset" for "can it be disabled?").
+    """
+    previous = [m["content"] for m in history if m["role"] == "user"][-MAX_HISTORY_TURNS:]
+    questions = "\n".join(f"- {q}" for q in previous)
+    user = f"Previous questions:\n{questions}\n\nLatest message: {question}"
     return [{"role": "system", "content": REWRITE_PROMPT}, {"role": "user", "content": user}]
 
 
