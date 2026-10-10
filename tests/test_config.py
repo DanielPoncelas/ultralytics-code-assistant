@@ -49,3 +49,11 @@ def test_secrets_are_not_exposed_in_repr(monkeypatch):
     rendered = repr(Settings())
 
     assert "supersecret" not in rendered
+
+
+def test_llm_models_can_be_given_as_comma_separated_env_var(monkeypatch):
+    monkeypatch.setenv("MONGODB_URI", URI)
+    monkeypatch.setenv("OPENROUTER_API_KEY", KEY)
+    monkeypatch.setenv("LLM_MODELS", "a/model:free, b/model:free")
+
+    assert Settings().llm_models == ("a/model:free", "b/model:free")
