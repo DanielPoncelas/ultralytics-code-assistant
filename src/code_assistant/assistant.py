@@ -38,17 +38,31 @@ class CodeAssistant:
         tag: str,
         k: int = 6,
         paid_llm: OpenRouterClient | None = None,
+        alt_retriever: Retriever | None = None,
     ) -> None:
         self.retriever = retriever
+        self.alt_retriever = alt_retriever  # second embedding model, selectable in the chat
         self.llm = llm
         self.paid_llm = paid_llm  # paid model first, free chain as fallback
         self.tag = tag
         self.k = k
 
+    @property
+    def embedding_models(self) -> list[str]:
+        retrievers = [self.retriever, self.alt_retriever]
+        return [r.embedder.spec.name for r in retrievers if r is not None]
+
     def retrieve(
-        self, question: str, filters: dict[str, str] | None = None, rerank: bool = True
+        self,
+        question: str,
+        filters: dict[str, str] | None = None,
+        rerank: bool = True,
+        embedding_model: str | None = None,
     ) -> list[SearchResult]:
-        return self.retriever.search(question, k=self.k, filters=filters, rerank=rerank)
+        alt = self.alt_retriever
+        use_alt = alt is not None and embedding_model == alt.embedder.spec.name
+        retriever = alt if use_alt else self.retriever
+        return retriever.search(question, k=self.k, filters=filters, rerank=rerank)
 
     def _client(self, use_paid: bool) -> OpenRouterClient:
         return self.paid_llm if use_paid and self.paid_llm else self.llm
@@ -88,10 +102,11 @@ class CodeAssistant:
         filters: dict[str, str] | None = None,
         use_paid: bool = False,
         rerank: bool = True,
+        embedding_model: str | None = None,
     ) -> Iterator[list[SearchResult] | str | Answer]:
         """Yield the retrieved sources first, then text deltas, then the final `Answer`."""
         query = self.search_query(question, history, use_paid)
-        sources = self.retrieve(query, filters, rerank)
+        sources = self.retrieve(query, filters, rerank, embedding_model)
         yield sources
         llm = self._client(use_paid)
         for event in llm.stream(build_messages(question, sources, self.tag, history)):

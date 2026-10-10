@@ -439,6 +439,37 @@ Every significant design decision, with the alternatives considered and the trad
   - The judge is still fit for **comparisons** (all strategies share its bias), not for absolute claims. A stronger judge would be the fix.
 - **Bottom line:** with the reranker, related code reaches the LLM for 37/40 questions, but the complete answer for at least 17/40. Closing that gap is the goal of the next experiments (D28).
 
+## D28. Qwen3-Embedding-8B through OpenRouter, selectable in the chat
+
+- **Why:** bge-small reads at most 512 tokens, so 32.5% of chunks are truncated when embedded. For example, `conf=0.25` in `Model.predict` sits at token 803, so the vector never sees it. The brief asks for an *open-source* embedding model, not a free one. OpenRouter hosts open-weight models with long contexts.
+- **Candidate:** `qwen/qwen3-embedding-8b`, the 0.6B model of D12 at 13× the size. Apache-2.0 weights, 32k context, 4,096 dimensions, $0.01 per million tokens. Indexing the corpus cost about $0.005. NVIDIA's free embedder was considered and dropped to keep the change small.
+- **Implementation:**
+  - `Embedder` calls OpenRouter's `/embeddings` for models with an `openrouter_provider`. The provider is pinned (Nebius, no fallbacks), so documents and queries always get vectors from the same deployment.
+  - Each model has its own Atlas collection (`chunks_qwen3-embedding-8b`) with its own vector index. Keyword search reuses the main collection's text index, because the chunks are identical and M0 clusters allow only 3 search indexes.
+  - `index` uploads both collections from the vectors shipped in `embeddings/` (13.5 MB for Qwen), so no API call is needed.
+  - The chat has an "Embedding model" selector. If OpenRouter refuses the query (e.g. HTTP 402, no credits), the status says so and suggests the other model.
+- **Measurement** (40 questions; Qwen through exact search over its saved vectors, which matches Atlas within the 99% agreement of D16; `eval/results/search_qwen3-embedding-8b.md`):
+
+  | | Hit@1 | Hit@6 | MRR@10 | Evidence@6 | Facts@6 | All facts@6 | Latency |
+  |---|---|---|---|---|---|---|---|
+  | bge-small, vector only | 52.5% | 80.0% | 0.626 | 50.8% | 55.4% | 35.0% | 0.14 s |
+  | bge-small + reranker | 62.5% | 92.5% | 0.738 | 63.3% | 62.9% | 42.5% | 0.76 s |
+  | Qwen3-8B, vector only | **77.5%** | **100%** | **0.865** | **69.3%** | 71.4% | 43.6%¹ | 0.53 s |
+  | Qwen3-8B + reranker | 60.0% | 97.5% | 0.749 | 69.1% | **73.9%** | **53.8%**¹ | 1.15 s |
+
+  ¹ The judge failed on one question, which is left out.
+
+- **Reading:**
+  - **Vector search alone:** Qwen fixes all 8 questions bge misses (including `train-freeze` and `train-grad-accum`, which no reranker could reach) and breaks none. That's a sign test p ≈ 0.008, the only statistically clear difference in this evaluation.
+  - **Qwen alone vs bge's best setup:** it beats bge + reranker on every metric.
+  - **The reranker on top of Qwen is mixed:** it brings the full answer to 4 more questions, but it pushes the best match down (Hit@1 77.5% → 60.0%) and loses one question from the top 6. That's within noise at n = 40, so it stays the user's switch.
+- **Why bge-small stays the default:** it is free and local, so the app runs with any OpenRouter key, including one with no credit. Qwen is the better retriever and is one click away.
+- **Trade-offs of Qwen:**
+  - Every question needs OpenRouter credit (about $0.0000002).
+  - It adds about 0.4 s and a dependency on one provider (pinned, no fallback). If Nebius is down, the Qwen option fails with a clear message and bge is unaffected.
+  - The hosted revision can't be pinned. The shipped index vectors are fixed, but query vectors could drift.
+- **Still unsolved:** the multi-hop questions (`val-vs-predict`, disabling NMS), whose answers are single lines in methods about something else. That points to query expansion or agentic retrieval (future work).
+
 ---
 
 ## Known limitations (running list)

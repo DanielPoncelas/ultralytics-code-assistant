@@ -148,15 +148,16 @@ def run_indexing(
             build_document(chunk, vector.tolist(), source, model_name)
             for chunk, vector in zip(chunks, vectors, strict=True)
         ]
-        with ChunkStore.from_settings(settings) as store:
-            log(f"Writing {len(documents)} documents to Atlas ...")
+        with ChunkStore.from_settings(settings, model_name) as store:
+            log(f"Writing {len(documents)} documents to {store.collection.name} ...")
             result = store.replace_all(documents)
             index_status = store.ensure_vector_index(int(vectors.shape[1]))
             log(f"Vector index {index_status}; waiting until it is queryable ...")
             store.wait_until_queryable(int(vectors.shape[1]))
-            text_status = store.ensure_text_index()  # keyword side of hybrid search
-            log(f"Text index {text_status}; waiting until it is queryable ...")
-            store.wait_until_text_index_ready()
+            if model_name == settings.embedding_model:  # other models reuse this text index
+                text_status = store.ensure_text_index()  # keyword side of search
+                log(f"Text index {text_status}; waiting until it is queryable ...")
+                store.wait_until_text_index_ready()
 
     return IndexReport(
         files=len(files),

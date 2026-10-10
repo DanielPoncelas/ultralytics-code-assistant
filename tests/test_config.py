@@ -57,3 +57,13 @@ def test_llm_models_can_be_given_as_comma_separated_env_var(monkeypatch):
     monkeypatch.setenv("LLM_MODELS", "a/model:free, b/model:free")
 
     assert Settings().llm_models == ("a/model:free", "b/model:free")
+
+
+def test_each_embedding_model_gets_its_own_collection():
+    settings = Settings(mongodb_uri=URI, openrouter_api_key=KEY)
+
+    assert settings.collection_for("BAAI/bge-small-en-v1.5") == "chunks"
+    assert settings.collection_for("qwen/qwen3-embedding-8b") == "chunks_qwen3-embedding-8b"
+    assert settings.indexed_models == ["BAAI/bge-small-en-v1.5", "qwen/qwen3-embedding-8b"]
+    alone = Settings(mongodb_uri=URI, openrouter_api_key=KEY, alt_embedding_model="")
+    assert alone.indexed_models == ["BAAI/bge-small-en-v1.5"]

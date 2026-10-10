@@ -79,7 +79,9 @@ You don't need to create the vector search index by hand. The indexing command c
 
    This clones Ultralytics at the pinned release (`v8.4.175`) and splits `ultralytics/{models,engine,data}` into ~1,500 chunks. It embeds them locally with an open-source model, uploads them to Atlas and creates the vector search index. The first run downloads the embedding model (`BAAI/bge-small-en-v1.5`, ~130 MB) from Hugging Face. The command is idempotent: re-running it updates chunks in place and never duplicates them.
 
-   **Precomputed embeddings.** The repository ships the chunk vectors in `embeddings/` (1.4 MB for the default model). `index` uses them when they match the current chunks and model revision, which they do at the pinned release, so it only uploads to Atlas. The model is still downloaded, because every question is embedded with it. If anything changes (source, chunker or model), the vectors are recomputed and saved there. To reproduce them from scratch, delete `embeddings/` first.
+   **Two embedding models.** `index` uploads the chunks twice: with the default model into the `chunks` collection, and with `qwen/qwen3-embedding-8b` (served by OpenRouter) into `chunks_qwen3-embedding-8b`. The chat lets you pick either one per question ([Embedding model choice](#embedding-model-choice)). Set `ALT_EMBEDDING_MODEL=` (empty) to skip the second one.
+
+   **Precomputed embeddings.** The repository ships the chunk vectors in `embeddings/` (1.4 MB for the default model, 13.5 MB for Qwen3-8B), so neither model has to embed the corpus. `index` uses them when they match the current chunks and model revision, which they do at the pinned release, so it only uploads to Atlas. The model is still downloaded, because every question is embedded with it. If anything changes (source, chunker or model), the vectors are recomputed and saved there. To reproduce them from scratch, delete `embeddings/` first.
 
    **Hardware and speed.** Embedding runs on the fastest device available (NVIDIA GPU, Apple GPU, otherwise CPU), detected automatically. No GPU is required with the default model.
 
@@ -143,6 +145,7 @@ All settings are read from environment variables or `.env`:
 | `OPENROUTER_API_KEY` | yes | – | LLM API key |
 | `EMBEDDING_MODEL` | no | `BAAI/bge-small-en-v1.5` | One of the pinned candidates in `embeddings.py` |
 | `EMBEDDING_DEVICE` | no | auto | `cuda`, `mps` or `cpu` |
+| `ALT_EMBEDDING_MODEL` | no | `qwen/qwen3-embedding-8b` | Second embedding model, selectable in the chat and stored in its own collection. Served by OpenRouter: each question costs ~$0.0000002, but the key needs some credit. Empty disables it |
 | `LLM_MODELS` | no | see `config.py` | Comma-separated OpenRouter models, tried in order (fallback chain) |
 | `RETRIEVAL_K` | no | `6` | Code units given to the LLM |
 | `HYBRID_SEARCH` | no | `false` | Merge keyword (BM25) and vector results with RRF (ignored while the reranker is on) |
@@ -276,6 +279,16 @@ Ruled out:
 - **Plain-language questions:** Qwen does better on questions that name no symbol (76.9% vs 65.4%, n=26). That's not significant at this sample size, but it's worth re-checking on a larger set.
 
 Full report with per-category results and failure analysis: [`eval/results/retrieval.md`](eval/results/retrieval.md). Detailed reasoning: [DECISIONS.md](DECISIONS.md) D12–D18.
+
+**Second model, selectable in the chat: `qwen/qwen3-embedding-8b`.** The brief asks for an open-source embedding model, not a free one: Qwen3-Embedding-8B has Apache-2.0 weights, and OpenRouter only hosts it. It reads 32k tokens, so nothing is truncated, and it is 240× larger than bge-small. Measured on the same 40 questions with the same judge (`eval/results/search_qwen3-embedding-8b.md`):
+
+| Search | Hit@6 | Evidence@6 | Facts@6 | All facts@6 | Latency |
+|---|---|---|---|---|---|
+| bge-small + reranker (default) | 92.5% | 63.3% | 62.9% | 42.5% | 0.76 s |
+| Qwen3-8B, vector only | **100%** | **69.3%** | 71.4% | 43.6% | 0.53 s |
+| Qwen3-8B + reranker | 97.5% | 69.1% | **73.9%** | **53.8%** | 1.15 s |
+
+With vector search only, Qwen fixes all 8 questions bge misses and breaks none: the only difference in this evaluation that is statistically clear. bge-small stays the default because it is free and local, so the app runs with any OpenRouter key; Qwen needs a few cents of credit (about $0.0000002 per question). Details in D28.
 
 ### Answer generation
 

@@ -5,6 +5,10 @@ Per strategy, on the in-scope questions:
 - Evidence@k: share of the labelled evidence lines in the top k (`evidence` labels);
 - Facts@k (optional, LLM judge): share of the key facts the top k shows (`key_facts`);
 - latency: median search time, including the query embedding and the reranker call.
+
+By default it queries the deployed Atlas index. With `embedding_model`, the vector side is an
+exact search over that model's saved chunk vectors instead (`LocalVectorStore`), so embedding
+models can be compared without re-uploading each one to Atlas.
 """
 
 import json
@@ -14,6 +18,9 @@ import time
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
+
+import numpy as np
 
 from code_assistant.config import Settings
 from code_assistant.embeddings import Embedder
@@ -34,14 +41,50 @@ from code_assistant.evaluation.retrieval_eval import (
     evidence_lines,
     first_relevant_rank,
 )
+from code_assistant.indexing.pipeline import build_document, embed_chunks, load_chunks
 from code_assistant.indexing.source import fetch_source
 from code_assistant.llm import OpenRouterClient
 from code_assistant.rerank import OpenRouterReranker
 from code_assistant.retrieval import Retriever
-from code_assistant.store import ChunkStore
+from code_assistant.store import EMBEDDING_FIELD, ChunkStore
 
 RERANK_INTERVAL_S = 3.5  # stay under the ~20 requests/minute of free OpenRouter models
 REVIEW_SAMPLE = 10
+
+
+class LocalVectorStore:
+    """Exact vector search over saved chunk vectors; keyword search still runs on Atlas."""
+
+    def __init__(self, documents: list[dict[str, Any]], vectors: np.ndarray, atlas: ChunkStore):
+        self.documents, self.vectors, self.atlas = documents, vectors, atlas
+
+    @classmethod
+    def load(cls, settings: Settings, model: str, atlas: ChunkStore) -> "LocalVectorStore":
+        source, _, chunks = load_chunks(settings, log=lambda _: None)
+        vectors = embed_chunks(chunks, model, settings)  # from embeddings/ when saved
+        documents = [build_document(c, [], source, model) for c in chunks]
+        for document in documents:
+            del document[EMBEDDING_FIELD]
+        return cls(documents, vectors, atlas)
+
+    def vector_search(
+        self,
+        query_vector: list[float],
+        limit: int,
+        num_candidates: int,
+        filters: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
+        if filters:
+            raise NotImplementedError("The evaluation doesn't use filters")
+        scores = self.vectors @ np.asarray(query_vector, dtype=np.float32)  # cosine
+        return [
+            {**self.documents[i], "score": float(scores[i])} for i in np.argsort(-scores)[:limit]
+        ]
+
+    def text_search(
+        self, query: str, limit: int, filters: dict[str, Any] | None = None
+    ) -> list[dict[str, Any]]:
+        return self.atlas.text_search(query, limit, filters)
 
 
 @dataclass
@@ -83,6 +126,7 @@ def run_search_evaluation(
     questions_path: Path,
     output: Path,
     with_facts: bool = False,
+    embedding_model: str | None = None,
     log: Callable[[str], None] = print,
 ) -> list[StrategyResult]:
     questions = [q for q in load_questions(questions_path) if q.in_scope]
@@ -94,7 +138,8 @@ def run_search_evaluation(
     )
     evidence = {q.id: evidence_lines(q.evidence, checkout) for q in questions}
     k = settings.retrieval_k
-    embedder = Embedder(settings.embedding_model, device="cpu")
+    model = embedding_model or settings.embedding_model
+    embedder = Embedder(model, device="cpu")
     embedder.embed_query("warm-up")  # exclude model loading from the latency
     reranker = OpenRouterReranker.from_settings(settings)
     judge = None
@@ -105,7 +150,8 @@ def run_search_evaluation(
     sample = random.Random(0).sample(questions, min(REVIEW_SAMPLE, len(questions)))
     results: list[StrategyResult] = []
     records: list[dict] = []
-    with ChunkStore.from_settings(settings) as store:
+    with ChunkStore.from_settings(settings) as atlas:
+        store = LocalVectorStore.load(settings, model, atlas) if embedding_model else atlas
         strategies = [
             ("Vector only", Retriever(store, embedder)),
             ("Hybrid (vector + keyword, RRF)", Retriever(store, embedder, hybrid=True)),
@@ -137,8 +183,10 @@ def run_search_evaluation(
             log(result.row(k))
     if judge:
         judge.close()
-        _write_judgements(records, review, results[-1].name, output.parent, log)
-    output.write_text(render_search_report(results, questions, settings), encoding="utf-8")
+        if not embedding_model:  # the judge is reviewed on the deployed setup only
+            _write_judgements(records, review, results[-1].name, output.parent, log)
+    report = render_search_report(results, questions, settings, embedding_model)
+    output.write_text(report, encoding="utf-8")
     return results
 
 
@@ -172,9 +220,17 @@ def _write_judgements(
 
 
 def render_search_report(
-    results: Sequence[StrategyResult], questions: Sequence[EvalQuestion], settings: Settings
+    results: Sequence[StrategyResult],
+    questions: Sequence[EvalQuestion],
+    settings: Settings,
+    embedding_model: str | None = None,
 ) -> str:
     k = settings.retrieval_k
+    if embedding_model:
+        setup = "exact search over its saved vectors, keyword search on Atlas"
+        command = f"eval search --facts --embedding-model {embedding_model}"
+    else:
+        setup, command = "live Atlas queries", "eval search --facts"
     notes = []
     for result in results:
         if result.rerank_failures:
@@ -199,8 +255,8 @@ def render_search_report(
     )
     return (
         "# Search strategy evaluation\n\n"
-        f"{len(questions)} in-scope questions, `{settings.embedding_model}`, live Atlas queries "
-        "(generated by `uv run code-assistant eval search --facts`). The LLM sees the top "
+        f"{len(questions)} in-scope questions, `{embedding_model or settings.embedding_model}`, "
+        f"{setup} (generated by `uv run code-assistant {command}`). The LLM sees the top "
         f"{k}. From most lenient to strictest:\n\n"
         f"- **Hit@{k}:** at least one relevant code unit is in the top {k}.\n"
         f"- **Evidence@{k}:** share of the labelled evidence lines (`evidence` in "
