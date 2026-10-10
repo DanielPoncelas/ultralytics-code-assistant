@@ -151,7 +151,9 @@ Five questions from real Ultralytics GitHub issues, chosen before generating any
 ### Pipeline
 
 ```
- fetch (git, pinned tag + commit check) ─► chunk (stdlib ast) ─► embed (local open-source model) ─► store (Atlas, upsert by id)
+Indexing (one-off)   fetch (git, pinned tag + commit check) ─► chunk (stdlib ast) ─► embed (local open-source model) ─► store (Atlas, upsert by id)
+
+Answering            question ─► embed ─► Atlas $vectorSearch (top 6 distinct code units) ─► prompt with numbered sources ─► free LLM via OpenRouter (fallback chain) ─► streamed answer with [n] citations + GitHub permalinks
 ```
 
 ### How code is chunked, and why
