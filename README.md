@@ -93,6 +93,14 @@ You don't need to create the vector search index by hand. The indexing command c
 
 ## Usage
 
+**Ask a question** (retrieval + LLM answer, streamed, with cited sources):
+
+```bash
+uv run code-assistant ask "How do I resume an interrupted training run?"
+```
+
+The answer cites sources as `[n]`. The command then lists the retrieved code units with GitHub permalinks (cited ones are marked `*`) and says which LLM answered, including any model that failed before it.
+
 **Search the code** (retrieval only, no LLM):
 
 ```bash
@@ -102,10 +110,12 @@ uv run code-assistant search "how are masks built from the network output" --tas
 
 Each result shows the symbol, file and lines, and a permalink to the exact lines on GitHub at the indexed commit. Filters: `--folder {models,engine,data}`, `--task {detect,segment,pose,obb,classify,...}`, `--kind {function,method,class,module}`.
 
-**Evaluate retrieval** and reproduce the embedding model choice:
+**Evaluate** retrieval and answers, and reproduce the model choices:
 
 ```bash
-uv run code-assistant eval retrieval     # writes eval/results/retrieval.md and .json
+uv run code-assistant eval retrieval     # embedding models → eval/results/retrieval.md
+uv run code-assistant eval answers       # LLMs + judge       → eval/results/answers.md
+uv run code-assistant eval review        # blind human check of the judge (then: eval agreement)
 ```
 
 Evaluating all four candidate models needs their embeddings. The first run computes them, which takes minutes on a GPU and hours on CPU for the larger models. Use `--model BAAI/bge-small-en-v1.5` to evaluate only the default model.
@@ -120,6 +130,8 @@ All settings are read from environment variables or `.env`:
 | `OPENROUTER_API_KEY` | yes | – | LLM API key |
 | `EMBEDDING_MODEL` | no | `BAAI/bge-small-en-v1.5` | One of the pinned candidates in `embeddings.py` |
 | `EMBEDDING_DEVICE` | no | auto | `cuda`, `mps` or `cpu` |
+| `LLM_MODELS` | no | see `config.py` | Comma-separated OpenRouter models, tried in order (fallback chain) |
+| `RETRIEVAL_K` | no | `6` | Code units given to the LLM |
 | `MONGODB_DATABASE` / `MONGODB_COLLECTION` | no | `code_assistant` / `chunks` | Where chunks are stored |
 
 ## Example questions

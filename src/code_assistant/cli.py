@@ -201,6 +201,64 @@ def ask(
         typer.echo(f"{FAIL} Answer cites non-existent sources: {answer.invalid_citations}")
 
 
+def _source_line(number: int, source, cited: bool) -> str:
+    bold = "**" if cited else ""
+    link = f"{bold}[`{source.qualified_name}`]({source.github_url}){bold}"
+    return f"{number}. {link} — `{source.path}` L{source.start_line}-{source.end_line}"
+
+
+@app.command()
+def examples(
+    output: Annotated[Path, typer.Option(help="Markdown file to write.")] = Path(
+        "docs/examples.md"
+    ),
+    questions: Annotated[Path, typer.Option(help="Question file.")] = Path("eval/questions.toml"),
+) -> None:
+    """Answer the example questions (flagged in eval/questions.toml) and save them unedited."""
+    from datetime import date
+
+    from code_assistant.evaluation.dataset import load_questions
+
+    settings = get_settings()
+    selected = [q for q in load_questions(questions) if q.example]
+    assistant, store = build_assistant(settings)
+    sections = [
+        "# Example answers",
+        "",
+        f"Generated on {date.today().isoformat()} with `uv run code-assistant examples` "
+        f"(index: Ultralytics `{settings.ultralytics_tag}`, embeddings: "
+        f"`{settings.embedding_model}`, top {settings.retrieval_k} sources). Answers are "
+        "reproduced exactly as generated; LLM output varies between runs.",
+        "",
+    ]
+    try:
+        for i, q in enumerate(selected, start=1):
+            typer.echo(f"[{i}/{len(selected)}] {q.id} ...")
+            answer = assistant.ask(q.question)
+            sources = "\n".join(
+                _source_line(n, src, cited=n in answer.citations)
+                for n, src in enumerate(answer.sources, start=1)
+            )
+            sections += [
+                f"## {i}. {q.question}",
+                "",
+                f"*Source: [{q.source.rsplit('/', 1)[-1]}]({q.source}) · answered by "
+                f"`{answer.model}` in {answer.latency_s:.1f} s*",
+                "",
+                answer.text,
+                "",
+                "**Retrieved sources** (bold = cited in the answer):",
+                "",
+                sources,
+                "",
+            ]
+    finally:
+        store.close()
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text("\n".join(sections))
+    typer.echo(f"{OK} Wrote {output}")
+
+
 @eval_app.command("retrieval")
 def eval_retrieval(
     models: Annotated[
