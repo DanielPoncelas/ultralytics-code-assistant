@@ -136,15 +136,15 @@ All settings are read from environment variables or `.env`:
 
 ## Example questions
 
-Five questions taken from real Ultralytics GitHub issues. They were chosen before generating any answer and cover training, data, validation, export, plus one question the index can't answer. Below are the code units retrieved for each one (top 3, default model). Generated answers are added with the answer-generation step.
+Five questions from real Ultralytics GitHub issues, chosen before generating any answer. They cover training, data, validation, export, and one question the index cannot answer. The full answers, unedited, with their cited sources, are in **[docs/examples.md](docs/examples.md)** (generated with `uv run code-assistant examples`, default configuration).
 
-| # | Question (source issue) | Top retrieved code | Expected code found? |
+| # | Question (source issue) | What the assistant answered | Verdict |
 |---|---|---|---|
-| 1 | *My training run was interrupted at epoch 63. How do I resume it from the last checkpoint, and what state gets restored?* ([#17492](https://github.com/ultralytics/ultralytics/issues/17492)) | [`BaseTrainer.resume_training`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/trainer.py#L1124-L1141), [`BaseTrainer.check_resume`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/trainer.py#L1020-L1065), [`Model.train`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/model.py#L875-L913) | ✅ rank 1 |
-| 2 | *Which data augmentations are applied by default when training a detection model?* ([#2412](https://github.com/ultralytics/ultralytics/issues/2412)) | [`Model.train`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/model.py#L807-L877), [`DetectionTrainer`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/models/yolo/detect/train.py#L24-L256), [`v8_transforms`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/data/augment.py#L2831-L2912) | ✅ rank 3 |
-| 3 | *Why do `model.val()` and `model.predict()` give different detections on the same images?* ([#2783](https://github.com/ultralytics/ultralytics/issues/2783)) | [`DetectionValidator.plot_predictions`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/models/yolo/detect/val.py#L451-L477), [`ClassificationValidator`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/models/yolo/classify/val.py#L18-L219), [`YOLOE.predict`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/models/yolo/model.py#L532-L567) | ❌ The answer is the different default `conf` (0.001 in `BaseValidator.__init__` vs 0.25 in `BasePredictor.__init__`), spread across files. A known failure, see the [evaluation report](eval/results/retrieval.md) |
-| 4 | *How can I export a model to ONNX with a dynamic batch size and NMS included in the graph?* ([#23339](https://github.com/ultralytics/ultralytics/issues/23339)) | [`Exporter.export_onnx`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/exporter.py#L1175-L1245), [`Exporter.__call__`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/exporter.py#L842-L911), [`Model.export`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/model.py#L753-L805) | ✅ rank 1 |
-| 5 | *What are the default values of the initial learning rate and momentum?* ([#2849](https://github.com/ultralytics/ultralytics/issues/2849)) | [`Tuner.__init__`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/tuner.py#L79-L142), [`BaseTrainer.build_optimizer`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/trainer.py#L1215-L1242), [`TinyViT.set_layer_lr_decay`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/models/sam/modules/tiny_encoder.py#L900-L933) | ➖ Out of scope by design: defaults live in `ultralytics/cfg/default.yaml`, which isn't indexed. The assistant must say so instead of guessing |
+| 1 | *My training run was interrupted at epoch 63. How do I resume it, and what state gets restored?* ([#17492](https://github.com/ultralytics/ultralytics/issues/17492)) | Resume with `resume=True`. Walks through `Model.train` → `check_resume` → `resume_training` (restarts at epoch 64), and gives a table of the checkpoint keys that are restored (optimizer, scaler, EMA, best fitness, …). | ✅ Correct and well cited |
+| 2 | *Which data augmentations are applied by default when training a detection model?* ([#2412](https://github.com/ultralytics/ultralytics/issues/2412)) | `v8_transforms`: Mosaic, RandomPerspective, CopyPaste, MixUp, CutMix, Albumentations, RandomHSV and flips, each controlled by a hyperparameter. | ✅ Correct. Minor slip: it presents Albumentations as user-provided only |
+| 3 | *Why do `model.val()` and `model.predict()` give different detections?* ([#2783](https://github.com/ultralytics/ultralytics/issues/2783)) | Different default arguments: `predict` uses `conf=0.25` and `rect=True`; the validator uses its own, lower `conf`. Pass the same arguments to both. | 🟡 Partly. The validator's `conf=0.001` wasn't retrieved, so the answer says it's "implied" rather than stating it, which is honest about the gap |
+| 4 | *How can I export to ONNX with a dynamic batch size and NMS in the graph?* ([#23339](https://github.com/ultralytics/ultralytics/issues/23339)) | `model.export(format="onnx", dynamic=True, nms=True, batch=16)`, with `batch` as the maximum batch size. | ✅ Correct, but it cites no source |
+| 5 | *What are the default values of the initial learning rate and momentum?* ([#2849](https://github.com/ultralytics/ultralytics/issues/2849)) | "lr0 = 1e-5, momentum = 0.7", read from the hyperparameter-tuning search space. | ❌ Wrong. The defaults live in `cfg/default.yaml`, which isn't indexed; the model presented the tuner's lower bounds as defaults instead of saying it couldn't find them. A known failure mode, see [LLM choice](#llm-choice) |
 
 ## Design notes
 
@@ -238,6 +238,48 @@ Ruled out:
 - **Plain-language questions:** Qwen does better on questions that name no symbol (76.9% vs 65.4%, n=26). That's not significant at this sample size, but it's worth re-checking on a larger set.
 
 Full report with per-category results and failure analysis: [`eval/results/retrieval.md`](eval/results/retrieval.md). Detailed reasoning: [DECISIONS.md](DECISIONS.md) D12–D18.
+
+### Answer generation
+
+- **Prompt:**
+  - the sources are numbered and wrapped in `<source>` tags;
+  - the model answers only from them, cites `[n]` per statement, answers the supported part and says what is missing, and replies "I couldn't find this in the indexed code" only when nothing relevant was retrieved;
+  - retrieved text is treated as untrusted data (indirect prompt-injection guard, tested).
+- **Context:** 6 code units, the knee of the retrieval curve (Hit@5 77.5%, Hit@6 80%, Hit@8 80%).
+- **Fallback chain:** if the first model is rate-limited, errors, times out or returns an empty answer, the next one answers. The CLI says which model answered and which failed. While streaming, fallback only happens before the first token, so two models' answers are never spliced.
+
+### LLM choice
+
+The assignment asks for a free OpenRouter model. On 2026-10-10 OpenRouter listed 15 free models, and **none of them were Qwen, Llama, DeepSeek or Mistral** (all paid). From those 15 we excluded:
+- the Nemotron family, because it's the judge's family;
+- Inkling, which isn't available through the API;
+- a 2.6B model, too small.
+
+The candidates were two code-specialised models (Cohere, Poolside) and one general model (Google Gemma 4).
+
+**Method:**
+- 46 questions from real issues; 40 have 2–3 hand-written *key facts* each, checked against the source.
+- Every model answered from the **same retrieved sources**.
+- A judge from a different model family (`nvidia/nemotron-3-super-120b-a12b:free`) graded key-fact coverage, unsupported claims and refusals.
+- The selection rule was fixed in advance. Full report: [`eval/results/answers.md`](eval/results/answers.md).
+
+| Model | Key-fact coverage | Fully correct | Grounded | Out-of-scope declined | False refusals | Median latency |
+|---|---|---|---|---|---|---|
+| **`cohere/north-mini-code:free`** ✅ | **53.8%** | **32.5%** | 77.8% | 3/6 | **0%** | 10.1 s |
+| `dots-studio/dots-3-note-preview:free` | 42.9% | 20.0% | **82.2%** | 3/6 | **0%** | 15.9 s |
+| `poolside/laguna-s-2.1:free` | 36.2% | 12.5% | 80.4% | 4/6 | 18.8% | 8.5 s |
+| `google/gemma-4-31b-it:free` | – | – | – | – | – | unavailable: rate-limited upstream for 37/46 questions |
+
+**Chosen: Cohere North-Mini-Code.** It has the best coverage by 11 points, never declines when the right code is in context, and is reasonably fast. The default fallback chain is **Cohere → dots-3 → Laguna**: three providers, so one provider's outage doesn't take the assistant down.
+
+**Honest limitations:**
+- **Even the best free model states only about half of the key facts.**
+- **It cites a source in only 45% of its answers.**
+- **It sometimes answers out-of-scope questions with a plausible misreading instead of declining.** Example: tuner search-space bounds presented as default hyperparameters (example 5 above).
+- **Free models are non-deterministic and their availability changes by the hour.**
+- **Reasoning models (Cohere, dots-3) spend part of the token budget thinking.** The evaluation ran with 2,000 output tokens, which truncated 3 of Cohere's 46 answers. The default is now 4,000 and truncated answers are flagged.
+
+Running the answer evaluation needs ~92 OpenRouter requests per model (answer + judge). Accounts with fewer than 10 credits purchased are limited to 50 free-model requests per day; we used an account with credits (1,000/day; free models don't consume them). All answers and verdicts are committed in `eval/results/answers.jsonl`.
 
 ## Development
 
