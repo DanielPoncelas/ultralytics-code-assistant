@@ -38,6 +38,21 @@ code snippets from the sources when they help, and Markdown formatting.
 
 MAX_HISTORY_TURNS = 3  # previous question/answer pairs kept for follow-ups
 
+REWRITE_PROMPT = """\
+You turn the user's latest message into a standalone search query for the Ultralytics \
+YOLO source code. Use the conversation only to resolve what the message refers to (e.g. \
+"it", "that", "the same for segmentation"). If the latest message starts a new topic, \
+return it unchanged. Reply with the query only, on one line, without quotes or explanation.
+"""
+
+
+def build_rewrite_messages(question: str, history: Sequence[Message]) -> list[Message]:
+    """Conversation (answers shortened) + latest message, for query rewriting."""
+    turns = [f"{m['role']}: {m['content'][:500]}" for m in list(history)[-2 * MAX_HISTORY_TURNS :]]
+    conversation = "\n".join(turns)
+    user = f"Conversation:\n{conversation}\n\nLatest message: {question}"
+    return [{"role": "system", "content": REWRITE_PROMPT}, {"role": "user", "content": user}]
+
 
 def build_messages(
     question: str,

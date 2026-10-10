@@ -58,3 +58,52 @@ def test_ask_stream_yields_sources_then_text_then_answer():
     assert events[1:3] == ["Use ", "resume [1]"]
     assert isinstance(events[-1], Answer)
     assert events[-1].citations == [1]
+
+
+class RewritingLLM(FakeLLM):
+    """complete() answers the rewrite request; stream() answers the question."""
+
+    def __init__(self, rewrite, error=None):
+        super().__init__("")
+        self.rewrite, self.error, self.rewrite_calls = rewrite, error, 0
+
+    def complete(self, messages):
+        self.rewrite_calls += 1
+        if self.error:
+            raise self.error
+        return Completion(self.rewrite, "x/model", 0.5)
+
+
+HISTORY = [
+    {"role": "user", "content": "How does NMS work?"},
+    {"role": "assistant", "content": "..."},
+]
+
+
+def test_follow_ups_are_rewritten_before_searching():
+    retriever, llm = FakeRetriever([source("A")]), RewritingLLM('"How can NMS be disabled?"\nextra')
+
+    *_, answer = CodeAssistant(retriever, llm, tag="v1").ask_stream("Can it be disabled?", HISTORY)
+
+    assert retriever.calls[0][0] == "How can NMS be disabled?"  # cleaned: first line, no quotes
+    assert answer.search_query == "How can NMS be disabled?"
+    assert answer.question == "Can it be disabled?"
+
+
+def test_first_question_is_not_rewritten():
+    retriever, llm = FakeRetriever([source("A")]), RewritingLLM("unused")
+
+    list(CodeAssistant(retriever, llm, tag="v1").ask_stream("How does NMS work?"))
+
+    assert llm.rewrite_calls == 0 and retriever.calls[0][0] == "How does NMS work?"
+
+
+def test_failed_rewrite_falls_back_to_the_original_question():
+    from code_assistant.llm import LLMError
+
+    retriever = FakeRetriever([source("A")])
+    llm = RewritingLLM("", error=LLMError("all failed"))
+
+    list(CodeAssistant(retriever, llm, tag="v1").ask_stream("Can it be disabled?", HISTORY))
+
+    assert retriever.calls[0][0] == "Can it be disabled?"
