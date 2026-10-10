@@ -3,6 +3,7 @@
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -82,7 +83,7 @@ def build_document(
 
 def load_chunks(
     settings: Settings, log: Callable[[str], None] = print
-) -> tuple[SourceInfo, list[Chunk]]:
+) -> tuple[SourceInfo, list[Path], list[Chunk]]:
     """Fetch the pinned source and chunk every file under the configured directories."""
     source = SourceInfo(
         settings.ultralytics_repo_url, settings.ultralytics_tag, settings.ultralytics_commit
@@ -96,7 +97,7 @@ def load_chunks(
         for chunk in chunk_source(path.read_text(encoding="utf-8"), str(path.relative_to(checkout)))
     ]
     log(f"Chunked {len(files)} files into {len(chunks)} chunks")
-    return source, chunks
+    return source, files, chunks
 
 
 def embed_chunks(
@@ -132,7 +133,7 @@ def run_indexing(
     """Full pipeline. With `upload=False` it only computes (and caches) the embeddings."""
     started = time.monotonic()
     model_name = model_name or settings.embedding_model
-    source, chunks = load_chunks(settings, log)
+    source, files, chunks = load_chunks(settings, log)
     vectors = embed_chunks(chunks, model_name, settings, log)
 
     result, index_status = SyncResult(0, 0, 0), "skipped"
@@ -157,7 +158,7 @@ def run_indexing(
             store.close()
 
     return IndexReport(
-        files=len({c.path for c in chunks}),
+        files=len(files),
         chunks=len(chunks),
         dimensions=int(vectors.shape[1]),
         upserted=result.upserted,
