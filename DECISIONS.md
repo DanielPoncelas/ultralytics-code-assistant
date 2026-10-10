@@ -246,7 +246,7 @@ Every significant design decision, with the alternatives considered and the trad
 - **Why the partial-answer rule:** the first version said "if the sources don't contain the answer, say so". In the first real test the model then refused a question it could mostly answer, because one helper method was missing from the sources. The rule was rewritten before the evaluation was run.
 - **Indirect prompt injection:** retrieved text is *data*. The prompt says so, and any `<source>`/`</sources>` sequence inside indexed code is escaped, so the code can't close the block and inject fake context (covered by a test). The risk is low here, because the corpus is Ultralytics' own code. It becomes real as soon as the index includes third-party repos, issues or user uploads.
 - **k = 6 chunks:** Hit@k on the retrieval evaluation is 77.5% at 5, 80% at 6 and 80% at 8. Six is the knee, at roughly 6–7k prompt tokens.
-- **Follow-ups:** retrieval uses only the current question. Rewriting follow-ups into standalone questions is future work.
+- **Follow-ups:** a follow-up like "can it be disabled?" is first rewritten by the LLM into a standalone query ("How can NMS be disabled?") using the last turns, so retrieval keeps the subject; a new topic is returned unchanged, which avoids mixing topics (the risk of simply concatenating the previous question).
 
 ## D21. Answer evaluation: key facts + an LLM judge from a different model family
 
@@ -343,7 +343,7 @@ Every significant design decision, with the alternatives considered and the trad
 
   See the failure analysis in `eval/results/retrieval.md`.
 - **The free LLM catalogue rotates:** models appear and disappear, and none of today's free models are Qwen or Llama (all of those are paid on OpenRouter). The model list is configuration (`LLM_MODELS`), and the client falls back through it, but a model chosen today can disappear later.
-- **Follow-up questions** are retrieved on their own text only ("and for segmentation?" retrieves poorly).
+- **Follow-up questions** are rewritten into a standalone query before retrieval (one extra LLM call, only when there is history; the UI shows "Searched for: …"). A bad rewrite is possible; if the call fails, the original message is searched.
 - **Free-tier services** (Atlas M0, OpenRouter `:free` models) have no SLA, shared resources and daily quotas.
 
 ## Future work (running list)

@@ -99,7 +99,7 @@ You don't need to create the vector search index by hand. The indexing command c
 uv run code-assistant app        # then open http://127.0.0.1:7860
 ```
 
-Answers stream as they are generated. Each `[n]` citation links to the exact lines on GitHub and is coloured like its source in the side panel, where the retrieved code is drawn the way YOLO draws detections. Follow-up questions keep the conversation context.
+Answers stream as they are generated. Each `[n]` citation links to the exact lines on GitHub and is coloured like its source in the side panel, where the retrieved code is drawn the way YOLO draws detections. Follow-up questions keep the conversation context: they are rewritten into a standalone search query first (shown as “Searched for: …”).
 
 **Ask a question** (retrieval + LLM answer, streamed, with cited sources):
 

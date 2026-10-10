@@ -262,3 +262,10 @@ def test_every_palette_colour_meets_wcag_aa_with_its_label_ink():
 
     for colour in PALETTE:
         assert contrast(f"#{colour}", label_text_color(f"#{colour}")) >= 4.5, colour
+
+
+def test_status_shows_the_rewritten_search_query_only_when_it_changed():
+    assert "Searched for" not in render_status(answer(search_query="q"))
+    assert "Searched for: “How can NMS be disabled?”" in render_status(
+        answer(search_query="How can NMS be disabled?")
+    )

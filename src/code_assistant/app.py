@@ -162,6 +162,8 @@ def render_status(answer: Answer | None = None, error: str | None = None, stage:
     if answer is None:
         return ""
     lines = [f"Answered by {html.escape(answer.model)} in {answer.latency_s:.1f} s."]
+    if answer.search_query and answer.search_query != answer.question:
+        lines.append(f"Searched for: “{html.escape(answer.search_query)}”.")
     if answer.failed_attempts:
         failed = ", ".join(
             f"{html.escape(a.model)} ({html.escape(_short_error(a.error))})"
