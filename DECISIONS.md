@@ -347,6 +347,8 @@ Every significant design decision, with the alternatives considered and the trad
   - The candidate pool of top-20 vector plus top-20 keyword results (~32 code units) contains the correct code for **38/40** questions, against 32/40 in today's top 6. Retrieval *finds* the code; it ranks it poorly.
   - That makes the keyword side the candidate generator for the next experiment: a reranker.
 
+- **Reranker tried, not adopted:** a cross-encoder (`mixedbread-ai/mxbai-rerank-xsmall-v1`, 71M) reordering the ~32 candidates. On the laptop CPU, loading took 23 s and a single reranked search took over a minute, against a budget of under 2 s. It was stopped before scoring all 40 questions. It remains the natural next step for ranking on a GPU or with a hosted reranker, since the right code is among the candidates for 38/40 questions.
+
 ---
 
 ## Known limitations (running list)
