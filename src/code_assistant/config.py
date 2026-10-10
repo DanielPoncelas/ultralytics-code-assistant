@@ -41,10 +41,12 @@ class Settings(BaseSettings):
 
     # Answer generation. Models are tried in order; the next one is used if a model is
     # rate-limited, unavailable or returns an empty answer. Comma-separated in the env.
+    # Order from the answer evaluation (eval/results/answers.md): best key-fact coverage first,
+    # one model per provider so that one provider's outage doesn't take down the whole chain.
     llm_models: Annotated[tuple[str, ...], NoDecode] = (
-        "poolside/laguna-s-2.1:free",
         "cohere/north-mini-code:free",
-        "google/gemma-4-31b-it:free",
+        "dots-studio/dots-3-note-preview:free",
+        "poolside/laguna-s-2.1:free",
     )
     llm_temperature: float = 0.0
     llm_max_tokens: int = 2000
