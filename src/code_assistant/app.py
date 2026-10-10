@@ -329,29 +329,6 @@ def build_app(assistant: CodeAssistant, tag: str, tasks: Sequence[str]) -> gr.Bl
                     autofocus=True,
                     elem_id="question",
                 )
-                paid_model = assistant.paid_llm.models[0] if assistant.paid_llm else ""
-                use_paid = gr.Checkbox(
-                    False,
-                    label=f"Use a paid model ({paid_model}); free models remain the fallback",
-                    visible=bool(paid_model),
-                    elem_id="use-paid",
-                )
-                rerank_model = getattr(assistant.retriever.reranker, "model", "")
-                use_rerank = gr.Checkbox(
-                    bool(rerank_model),
-                    label=f"Rerank the sources with {rerank_model}",
-                    visible=bool(rerank_model),
-                    elem_id="use-rerank",
-                )
-                models = assistant.embedding_models
-                embedding = gr.Radio(
-                    models,
-                    value=models[0],
-                    label="Embedding model for the search",
-                    info="Models served by OpenRouter need a few cents of credit.",
-                    visible=len(models) > 1,
-                    elem_id="embedding-model",
-                )
                 with gr.Row(elem_id="examples"):
                     example_buttons = [
                         (gr.Button(label, size="sm", variant="secondary"), question)
@@ -369,6 +346,32 @@ def build_app(assistant: CodeAssistant, tag: str, tasks: Sequence[str]) -> gr.Bl
                     "New conversation", size="sm", variant="secondary", elem_id="new-conversation"
                 )
             with gr.Column(scale=5, min_width=320, elem_id="sources-column"):
+                models = assistant.embedding_models
+                embedding = gr.Radio(
+                    models,
+                    value=models[0],
+                    label="Embedding model for the search",
+                    info="Models served by OpenRouter need a few cents of credit.",
+                    visible=len(models) > 1,
+                    elem_id="embedding-model",
+                )
+                # Drawn as switches (app.css), in pipeline order. The free models remain the
+                # fallback of the paid one.
+                paid_model = assistant.paid_llm.models[0] if assistant.paid_llm else ""
+                rerank_model = getattr(assistant.retriever.reranker, "model", "")
+                with gr.Row(elem_id="toggles"):
+                    use_rerank = gr.Checkbox(
+                        bool(rerank_model),
+                        label="Rerank the sources",
+                        visible=bool(rerank_model),
+                        elem_classes=["toggle"],
+                    )
+                    use_paid = gr.Checkbox(
+                        False,
+                        label=f"Use {paid_model} (paid)",
+                        visible=bool(paid_model),
+                        elem_classes=["toggle"],
+                    )
                 gr.HTML("<h2>Code used for this answer</h2>")
                 sources_html = gr.HTML(render_sources([]), elem_id="sources")
 

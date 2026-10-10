@@ -38,6 +38,36 @@
 }
 #examples button:hover { background: #DFE4FF !important; }
 #filters { border-radius: 16px !important; }
+
+/* Option switches: the paid-model and rerank checkboxes drawn as toggles */
+#toggles, #toggles > .form { background: none !important; border: none !important; box-shadow: none !important; }
+#toggles > .form { flex-direction: row; flex-wrap: wrap; justify-content: flex-start; gap: 8px 28px; }
+#toggles .toggle {
+  flex: 0 0 auto !important; width: auto !important; min-width: 0; margin: 0 !important; padding: 0 !important;
+  background: none !important; border: none !important; box-shadow: none !important;
+}
+.toggle label { gap: 10px; cursor: pointer; }
+.toggle input[type="checkbox"] {
+  appearance: none; -webkit-appearance: none; position: relative; flex: none;
+  width: 36px; height: 20px; margin: 0; border: none !important; border-radius: 999px !important;
+  background: #D5D8E3 !important; background-image: none !important; cursor: pointer;
+  transition: background-color 0.15s;
+}
+.toggle input[type="checkbox"]::after {
+  content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%;
+  background: #FFFFFF; box-shadow: 0 1px 2px rgba(16, 24, 40, 0.3); transition: transform 0.15s;
+}
+.toggle input[type="checkbox"]:checked { background: #042AFF !important; }
+.toggle input[type="checkbox"]:checked::after { transform: translateX(16px); }
+.toggle input[type="checkbox"]:focus-visible { outline: 2px solid #042AFF; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .toggle input[type="checkbox"],
+  .toggle input[type="checkbox"]::after { transition: none; }
+}
+
+/* Search and answer options, at the top of the sources panel */
+#embedding-model { margin-bottom: 4px; }
+#toggles { margin-bottom: 12px; padding: 0 12px !important; }
 #new-conversation { align-self: flex-start; flex: none; width: fit-content; min-width: 0; }
 
 /* Status line */
