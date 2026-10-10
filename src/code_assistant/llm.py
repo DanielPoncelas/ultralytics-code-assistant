@@ -19,8 +19,9 @@ if TYPE_CHECKING:
 
 Message = dict[str, str]  # {"role": "system" | "user" | "assistant", "content": "..."}
 
-# Account-level problems: trying another model cannot help.
-FATAL_STATUS = {401: "invalid API key", 402: "insufficient credits"}
+# Account-level problem: trying another model cannot help. (402 "insufficient credits" is
+# not fatal: a paid model fails but the free models in the chain still answer.)
+FATAL_STATUS = {401: "invalid API key"}
 
 
 class LLMError(RuntimeError):

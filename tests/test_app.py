@@ -149,7 +149,7 @@ class FakeAssistant:
     def __init__(self, events=None, error=None):
         self.events, self.error, self.calls = events or [], error, []
 
-    def ask_stream(self, question, history=(), filters=None):
+    def ask_stream(self, question, history=(), filters=None, use_paid=False):
         self.calls.append((question, list(history), filters))
         yield from self.events
         if self.error:

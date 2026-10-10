@@ -210,6 +210,7 @@ def respond(
     history: list[dict[str, str]],
     folder: str | None,
     task: str | None,
+    use_paid: bool = False,
 ) -> Iterator[tuple[str, Chat, list[dict[str, str]], str, str]]:
     """Stream (textbox, chat, history, sources HTML, status HTML) updates for one question.
 
@@ -230,7 +231,9 @@ def respond(
     partial = ""
     filters = build_filters(folder, task)
     try:
-        for event in assistant.ask_stream(question, history=history, filters=filters):
+        for event in assistant.ask_stream(
+            question, history=history, filters=filters, use_paid=use_paid
+        ):
             if isinstance(event, Answer):
                 chat[-1] = {"role": "assistant", "content": render_answer(event.text, sources)}
                 history = [
@@ -313,6 +316,13 @@ def build_app(assistant: CodeAssistant, tag: str, tasks: Sequence[str]) -> gr.Bl
                     autofocus=True,
                     elem_id="question",
                 )
+                paid_model = assistant.paid_llm.models[0] if assistant.paid_llm else ""
+                use_paid = gr.Checkbox(
+                    False,
+                    label=f"Use a paid model ({paid_model}); free models remain the fallback",
+                    visible=bool(paid_model),
+                    elem_id="use-paid",
+                )
                 with gr.Row(elem_id="examples"):
                     example_buttons = [
                         (gr.Button(label, size="sm", variant="secondary"), question)
@@ -335,12 +345,12 @@ def build_app(assistant: CodeAssistant, tag: str, tasks: Sequence[str]) -> gr.Bl
 
         outputs = [textbox, chatbot, history, sources_html, status_html]
 
-        def handle(message, chat, hist, folder_value, task_value):
-            yield from respond(assistant, message, chat, hist, folder_value, task_value)
+        def handle(message, chat, hist, folder_value, task_value, paid):
+            yield from respond(assistant, message, chat, hist, folder_value, task_value, paid)
 
         def ask_example(question: str):
-            def handler(chat, hist, folder_value, task_value):
-                yield from respond(assistant, question, chat, hist, folder_value, task_value)
+            def handler(chat, hist, folder_value, task_value, paid):
+                yield from respond(assistant, question, chat, hist, folder_value, task_value, paid)
 
             return handler
 
@@ -356,12 +366,12 @@ def build_app(assistant: CodeAssistant, tag: str, tasks: Sequence[str]) -> gr.Bl
             return [gr.update(interactive=True)] * len(controls)
 
         answering = [textbox.submit(lock, None, controls, queue=False).then(
-            handle, [textbox, chatbot, history, folder, task], outputs
+            handle, [textbox, chatbot, history, folder, task, use_paid], outputs
         )]  # fmt: skip
         for button, question in example_buttons:
             answering.append(
                 button.click(lock, None, controls, queue=False).then(
-                    ask_example(question), [chatbot, history, folder, task], outputs
+                    ask_example(question), [chatbot, history, folder, task, use_paid], outputs
                 )
             )
         for event in answering:

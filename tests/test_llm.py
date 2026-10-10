@@ -91,7 +91,7 @@ def test_complete_raises_with_all_attempts_when_every_model_fails():
         make_client(handler).complete(MESSAGES)
 
 
-@pytest.mark.parametrize("status", [401, 402])
+@pytest.mark.parametrize("status", [401])
 def test_account_errors_stop_immediately(status):
     calls = []
 
@@ -263,3 +263,12 @@ def test_permanent_client_errors_are_not_retried():
     with pytest.raises(LLMError):
         client.complete(MESSAGES)
     assert len(calls) == 1
+
+
+def test_insufficient_credits_falls_back_to_free_models():
+    def handler(request: httpx.Request) -> httpx.Response:
+        if json.loads(request.content)["model"] == "a/model":
+            return httpx.Response(402, text="insufficient credits")
+        return httpx.Response(200, json=completion_body("free answer", "b/model"))
+
+    assert make_client(handler).complete(MESSAGES).model == "b/model"
