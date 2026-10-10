@@ -33,17 +33,19 @@ logger = logging.getLogger(__name__)
 # Only colours that reach WCAG AA (4.5:1) with white or navy label text.
 PALETTE = ("042AFF", "0BDBEB", "00DFB7", "FF6FDD", "FC6D2F", "BD00FF")
 
+# Questions from the evaluation set (eval/questions.toml) whose answers were complete, with both
+# embedding models and the default settings, in repeated end-to-end runs (21 of 22 answers
+# had every key fact, none had unsupported claims), so a click shows a correct answer.
 EXAMPLES = {
-    "Resume an interrupted training run": "My training run was interrupted at epoch 63. How do I "
-    "resume it from the last checkpoint, and what state gets restored?",
+    "Learning rate schedule": "How do the lr0 and lrf hyperparameters work? Is the learning rate "
+    "decayed linearly or with a cosine schedule?",
+    "When mosaic switches off": "What does close_mosaic do, and at which point of training is "
+    "mosaic augmentation switched off?",
     "Default augmentations": "Which data augmentations are applied by default when training a "
     "detection model?",
-    "val() vs predict()": "Why do model.val() and model.predict() give different detections on "
-    "the same images?",
-    "ONNX export with NMS": "How can I export a model to ONNX with a dynamic batch size and NMS "
-    "included in the graph?",
-    "Crop detected objects": "How do I crop the detected objects out of an image and save them "
-    "as separate files?",
+    "YOLO-World custom classes": "How do I set my own class names for open-vocabulary detection "
+    "with YOLO-World?",
+    "TensorRT export": "How does the TensorRT export work? Does it go through ONNX first?",
 }
 
 ANY = "Any"
