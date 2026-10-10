@@ -16,7 +16,6 @@ app.add_typer(eval_app, name="eval")
 
 OK = typer.style("✔", fg=typer.colors.GREEN)
 FAIL = typer.style("✘", fg=typer.colors.RED)
-RERANK_INTERVAL_S = 3.5  # stay under the ~20 requests/minute of free OpenRouter models
 
 
 @app.callback()
@@ -487,14 +486,14 @@ def eval_agreement(
         "eval/results/answers.jsonl"
     ),
 ) -> None:
-    """Compare the human ticks in the review sheet with the judge's verdicts."""
+    """Compare the human ticks in a review sheet (answers or fact recall) with the judge."""
     import json
     import re
 
     from code_assistant.evaluation.judge_review import agreement, parse_review_sheet
 
     text = sheet.read_text()
-    model = re.search(r"answers by `([^`]+)`", text).group(1)
+    model = re.search(r"by `([^`]+)`", text).group(1)  # answers or sources by `<model>`
     human = parse_review_sheet(text)
     judge = {
         r["question_id"]: r["verdict"]["facts_covered"]
@@ -503,7 +502,7 @@ def eval_agreement(
     }
     result = agreement(human, judge)
     typer.echo(
-        f"{OK} Judge vs human on {result.facts} facts ({len(human)} answers by {model}): "
+        f"{OK} Judge vs human on {result.facts} facts ({len(human)} questions, {model}): "
         f"{result.rate:.1%} agreement, Cohen's kappa {result.kappa:.2f}. "
         f"Judge stricter than human on {result.human_yes_judge_no}, more lenient on "
         f"{result.human_no_judge_yes}."
@@ -514,98 +513,16 @@ def eval_agreement(
 def eval_search(
     questions: Annotated[Path, typer.Option(help="Question file.")] = Path("eval/questions.toml"),
     output: Annotated[Path, typer.Option(help="Report file.")] = Path("eval/results/search.md"),
+    facts: Annotated[
+        bool,
+        typer.Option(
+            help="Also ask the LLM judge which key facts the sources show "
+            "(~40 free requests per strategy; writes facts.jsonl and a blind review sheet)."
+        ),
+    ] = False,
 ) -> None:
-    """Compare vector, hybrid and reranked retrieval on Atlas (no LLM calls)."""
-    import statistics
-    import time
+    """Compare vector, hybrid and reranked retrieval on Atlas."""
+    from code_assistant.evaluation.search_eval import run_search_evaluation
 
-    from code_assistant.embeddings import Embedder
-    from code_assistant.evaluation.answer_runner import Throttle
-    from code_assistant.evaluation.dataset import load_questions
-    from code_assistant.evaluation.retrieval_eval import (
-        evidence_coverage,
-        evidence_lines,
-        first_relevant_rank,
-    )
-    from code_assistant.indexing.source import fetch_source
-    from code_assistant.rerank import OpenRouterReranker
-    from code_assistant.retrieval import Retriever
-    from code_assistant.store import ChunkStore
-
-    settings = get_settings()
-    in_scope = [q for q in load_questions(questions) if q.in_scope]
-    checkout = fetch_source(
-        settings.ultralytics_repo_url,
-        settings.ultralytics_tag,
-        settings.ultralytics_commit,
-        settings.cache_dir,
-    )
-    evidence = {q.id: evidence_lines(q.evidence, checkout) for q in in_scope}
-    k = settings.retrieval_k
-    embedder = Embedder(settings.embedding_model, device="cpu")
-    embedder.embed_query("warm-up")  # exclude model loading from the latency
-    reranker = OpenRouterReranker.from_settings(settings)
-    rows, ranks_by_name, notes = [], {}, []
-    with ChunkStore.from_settings(settings) as store:
-        strategies = [
-            ("Vector only", Retriever(store, embedder)),
-            ("Hybrid (vector + keyword, RRF)", Retriever(store, embedder, hybrid=True)),
-        ]
-        if reranker:
-            name = f"Reranked (`{reranker.model}`)"
-            strategies.append((name, Retriever(store, embedder, reranker=reranker)))
-        for name, retriever in strategies:
-            ranks, latencies, coverage = [], [], []
-            throttle = Throttle(RERANK_INTERVAL_S if retriever.reranker else 0)
-            for q in in_scope:
-                throttle.wait()
-                started = time.perf_counter()
-                results = retriever.search(q.question, k=10)
-                latencies.append(time.perf_counter() - started)
-                ranks.append(first_relevant_rank([r.symbol for r in results], q.relevant))
-                coverage.append(evidence_coverage(results[:k], evidence[q.id]))
-            hits = [sum(1 for r in ranks if r and r <= n) / len(ranks) for n in (1, 5, k)]
-            mrr = sum(1 / r for r in ranks if r) / len(ranks)
-            full = sum(1 for c in coverage if c == 1) / len(coverage)
-            rows.append(
-                f"| {name} | "
-                + " | ".join(f"{h:.1%}" for h in hits)
-                + f" | {mrr:.3f} | {statistics.fmean(coverage):.1%} | {full:.1%}"
-                + f" | {statistics.median(latencies):.2f} s |"
-            )
-            ranks_by_name[name] = list(zip(ranks, coverage, strict=True))
-            typer.echo(rows[-1])
-            if retriever.rerank_failures:
-                notes.append(
-                    f"⚠ The reranker failed on {retriever.rerank_failures} questions, which "
-                    "fell back to vector order. Re-run for clean numbers."
-                )
-                typer.echo(f"{FAIL} {notes[-1]}")
-    per_question = "\n".join(
-        f"| `{q.id}` | "
-        + " | ".join(f"{r[i][0] or '–'} ({r[i][1]:.0%})" for r in ranks_by_name.values())
-        + " |"
-        for i, q in enumerate(in_scope)
-    )
-    output.write_text(
-        "# Search strategy evaluation\n\n"
-        f"{len(in_scope)} in-scope questions, `{settings.embedding_model}`, live Atlas queries "
-        f"(generated by `uv run code-assistant eval search`). Hit@{k} is what the LLM sees: "
-        "at least one relevant code unit among the sources. Evidence is stricter: the share "
-        "of the labelled evidence lines (`evidence` in `eval/questions.toml`) that are in the "
-        f"top {k}; Full evidence counts the questions where all of it is. "
-        "Latency is the median search time per question, including the query embedding on "
-        "CPU and, for the reranker, the OpenRouter call.\n\n"
-        + "".join(f"{note}\n\n" for note in notes)
-        + f"| Search | Hit@1 | Hit@5 | Hit@{k} | MRR@10 | Evidence@{k} | Full evidence@{k} "
-        "| Latency |\n|---|---|---|---|---|---|---|---|\n"
-        + "\n".join(rows)
-        + "\n\n## Per question\n\n"
-        f"Rank of the first relevant code unit (– = not in the top 10), and in brackets the "
-        f"evidence in the top {k}.\n\n"
-        f"| Question | {' | '.join(ranks_by_name)} |\n|---|{'---|' * len(ranks_by_name)}\n"
-        + per_question
-        + "\n",
-        encoding="utf-8",
-    )
+    run_search_evaluation(get_settings(), questions, output, with_facts=facts, log=typer.echo)
     typer.echo(f"{OK} Report: {output}")

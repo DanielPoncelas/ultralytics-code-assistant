@@ -400,7 +400,7 @@ Every significant design decision, with the alternatives considered and the trad
 - **Opt-out:** `RERANK_MODEL=` (empty) disables it. The chat's "Rerank the sources" checkbox turns it off per question, e.g. to compare both orders in a demo, and `search --no-rerank` does the same in the CLI.
 - **Not re-measured:** the answer evaluation (`eval/results/answers.md`) and `docs/examples.md` were produced with vector-only retrieval.
 
-## D27. Evidence coverage: a stricter retrieval metric
+## D27. Stricter retrieval metrics: evidence coverage and fact recall
 
 - **Why:** Hit@k counts a question as solved if *one* relevant code unit is retrieved. Answers often need several. `val-vs-predict` is a hit at rank 2 (`Model.val`), yet the answer missed its point because the `conf` defaults in `Model.predict` and `BaseValidator.__init__` weren't retrieved.
 - **What:** every question already labels its evidence as `path:start-end` ranges (101 ranges, all inside the indexed folders). **Evidence@6** is the share of those non-blank lines that are in the 6 sources, averaged over questions. **Full evidence@6** is the share of questions where all of it is.
@@ -416,7 +416,28 @@ Every significant design decision, with the alternatives considered and the trad
 - **Reading:**
   - The reranker's gain holds under the stricter metric (+12.5 points).
   - The gap between 92.5% and 20% shows where retrieval falls short: it finds *a* relevant piece, rarely *all* of them.
-  - Evidence ranges were labelled generously (some cover a whole method), so Full evidence is a strict lower bound. Evidence@6 is the main number for the next experiments.
+  - Evidence ranges were labelled generously (some cover a whole method), so Full evidence is a strict lower bound.
+
+- **Evidence lines are still a proxy.** A fact can also appear in a docstring that wasn't labelled (`predict-stream`: 0% evidence, yet the `predict` docstring describes `stream`), and a "relevant" symbol can be an empty base method (`train-plot-augmented`: `BaseTrainer.plot_training_samples` is 3 lines). So the question "is the answer really in the sources?" needs reading.
+- **Fact recall (`eval search --facts`):** the answer judge (`nemotron-3-super-120b:free`) reads the 6 sources exactly as the LLM gets them and says, for each key fact (104 in total), whether a reader of those sources alone would know it.
+  - **Anti-bluff rule:** a "yes" counts only if the judge quotes a line that is verbatim in the sources (whitespace ignored, at least 10 characters). It rejected 4, 2 and 5 claimed facts in the three strategies.
+  - **Facts@6** is the share of key facts available; **All facts@6** the share of questions where every key fact is.
+- **Result:**
+
+  | | Hit@6 | Evidence@6 | Facts@6 | All facts@6 |
+  |---|---|---|---|---|
+  | Vector only | 80.0% | 50.8% | 55.4% | 35.0% |
+  | Hybrid (RRF) | 77.5% | 50.7% | 53.8% | 41.0%¹ |
+  | **Reranked** | **92.5%** | **63.3%** | **62.9%** | **42.5%** |
+
+  ¹ The judge failed on one question, which is left out.
+
+- **Human check of the judge:** the author reviewed 10 random questions of the reranked strategy (25 facts, blind to the judge's verdicts; `eval/results/fact_review.md`, then `eval agreement`).
+  - 76.0% agreement, Cohen's kappa 0.53 (moderate).
+  - The judge was stricter on 6 facts and more lenient on none. Most of the 6 are plainly in the sources (e.g. `raise ValueError(f"No labels found in {path}")`, `boxes = results[0].boxes`).
+  - So the judge is conservative: on this sample it finds 12 of 25 facts, the reviewer 18. **Facts@6 is a lower bound**, and the true share of answers fully available is higher than 42.5%.
+  - The judge is still fit for **comparisons** (all strategies share its bias), not for absolute claims. A stronger judge would be the fix.
+- **Bottom line:** with the reranker, related code reaches the LLM for 37/40 questions, but the complete answer for at least 17/40. Closing that gap is the goal of the next experiments (D28).
 
 ---
 

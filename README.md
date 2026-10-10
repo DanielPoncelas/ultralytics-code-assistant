@@ -123,11 +123,13 @@ Each result shows the symbol, file and lines, and a permalink to the exact lines
 **Evaluate** retrieval and answers, and reproduce the model choices:
 
 ```bash
-uv run code-assistant eval retrieval     # embedding models → eval/results/retrieval.md
-uv run code-assistant eval search        # vector / hybrid / reranked → eval/results/search.md
-uv run code-assistant eval answers       # LLMs + judge       → eval/results/answers.md
-uv run code-assistant eval review        # blind human check of the judge (then: eval agreement)
+uv run code-assistant eval retrieval       # embedding models          → eval/results/retrieval.md
+uv run code-assistant eval search --facts  # search strategies + judge → eval/results/search.md
+uv run code-assistant eval answers         # LLMs + judge              → eval/results/answers.md
+uv run code-assistant eval review          # blind human check of the answer judge (then: eval agreement)
 ```
+
+`eval search --facts` also writes a blind review sheet for the fact judge (`eval/results/fact_review.md`). Tick it, then run `uv run code-assistant eval agreement --sheet eval/results/fact_review.md --results eval/results/facts.jsonl`.
 
 The vectors of all four candidate embedding models are shipped in `embeddings/`, so `eval retrieval` only embeds the 40 questions: the full comparison took 105 s on the author's laptop, CPU only (plus downloading each model, ~2.5 GB in total). Without them (e.g. after deleting the folder to recompute), the first run takes minutes on a GPU and hours on CPU for the larger models. Use `--model BAAI/bge-small-en-v1.5` to evaluate only the default model.
 
@@ -227,15 +229,22 @@ Result for `v8.4.175`: **104 files → 1,532 chunks** (1,072 methods, 214 class 
 
 Why: the keyword index's analyzer splits identifiers, so "nms" matches `agnostic_nms` and `NMSModel`, and together the two lists contain the right code for 38 of 40 questions. Vector order alone puts it in the top 6 for only 32. Measured on the 40 questions (`uv run code-assistant eval search`, no LLM calls):
 
-| Search | Hit@1 | Hit@5 | Hit@6 | MRR@10 | Evidence@6 | Full evidence@6 | Latency |
+| Search | Hit@1 | Hit@6 | MRR@10 | Evidence@6 | Facts@6 | All facts@6 | Latency |
 |---|---|---|---|---|---|---|---|
-| Vector only | 52.5% | 77.5% | 80.0% | 0.626 | 50.8% | 7.5% | 0.09 s |
-| Hybrid (vector + keyword, RRF) | 57.5% | 75.0% | 77.5% | 0.664 | 50.7% | 15.0% | 0.13 s |
-| **Reranked (default)** | **62.5%** | **90.0%** | **92.5%** | **0.738** | **63.3%** | **20.0%** | 0.67 s |
+| Vector only | 52.5% | 80.0% | 0.626 | 50.8% | 55.4% | 35.0% | 0.14 s |
+| Hybrid (vector + keyword, RRF) | 57.5% | 77.5% | 0.664 | 50.7% | 53.8% | 41.0% | 0.20 s |
+| **Reranked (default)** | **62.5%** | **92.5%** | **0.738** | **63.3%** | **62.9%** | **42.5%** | 0.76 s |
 
 The reranker fixes 6 questions and loses 1 (`val-test-split`, rank 5 → 8). The two it can't fix aren't among the candidates.
 
-**Hit@6 overstates what the LLM gets.** It needs only *one* relevant code unit among the sources. Evidence@6 is stricter: the share of the labelled evidence lines that actually reach the LLM. On `val-vs-predict`, the reranker ranks `Model.val` second (a hit), but the lines that answer the question (`conf=0.25` in `Model.predict`, `conf=0.001` in `BaseValidator.__init__`) are missing, so its evidence is 33% and the answer misses the point. Only 20% of the questions get all their evidence, which is the main gap left in retrieval. Hybrid search with Reciprocal Rank Fusion is also implemented (`HYBRID_SEARCH=true`) but stays off: it lost one question from the top 6 (D24 in [DECISIONS.md](DECISIONS.md)).
+**Hit@6 overstates what the LLM gets.** It needs only *one* relevant code unit among the sources. Two stricter measures check whether the *answer* is there:
+
+- **Evidence@6:** the share of the labelled evidence lines that reach the LLM.
+- **Facts@6:** an LLM judge reads the 6 sources and checks each key fact of the correct answer. A "yes" counts only if the judge quotes a line that really is in the sources. **All facts@6** is the share of questions where every key fact is there.
+
+On `val-vs-predict`, the reranker ranks `Model.val` second (a hit), but the lines that answer the question (`conf=0.25` in `Model.predict`, `conf=0.001` in `BaseValidator.__init__`) are missing, so the answer misses the point. Overall, the judge finds the full answer in the sources for 17 of 40 questions, not 37.
+
+The judge was checked by hand on 10 random questions (25 facts, `eval/results/fact_review.md`): 76% agreement, and every disagreement was the judge missing a fact that is in the sources. So Facts@6 is a **lower bound**, and comparisons between strategies stay fair because they share the judge.
 
 ### Embedding model choice
 
