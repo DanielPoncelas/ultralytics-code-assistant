@@ -11,6 +11,7 @@ any change to the source, the chunker or the model invalidates the cache automat
 """
 
 import hashlib
+import zipfile
 from pathlib import Path
 
 import numpy as np
@@ -34,12 +35,18 @@ def load(path: Path, ids: list[str]) -> np.ndarray | None:
     """Return cached vectors, or None if absent or not matching the expected chunk ids."""
     if not path.exists():
         return None
-    with np.load(path) as data:
-        if data["ids"].tolist() != ids:
-            return None
-        return data["vectors"]
+    try:
+        with np.load(path) as data:
+            if data["ids"].tolist() != ids:
+                return None
+            return data["vectors"]
+    except (OSError, ValueError, KeyError, zipfile.BadZipFile):  # corrupt or partial file
+        return None
 
 
 def save(path: Path, ids: list[str], vectors: np.ndarray) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    np.savez_compressed(path, ids=np.array(ids), vectors=vectors.astype(np.float32))
+    partial = path.with_name(path.name + ".partial")  # atomic: never leave a half-written cache
+    with partial.open("wb") as f:
+        np.savez_compressed(f, ids=np.array(ids), vectors=vectors.astype(np.float32))
+    partial.replace(path)

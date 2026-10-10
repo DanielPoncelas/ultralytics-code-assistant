@@ -31,3 +31,11 @@ def test_load_rejects_missing_file_or_different_ids(tmp_path):
 
     embedding_cache.save(path, ["id1"], np.zeros((1, 4), dtype=np.float32))
     assert embedding_cache.load(path, ["other"]) is None
+
+
+def test_load_ignores_a_corrupt_cache_file(tmp_path):
+    path = embedding_cache.cache_path(tmp_path, SPEC, "abc")
+    path.parent.mkdir(parents=True)
+    path.write_bytes(b"truncated")
+
+    assert embedding_cache.load(path, ["id1"]) is None

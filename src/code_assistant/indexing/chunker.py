@@ -42,8 +42,13 @@ def chunk_source(
 
 class _ChunkBuilder:
     def __init__(self, source: str, path: str, max_chars: int, overlap_lines: int) -> None:
+        source = source.removeprefix("\ufeff")  # a UTF-8 BOM would make ast.parse fail
         self.tree = ast.parse(source)
-        self.lines = source.splitlines()
+        # Split on "\n" only: str.splitlines() also breaks on form feeds and other separators
+        # that Python's tokenizer doesn't count, which would shift every line after them.
+        self.lines = source.split("\n")
+        if self.lines and self.lines[-1] == "":
+            self.lines.pop()
         self.path = path
         self.max_chars = max_chars
         self.overlap_lines = overlap_lines
