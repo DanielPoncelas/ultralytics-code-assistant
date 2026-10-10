@@ -36,19 +36,27 @@ class CodeAssistant:
         self.tag = tag
         self.k = k
 
-    def retrieve(self, question: str) -> list[SearchResult]:
-        return self.retriever.search(question, k=self.k)
+    def retrieve(self, question: str, filters: dict[str, str] | None = None) -> list[SearchResult]:
+        return self.retriever.search(question, k=self.k, filters=filters)
 
-    def ask(self, question: str, history: Sequence[Message] = ()) -> Answer:
-        sources = self.retrieve(question)
+    def ask(
+        self,
+        question: str,
+        history: Sequence[Message] = (),
+        filters: dict[str, str] | None = None,
+    ) -> Answer:
+        sources = self.retrieve(question, filters)
         completion = self.llm.complete(build_messages(question, sources, self.tag, history))
         return self._answer(question, sources, completion)
 
     def ask_stream(
-        self, question: str, history: Sequence[Message] = ()
+        self,
+        question: str,
+        history: Sequence[Message] = (),
+        filters: dict[str, str] | None = None,
     ) -> Iterator[list[SearchResult] | str | Answer]:
         """Yield the retrieved sources first, then text deltas, then the final `Answer`."""
-        sources = self.retrieve(question)
+        sources = self.retrieve(question, filters)
         yield sources
         for event in self.llm.stream(build_messages(question, sources, self.tag, history)):
             if isinstance(event, Completion):
