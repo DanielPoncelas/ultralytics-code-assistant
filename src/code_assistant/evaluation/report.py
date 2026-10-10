@@ -1,6 +1,7 @@
 """Render retrieval evaluation results as Markdown (for humans) and JSON (for tooling)."""
 
 import json
+import math
 from collections.abc import Sequence
 from dataclasses import asdict, dataclass
 from datetime import date
@@ -24,7 +25,7 @@ class CorpusInfo:
 
 
 def _pct(value: float) -> str:
-    return f"{value:.1%}"
+    return "–" if math.isnan(value) else f"{value:.1%}"
 
 
 def _short(symbol: str) -> str:

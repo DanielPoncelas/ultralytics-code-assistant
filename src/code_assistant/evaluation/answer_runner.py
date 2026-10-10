@@ -63,6 +63,8 @@ def run_answer_evaluation(
 ) -> AnswerEvaluation:
     """Evaluate `models`. With `append`, results for other models already in the output
     directory are kept, so a candidate can be added without re-running the others."""
+    if append and limit:  # models must be compared on the same questions
+        raise ValueError("--append can't be combined with --limit")
     questions = load_questions(questions_path)[:limit]
     missing = [q.id for q in questions if q.in_scope and not q.key_facts]
     if missing:

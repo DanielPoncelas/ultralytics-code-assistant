@@ -139,11 +139,14 @@ def build_assistant(settings, models: list[str] | None = None):
     from code_assistant.store import ChunkStore
 
     store = ChunkStore.from_settings(settings)
-    check_index_compatible(store.indexed_model(), settings.embedding_model)
-    retriever = Retriever(
-        store, Embedder(settings.embedding_model, device=settings.embedding_device)
-    )
-    llm = OpenRouterClient.from_settings(settings, models=models, interactive=True)
+    try:
+        check_index_compatible(store.indexed_model(), settings.embedding_model)
+        embedder = Embedder(settings.embedding_model, device=settings.embedding_device)
+        llm = OpenRouterClient.from_settings(settings, models=models, interactive=True)
+    except Exception:
+        store.close()  # don't leak the Mongo client when setup fails
+        raise
+    retriever = Retriever(store, embedder)
     return CodeAssistant(
         retriever, llm, tag=settings.ultralytics_tag, k=settings.retrieval_k
     ), store
@@ -279,6 +282,7 @@ def examples(
     from datetime import date
 
     from code_assistant.evaluation.dataset import load_questions
+    from code_assistant.llm import LLMError
 
     settings = get_settings()
     selected = [q for q in load_questions(questions) if q.example]
@@ -295,7 +299,11 @@ def examples(
     try:
         for i, q in enumerate(selected, start=1):
             typer.echo(f"[{i}/{len(selected)}] {q.id} ...")
-            answer = assistant.ask(q.question)
+            try:
+                answer = assistant.ask(q.question)
+            except LLMError as exc:  # keep the other answers
+                sections += [f"## {i}. {q.question}", "", f"*No answer: {exc}*", ""]
+                continue
             sources = "\n".join(
                 _source_line(n, src, cited=n in answer.citations)
                 for n, src in enumerate(answer.sources, start=1)
@@ -320,7 +328,7 @@ def examples(
     finally:
         store.close()
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text("\n".join(sections))
+    output.write_text("\n".join(sections), encoding="utf-8")
     typer.echo(f"{OK} Wrote {output}")
 
 

@@ -62,7 +62,9 @@ class Settings(BaseSettings):
     @classmethod
     def _split_models(cls, value: object) -> object:
         if isinstance(value, str):
-            return tuple(model.strip() for model in value.split(",") if model.strip())
+            value = tuple(model.strip() for model in value.split(",") if model.strip())
+        if not value:
+            raise ValueError("LLM_MODELS must list at least one model")
         return value
 
 

@@ -61,12 +61,10 @@ def render_answers_markdown(
     ]
     for r in sorted(results, key=lambda r: -r.coverage):
         marker = " ✅" if r is chosen else ""
-        n_oos = sum(1 for x in r.records if not x.in_scope)
-        oos = (
-            f"{round(r.oos_refusal_rate * n_oos)}/{n_oos}"
-            if r.oos_refusal_rate is not None
-            else "–"
-        )
+        scored_oos = [x for x in r.records if not x.in_scope and x.verdict]
+        failed_oos = sum(1 for x in r.records if not x.in_scope and not x.verdict)
+        declined = sum(x.verdict.refused for x in scored_oos)
+        oos = f"{declined}/{len(scored_oos)}" + (f" ({failed_oos} errors)" if failed_oos else "")
         lines.append(
             f"| `{r.model}`{marker} | **{_pct(r.coverage)}** | {_pct(r.fully_correct)} | "
             f"{_pct(r.grounded_rate)} | {_pct(r.citation_rate)} | "
@@ -117,7 +115,10 @@ def render_answers_markdown(
     ] or ["None."]
     lines += ["", "### Out-of-scope questions", ""]
     for r in (r for r in chosen.records if not r.in_scope):
-        outcome = "declined ✅" if r.verdict and r.verdict.refused else "answered anyway ❌"
+        if not r.verdict:
+            outcome = "no answer (error)"
+        else:
+            outcome = "declined ✅" if r.verdict.refused else "answered anyway ❌"
         lines.append(f"- **`{r.question_id}`**: {outcome}")
     errors = [r for res in results for r in res.records if r.error]
     if errors:
