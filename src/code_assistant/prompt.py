@@ -78,7 +78,8 @@ def _neutralise_tags(code: str) -> str:
     return _TAG.sub(lambda m: m.group(0).replace("<", "&lt;"), code)
 
 
-_CITATION = re.compile(r"\[(\d+(?:\s*,\s*\d+)*)\]")
+# [1], [2, 3] and the full-width 【1】 some models emit.
+_CITATION = re.compile(r"[\[【](\d+(?:\s*,\s*\d+)*)[\]】]")
 
 
 def extract_citations(text: str) -> list[int]:

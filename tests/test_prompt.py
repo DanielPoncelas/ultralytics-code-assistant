@@ -69,6 +69,6 @@ def test_source_cannot_close_the_sources_block():
 
 
 def test_extract_citations_handles_adjacent_and_grouped_citations():
-    text = "Use resume=True [1][3]. The checkpoint is loaded [2, 4] and again [1]. Not a cite: [x]"
+    text = "Use resume=True [1][3]. Loaded [2, 4] and again [1]. Wide 【5】【3,6】. Not a cite: [x]"
 
-    assert extract_citations(text) == [1, 3, 2, 4]
+    assert extract_citations(text) == [1, 3, 2, 4, 5, 6]
