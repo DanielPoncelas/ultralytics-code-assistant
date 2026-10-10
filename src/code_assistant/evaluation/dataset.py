@@ -19,6 +19,10 @@ class EvalQuestion:
     mentions_symbol: bool = False
     example: bool = False
     notes: str = ""
+    # What a correct answer must state, written from the source code (for answer evaluation),
+    # and where each fact can be checked ("<path>:<lines>").
+    key_facts: tuple[str, ...] = ()
+    evidence: tuple[str, ...] = ()
 
 
 class DatasetError(ValueError):
@@ -34,7 +38,10 @@ def load_questions(path: Path = DEFAULT_QUESTIONS) -> list[EvalQuestion]:
         unknown = set(entry) - allowed
         if unknown:
             raise DatasetError(f"{entry.get('id')}: unknown field(s) {sorted(unknown)}")
-        questions.append(EvalQuestion(**{**entry, "relevant": tuple(entry.get("relevant", []))}))
+        tuples = {
+            name: tuple(entry.get(name, [])) for name in ("relevant", "key_facts", "evidence")
+        }
+        questions.append(EvalQuestion(**{**entry, **tuples}))
     validate(questions)
     return questions
 
@@ -46,8 +53,8 @@ def validate(questions: list[EvalQuestion]) -> None:
     for q in questions:
         if q.in_scope and not q.relevant:
             raise DatasetError(f"{q.id}: in-scope questions need at least one relevant symbol")
-        if not q.in_scope and q.relevant:
-            raise DatasetError(f"{q.id}: out-of-scope questions must not list relevant symbols")
+        if not q.in_scope and (q.relevant or q.key_facts):
+            raise DatasetError(f"{q.id}: out-of-scope questions must not list relevant code/facts")
 
 
 def unknown_labels(questions: list[EvalQuestion], known_symbols: set[str]) -> dict[str, list[str]]:

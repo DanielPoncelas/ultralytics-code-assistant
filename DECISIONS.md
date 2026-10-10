@@ -215,6 +215,119 @@ Every significant design decision, with the alternatives considered and the trad
   - **full indexing on a laptop CPU becomes practical** (see D13). With Qwen it was 9+ hours.
 - **Caveat:** bge-small reads at most 512 tokens, and **498 of 1,532 chunks (32.5%) are truncated** when embedded. Only the header, signature, docstring and the start of the body are seen. It still matches the larger models, which suggests the contextual header and docstrings carry most of the retrieval signal (D11). The LLM always receives the full, untruncated code. A follow-up experiment: a smaller chunk budget (~2,000 chars) to remove the truncation, re-scored with this same evaluation.
 
+## D19. LLM client: our own fallback chain over OpenRouter's free models (implements D7)
+
+- **Decision:** `OpenRouterClient` calls `/chat/completions` with `httpx` and tries an ordered list of models (`LLM_MODELS`).
+  - **Falls back** on 429, 5xx, timeouts, provider errors returned with HTTP 200, and empty completions.
+  - **Stops** on 401/402, account errors that no other model can fix.
+  - **Reports** which model answered and every failed attempt. The CLI prints "answered by X after Y failed".
+- **Streaming:** text is shown as it's generated. Fallback is only allowed *before the first token*: once text is on screen, switching models would splice two different answers, so a mid-answer failure is reported as an error.
+- **Retries:** `max_retries` retries the *same* model with exponential backoff on transient errors.
+  - Interactive use keeps it at 0, because falling back is faster than waiting.
+  - The evaluation uses 4 retries, so that a momentary rate limit isn't scored as a bad answer.
+- **Alternative ruled out:** OpenRouter's server-side `models: [...]` fallback. It's simpler, but it doesn't treat empty completions as failures and hides the attempts.
+- **Settings:**
+  - temperature 0, for the most repeatable output. Free providers are still not fully deterministic: the same question was answered once and declined once.
+  - max 2,000 output tokens.
+  - 90 s timeout.
+
+## D20. Prompt: scoped, cited, honest about gaps, injection-aware
+
+- **Structure:**
+  1. A system prompt stating the release and the indexed folders, plus the rules.
+  2. Up to 3 previous turns, for follow-ups.
+  3. The user message, holding the numbered `<source id=… symbol=… file=… lines=…>` blocks and then the question.
+- **Rules:**
+  - answer only from the sources;
+  - cite `[n]` per statement, and only sources that support it;
+  - **answer the supported part and say what is missing**, and use "I couldn't find this in the indexed code" only when nothing is relevant;
+  - never guess names, arguments or defaults;
+  - concise, with snippets.
+- **Why the partial-answer rule:** the first version said "if the sources don't contain the answer, say so". In the first real test the model then refused a question it could mostly answer, because one helper method was missing from the sources. The rule was rewritten before the evaluation was run.
+- **Indirect prompt injection:** retrieved text is *data*. The prompt says so, and any `<source>`/`</sources>` sequence inside indexed code is escaped, so the code can't close the block and inject fake context (covered by a test). The risk is low here, because the corpus is Ultralytics' own code. It becomes real as soon as the index includes third-party repos, issues or user uploads.
+- **k = 6 chunks:** Hit@k on the retrieval evaluation is 77.5% at 5, 80% at 6 and 80% at 8. Six is the knee, at roughly 6–7k prompt tokens.
+- **Follow-ups:** retrieval uses only the current question. Rewriting follow-ups into standalone questions is future work.
+
+## D21. Answer evaluation: key facts + an LLM judge from a different model family
+
+- **Reference:** 104 *key facts* for the 40 in-scope questions (2–3 each). Each fact is atomic, essential to a correct answer, and verifiable in the indexed code, with file:line evidence in `eval/questions.toml`. They were drafted per question from the source, then checked against the code and edited (split compound facts, removed peripheral details). Committed before the evaluation ran.
+- **Judge:** `nvidia/nemotron-3-super-120b-a12b:free`.
+  - It's from a different family from every candidate (Poolside, Cohere, Google), which avoids self-preference bias.
+  - In a known-answer smoke test it was correct and fast (3 s). Nemotron-3-Ultra was also correct but 9× slower and stricter. Inkling is unavailable through the API.
+  - It receives the question, the same sources, the key facts and the answer, and returns JSON: facts covered, unsupported claims, refused.
+- **Metrics:**
+  - key-fact coverage;
+  - fully-correct rate;
+  - grounded rate (no unsupported claims);
+  - citations OK (deterministic);
+  - out-of-scope refusal rate;
+  - **false refusal rate** (declined although the right code was retrieved);
+  - errors;
+  - latency.
+- **Failure attribution:** every answer records whether the relevant code was among its sources. A gap with the code present is a generation problem; without it, it's a retrieval problem.
+- **Fair comparison:** sources are retrieved once per question and reused for every candidate, so the models differ only in generation.
+- **Pre-registered rule:**
+  1. A model that declines fewer than half of the out-of-scope questions is ineligible, because it invents answers.
+  2. The best coverage wins.
+  3. Within 5 points of it, the more grounded model wins, then the faster one.
+- **Judge validation (done):** a blind review by the author covered 10 answers sampled at random (seed 0), with the judge's verdicts not shown.
+  - The judge agreed on **25/25 key facts**: Cohen's κ = 1.0, 95% Clopper–Pearson CI for the agreement rate ≈ 86–100%.
+  - The sample included the borderline cases. Examples: a fact conveyed only through code the answer quotes; valid alternative solutions (drawing masks with OpenCV instead of `plot(boxes=False)`; `x2 - x1` instead of `xywh`) that don't state the key fact. Human and judge treated them the same way.
+  - Scope: this validates key-fact grading only. Refusal detection has one known error (D23); unsupported-claim detection was not reviewed.
+- **Known weaknesses:**
+  - The judge is an LLM. It's validated against a human on a small sample (25 facts).
+  - The key facts reflect one person's notion of "essential", and they reward the canonical answer: a correct but different solution scores 0, so coverage *underestimates* usefulness.
+  - 40 questions is a small sample.
+  - Free models are non-deterministic run to run.
+
+## D22. OpenRouter credits for the evaluation, not for users
+
+- Free-model limits: 50 requests/day and 20/minute for accounts with fewer than 10 credits purchased, and **1,000/day** once at least 10 credits have been purchased (OpenRouter docs, checked 2026-10-10). Using `:free` models doesn't spend the credits (`total_usage` stayed at 0).
+- **The app and the demo need no credits:** one question = one request.
+- **The full answer evaluation does:** ~92 requests per model (answer + judge × 46), so ~280 for three candidates. We bought $10 of credits to raise the daily cap, and committed every answer and verdict (`eval/results/answers.jsonl`), so the results can be inspected without re-running them.
+- **Ruled out:** a resumable answer cache to spread the run over several days within the free cap. It adds complexity for a one-off cost of $10.
+
+## D23. LLM chosen: `cohere/north-mini-code:free`, fallback chain Cohere → dots-3 → Laguna
+
+- **Candidates** (from the 15 free OpenRouter models on 2026-10-10; none are Qwen, Llama, DeepSeek or Mistral):
+  - Cohere North-Mini-Code (code-specialised);
+  - Poolside Laguna-S 2.1 (code-specialised);
+  - Google Gemma-4-31B (general).
+
+  Excluded:
+  - Nemotron, the judge's family;
+  - Inkling, which is API-blocked ("agentic harnesses only");
+  - LFM-2.5 2.6B, too small;
+  - Laguna-XS, which duplicates Laguna.
+- **What happened during the run:**
+  - **Gemma-4-31B was rate-limited upstream** (Google AI Studio's shared free pool) for 37 of 46 questions, and for 3 of 3 probes afterwards. Gemma-4-26B, the same pool, was blocked as well.
+  - Gemma-31B was replaced by **dots-3-note-preview**, which was responding, and evaluated with `--append` (identical sources and judge).
+  - An **availability clause was added to the rule after the run**: models failing more than 50% of requests are reported as *unavailable* rather than ranked. Without it, Gemma would have been labelled "ineligible for not declining out-of-scope questions", which would be false: it simply didn't answer. The clause doesn't change the ranking of the other models.
+  - **Transient failures** (rate limits, 13 answers across Laguna, Cohere and dots-3) were re-run once under identical conditions (`--retry-failed`). They count as 0 if they still fail.
+- **Results** (`eval/results/answers.md`):
+
+  | Model | Coverage | Fully correct | Grounded | Citations OK | OOS declined | False refusals | Median latency |
+  |---|---|---|---|---|---|---|---|
+  | **Cohere North-Mini-Code** | **53.8%** | **32.5%** | 77.8% | 45.0% | 3/6 | **0%** | 10.1 s |
+  | dots-3-note-preview | 42.9% | 20.0% | **82.2%** | **72.5%** | 3/6 | **0%** | 15.9 s |
+  | Laguna-S 2.1 | 36.2% | 12.5% | 80.4% | 60.0% | 4/6 | 18.8% | **8.5 s** |
+
+- **Rule applied:** all three are eligible, and Cohere has the best coverage, 11 points clear of the next (above the 5-point tie margin).
+- **Findings worth knowing:**
+  - **Laguna declines answerable questions.** It said "I couldn't find this" in 18.8% of the cases where the right code was in its sources (e.g. the resume question). That was the main reason it scored lowest.
+  - **Cohere misreads, consistently, when the answer isn't indexed.** Asked for the default learning rate (it lives in `cfg/default.yaml`, not indexed), it twice presented the Tuner's search-space lower bounds as "the defaults". The judge flagged it. For a question about activation functions, it answered with an unrelated SAM component.
+  - **Cohere and dots-3 are reasoning models.** Part of `max_tokens` goes to hidden reasoning (37 of 97 tokens in a probe). At the evaluation's 2,000-token budget, about 3 of Cohere's and 6 of dots-3's answers were cut off or empty. One example: Cohere returned an empty completion for `val-vs-predict` on every retry. That's not a rate limit. In the app, the fallback chain covers this case, since an empty completion moves to the next model. **Fixed after the evaluation:** the budget is now 4,000, `finish_reason` is recorded, and truncated answers are flagged. The evaluation was not re-run (~184 requests); with Cohere 11 points ahead, the fix can't change the decision.
+  - **The judge makes mistakes too.** For `oos-analytics`, Cohere answered "I couldn't find information about usage analytics… in the indexed source code", but the judge marked it as *not declined*. Cohere's true out-of-scope count is therefore 4/6. This motivated the blind human review of the judge (`eval review` / `eval agreement`).
+  - **Cohere sometimes cites as 【4】.** The citation parser now accepts it. No evaluation answer used it, so the metrics are unaffected.
+- **Fallback chain order:** by coverage, one model per provider (Cohere → dots-3 → Laguna). An outage at one provider, like Google's today, doesn't take the assistant down.
+- **What would improve answers most** (measured gaps, not guesses):
+  1. **Retrieval:** in 8 of 40 in-scope questions the relevant code was not among the 6 sources (Hit@6 = 80%), so no model could fully answer them.
+  2. **Indexing `cfg/`**, so default-value questions have real answers to retrieve.
+  3. **A stronger, paid model** for production.
+  4. **Prompt work against misreading** (e.g. "a search space is not a default").
+
+  Each would be measured with the same evaluation.
+
 ---
 
 ## Known limitations (running list)
@@ -227,6 +340,8 @@ Every significant design decision, with the alternatives considered and the trad
   - near-duplicate model families (SAM2 vs SAM3 predictors).
 
   See the failure analysis in `eval/results/retrieval.md`.
+- **The free LLM catalogue rotates:** models appear and disappear, and none of today's free models are Qwen or Llama (all of those are paid on OpenRouter). The model list is configuration (`LLM_MODELS`), and the client falls back through it, but a model chosen today can disappear later.
+- **Follow-up questions** are retrieved on their own text only ("and for segmentation?" retrieves poorly).
 - **Free-tier services** (Atlas M0, OpenRouter `:free` models) have no SLA, shared resources and daily quotas.
 
 ## Future work (running list)

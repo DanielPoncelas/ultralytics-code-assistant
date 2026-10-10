@@ -15,3 +15,6 @@ image*.png
 
 # Cloned Ultralytics source
 .cache/
+
+# Partial evaluation checkpoints
+eval/results/*.partial.jsonl

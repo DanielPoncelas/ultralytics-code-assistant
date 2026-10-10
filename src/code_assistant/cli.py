@@ -1,5 +1,6 @@
 """Command-line entry point: `uv run code-assistant <command>`."""
 
+import re
 from pathlib import Path
 from typing import Annotated
 
@@ -129,6 +130,154 @@ def search(
             typer.echo(typer.style(result.code, dim=True) + "\n")
 
 
+def build_assistant(settings, models: list[str] | None = None):
+    """Wire retriever + LLM client from settings (fails fast on an incompatible index)."""
+    from code_assistant.assistant import CodeAssistant
+    from code_assistant.embeddings import Embedder
+    from code_assistant.llm import OpenRouterClient
+    from code_assistant.retrieval import Retriever, check_index_compatible
+    from code_assistant.store import ChunkStore
+
+    store = ChunkStore.from_settings(settings)
+    check_index_compatible(store.indexed_model(), settings.embedding_model)
+    retriever = Retriever(
+        store, Embedder(settings.embedding_model, device=settings.embedding_device)
+    )
+    llm = OpenRouterClient.from_settings(settings, models=models)
+    return CodeAssistant(
+        retriever, llm, tag=settings.ultralytics_tag, k=settings.retrieval_k
+    ), store
+
+
+@app.command()
+def ask(
+    question: Annotated[str, typer.Argument(help="Question about the Ultralytics codebase.")],
+    model: Annotated[
+        list[str] | None,
+        typer.Option("--model", help="LLM(s) to use, in fallback order (default: LLM_MODELS)."),
+    ] = None,
+) -> None:
+    """Answer a question with retrieved code and an LLM, citing the sources."""
+    from code_assistant.assistant import Answer
+    from code_assistant.llm import LLMError
+    from code_assistant.retrieval import IndexMismatchError
+
+    settings = get_settings()
+    try:
+        assistant, store = build_assistant(settings, model)
+    except IndexMismatchError as exc:
+        typer.echo(f"{FAIL} {exc}")
+        raise typer.Exit(code=1) from exc
+    try:
+        answer = None
+        for event in assistant.ask_stream(question):
+            if isinstance(event, Answer):
+                answer = event
+            elif isinstance(event, str):
+                typer.echo(event, nl=False)
+    except LLMError as exc:
+        typer.echo(f"\n{FAIL} {exc}")
+        raise typer.Exit(code=1) from exc
+    finally:
+        store.close()
+
+    assert answer is not None
+    typer.echo("\n\n" + typer.style("Sources", bold=True))
+    for number, source in enumerate(answer.sources, start=1):
+        cited = "*" if number in answer.citations else " "
+        typer.echo(f" {cited}[{number}] {source.qualified_name}  {source.github_url}")
+    fallback = (
+        f" after {', '.join(a.model for a in answer.failed_attempts)} failed"
+        if answer.failed_attempts
+        else ""
+    )
+    typer.echo(
+        typer.style(
+            f"\nAnswered by {answer.model}{fallback} in {answer.latency_s:.1f}s. "
+            "* = cited in the answer.",
+            dim=True,
+        )
+    )
+    if answer.truncated:
+        typer.echo(f"{FAIL} The answer was cut off: the model ran out of tokens.")
+    if answer.invalid_citations:
+        typer.echo(f"{FAIL} Answer cites non-existent sources: {answer.invalid_citations}")
+
+
+def _demote_headings(markdown: str) -> str:
+    """Nest the answer's own headings under the example's '##' heading (code blocks untouched)."""
+    lines, in_code = [], False
+    for line in markdown.splitlines():
+        if line.lstrip().startswith("```"):
+            in_code = not in_code
+        elif not in_code:
+            line = re.sub(r"^(#{1,4}) ", r"\1## ", line)
+        lines.append(line)
+    return "\n".join(lines)
+
+
+def _source_line(number: int, source, cited: bool) -> str:
+    bold = "**" if cited else ""
+    link = f"{bold}[`{source.qualified_name}`]({source.github_url}){bold}"
+    return f"{number}. {link} — `{source.path}` L{source.start_line}-{source.end_line}"
+
+
+@app.command()
+def examples(
+    output: Annotated[Path, typer.Option(help="Markdown file to write.")] = Path(
+        "docs/examples.md"
+    ),
+    questions: Annotated[Path, typer.Option(help="Question file.")] = Path("eval/questions.toml"),
+) -> None:
+    """Answer the example questions (flagged in eval/questions.toml) and save them unedited."""
+    from datetime import date
+
+    from code_assistant.evaluation.dataset import load_questions
+
+    settings = get_settings()
+    selected = [q for q in load_questions(questions) if q.example]
+    assistant, store = build_assistant(settings)
+    sections = [
+        "# Example answers",
+        "",
+        f"Generated on {date.today().isoformat()} with `uv run code-assistant examples` "
+        f"(index: Ultralytics `{settings.ultralytics_tag}`, embeddings: "
+        f"`{settings.embedding_model}`, top {settings.retrieval_k} sources). Answers are "
+        "reproduced exactly as generated; LLM output varies between runs.",
+        "",
+    ]
+    try:
+        for i, q in enumerate(selected, start=1):
+            typer.echo(f"[{i}/{len(selected)}] {q.id} ...")
+            answer = assistant.ask(q.question)
+            sources = "\n".join(
+                _source_line(n, src, cited=n in answer.citations)
+                for n, src in enumerate(answer.sources, start=1)
+            )
+            fallback = "".join(
+                f" after `{a.model}` failed ({a.error})" for a in answer.failed_attempts
+            )
+            truncated = " · ⚠ truncated (token budget ran out)" if answer.truncated else ""
+            sections += [
+                f"## {i}. {q.question}",
+                "",
+                f"*Source: [issue #{q.source.rsplit('/', 1)[-1]}]({q.source}) · answered by "
+                f"`{answer.model}`{fallback} in {answer.latency_s:.1f} s{truncated}*",
+                "",
+                _demote_headings(answer.text),
+                "",
+                "**Retrieved sources** (bold = cited in the answer):",
+                "",
+                sources,
+                "",
+            ]
+    finally:
+        store.close()
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text("\n".join(sections))
+    typer.echo(f"{OK} Wrote {output}")
+
+
 @eval_app.command("retrieval")
 def eval_retrieval(
     models: Annotated[
@@ -159,3 +308,126 @@ def eval_retrieval(
             f"{OK} Atlas vs exact search: top-5 overlap {evaluation.agreement.overlap_at_5:.1%}"
         )
     typer.echo(f"{OK} Report: {evaluation.markdown_path} (raw data: {evaluation.json_path})")
+
+
+@eval_app.command("answers")
+def eval_answers(
+    models: Annotated[
+        list[str] | None,
+        typer.Option("--model", help="LLM(s) to compare (repeatable). Default: LLM_MODELS."),
+    ] = None,
+    judge: Annotated[
+        str | None, typer.Option(help="Judge model (default: Nemotron-3-Super).")
+    ] = None,
+    questions: Annotated[Path, typer.Option(help="Question file.")] = Path("eval/questions.toml"),
+    output: Annotated[Path, typer.Option(help="Report directory.")] = Path("eval/results"),
+    limit: Annotated[int | None, typer.Option(help="Only the first N questions.")] = None,
+    retry_failed: Annotated[
+        bool, typer.Option(help="Only re-run answers that failed in the existing results.")
+    ] = False,
+    append: Annotated[
+        bool, typer.Option(help="Keep existing results of other models and add these.")
+    ] = False,
+) -> None:
+    """Generate answers with each LLM, grade them with an LLM judge, and choose an LLM.
+
+    Needs ~2 OpenRouter requests per question and model (answer + judge): with 46 questions,
+    ~92 per model. Free accounts get 50 free-model requests/day; accounts that purchased at
+    least 10 credits get 1,000/day.
+    """
+    from code_assistant.evaluation.answer_eval import JUDGE_MODEL
+    from code_assistant.evaluation.answer_runner import retry_failed_answers, run_answer_evaluation
+
+    settings = get_settings()
+    if retry_failed:
+        evaluation = retry_failed_answers(
+            settings,
+            questions,
+            output,
+            judge_model=judge or JUDGE_MODEL,
+            models=models,
+            log=typer.echo,
+        )
+        typer.echo(f"{OK} Chosen LLM: {evaluation.chosen.model}. {evaluation.reason}")
+        typer.echo(f"{OK} Report: {evaluation.markdown_path}")
+        return
+    evaluation = run_answer_evaluation(
+        settings,
+        models or list(settings.llm_models),
+        questions,
+        output,
+        judge_model=judge or JUDGE_MODEL,
+        limit=limit,
+        append=append,
+        log=typer.echo,
+    )
+    typer.echo(f"{OK} Chosen LLM: {evaluation.chosen.model}. {evaluation.reason}")
+    typer.echo(f"{OK} Report: {evaluation.markdown_path} (raw data: {evaluation.jsonl_path})")
+
+
+@eval_app.command("review")
+def eval_review(
+    model: Annotated[
+        str | None, typer.Option(help="Model to review (default: first in results).")
+    ] = None,
+    n: Annotated[int, typer.Option(help="Number of answers to sample.")] = 10,
+    results: Annotated[Path, typer.Option(help="Answer results.")] = Path(
+        "eval/results/answers.jsonl"
+    ),
+    output: Annotated[Path, typer.Option(help="Sheet to write.")] = Path(
+        "eval/results/judge_review.md"
+    ),
+    force: Annotated[
+        bool, typer.Option(help="Overwrite an existing (possibly filled) sheet.")
+    ] = False,
+) -> None:
+    """Write a blind review sheet: a human ticks the key facts each sampled answer states."""
+    import json
+
+    from code_assistant.evaluation.dataset import load_questions
+    from code_assistant.evaluation.judge_review import render_review_sheet, sample_records
+
+    if output.exists() and not force:
+        typer.echo(f"{FAIL} {output} exists (it may contain your ticks). Use --force to overwrite.")
+        raise typer.Exit(code=1)
+    records = [json.loads(line) for line in results.read_text().splitlines()]
+    model = model or records[0]["model"]
+    sample = sample_records([r for r in records if r["model"] == model], n=n)
+    questions = {q.id: q for q in load_questions()}
+    output.write_text(render_review_sheet(sample, questions, model))
+    typer.echo(
+        f"{OK} Wrote {output} with {len(sample)} answers from {model}. Tick the facts, then "
+        "run `uv run code-assistant eval agreement`."
+    )
+
+
+@eval_app.command("agreement")
+def eval_agreement(
+    sheet: Annotated[Path, typer.Option(help="Filled review sheet.")] = Path(
+        "eval/results/judge_review.md"
+    ),
+    results: Annotated[Path, typer.Option(help="Answer results.")] = Path(
+        "eval/results/answers.jsonl"
+    ),
+) -> None:
+    """Compare the human ticks in the review sheet with the judge's verdicts."""
+    import json
+    import re
+
+    from code_assistant.evaluation.judge_review import agreement, parse_review_sheet
+
+    text = sheet.read_text()
+    model = re.search(r"answers by `([^`]+)`", text).group(1)
+    human = parse_review_sheet(text)
+    judge = {
+        r["question_id"]: r["verdict"]["facts_covered"]
+        for r in map(json.loads, results.read_text().splitlines())
+        if r["model"] == model and r["verdict"] and r["question_id"] in human
+    }
+    result = agreement(human, judge)
+    typer.echo(
+        f"{OK} Judge vs human on {result.facts} facts ({len(human)} answers by {model}): "
+        f"{result.rate:.1%} agreement, Cohen's kappa {result.kappa:.2f}. "
+        f"Judge stricter than human on {result.human_yes_judge_no}, more lenient on "
+        f"{result.human_no_judge_yes}."
+    )
