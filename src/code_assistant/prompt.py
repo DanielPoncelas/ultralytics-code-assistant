@@ -11,7 +11,7 @@ Design:
 """
 
 import re
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 
 from code_assistant.llm import Message
 from code_assistant.retrieval import SearchResult
@@ -78,15 +78,61 @@ def _neutralise_tags(code: str) -> str:
     return _TAG.sub(lambda m: m.group(0).replace("<", "&lt;"), code)
 
 
-# [1], [2, 3] and the full-width 【1】 some models emit.
-_CITATION = re.compile(r"[\[【](\d+(?:\s*,\s*\d+)*)[\]】]")
+# A run of citation groups: [1], [2, 3], [2][3], or the full-width 【1】 some models emit. It
+# must not follow an identifier, ")", "]" or a quote, so `results[0]`, `f(x)[1]` and
+# `data[0][17]` (indexing) are not citations; markdown links like [1](url) are not either.
+_CITATION_RUN = re.compile(r"(?<![\w)\]\"'])((?:[\[【]\d+(?:\s*,\s*\d+)*[\]】])+)(?!\()")
+_GROUP = re.compile(r"[\[【](\d+(?:\s*,\s*\d+)*)[\]】]")
+_FENCE = re.compile(r"((?:```|~~~).*?(?:```|~~~|\Z))", re.DOTALL)
+_INLINE_CODE = re.compile(r"(`[^`\n]*`)")
+
+
+def replace_citations(text: str, replace: Callable[[list[int], str], str]) -> str:
+    """Apply `replace(numbers, original)` to every citation run outside code.
+
+    Fenced code is left untouched. Inline code is a citation only if it contains nothing
+    else (some models write `[2]`), so `xywh[:, 2]` stays code.
+    """
+    parts = []
+    for block in _FENCE.split(text):
+        if block.startswith(("```", "~~~")):
+            parts.append(block)
+            continue
+        for span in _INLINE_CODE.split(block):
+            inner = span[1:-1].strip() if span.startswith("`") else None
+            if inner is not None:
+                is_citation = _CITATION_RUN.fullmatch(inner)
+                parts.append(replace(_numbers(inner), span) if is_citation else span)
+            else:
+                parts.append(
+                    _CITATION_RUN.sub(lambda m: replace(_numbers(m.group(1)), m.group(0)), span)
+                )
+    return "".join(parts)
+
+
+def map_prose(text: str, transform: Callable[[str], str]) -> str:
+    """Apply `transform` to the text outside fenced and inline code."""
+    parts = []
+    for block in _FENCE.split(text):
+        if block.startswith(("```", "~~~")):
+            parts.append(block)
+            continue
+        for span in _INLINE_CODE.split(block):
+            parts.append(span if span.startswith("`") else transform(span))
+    return "".join(parts)
+
+
+def _numbers(run: str) -> list[int]:
+    return [int(n) for group in _GROUP.findall(run) for n in group.split(",")]
 
 
 def extract_citations(text: str) -> list[int]:
-    """Source numbers cited in an answer, in order of first appearance: '[1][3], [2, 4]'."""
+    """Source numbers cited in an answer, in order of first appearance (code ignored)."""
     cited: list[int] = []
-    for group in _CITATION.findall(text):
-        for number in (int(n) for n in group.split(",")):
-            if number not in cited:
-                cited.append(number)
+
+    def collect(numbers: list[int], original: str) -> str:
+        cited.extend(n for n in numbers if n not in cited)
+        return original
+
+    replace_citations(text, collect)
     return cited

@@ -10,17 +10,17 @@
 #examples button { flex: 0 0 auto; min-width: 0; }
 
 /* Citations: [n] links coloured like source n (marker added by citation_url). */
-#answer-chat a[href*="?source="] {
+#answer-chat a[href^="https://github.com/ultralytics/ultralytics/blob/"][href*="?source="] {
   display: inline-block; padding: 0 5px; margin: 0 1px; border-radius: 3px;
   font-size: 0.78em; font-weight: 700; line-height: 1.5; text-decoration: none;
   vertical-align: 0.1em;
 }
-#answer-chat a[href*="?source=1#"] { background: #042AFF; color: #FFFFFF; }
-#answer-chat a[href*="?source=2#"] { background: #0BDBEB; color: #111F68; }
-#answer-chat a[href*="?source=3#"] { background: #00DFB7; color: #111F68; }
-#answer-chat a[href*="?source=4#"] { background: #FF6FDD; color: #111F68; }
-#answer-chat a[href*="?source=5#"] { background: #FF444F; color: #FFFFFF; }
-#answer-chat a[href*="?source=6#"] { background: #BD00FF; color: #FFFFFF; }
+#answer-chat a[href^="https://github.com/ultralytics/ultralytics/blob/"][href*="?source=1#"] { background: #042AFF; color: #FFFFFF; }
+#answer-chat a[href^="https://github.com/ultralytics/ultralytics/blob/"][href*="?source=2#"] { background: #0BDBEB; color: #111F68; }
+#answer-chat a[href^="https://github.com/ultralytics/ultralytics/blob/"][href*="?source=3#"] { background: #00DFB7; color: #111F68; }
+#answer-chat a[href^="https://github.com/ultralytics/ultralytics/blob/"][href*="?source=4#"] { background: #FF6FDD; color: #111F68; }
+#answer-chat a[href^="https://github.com/ultralytics/ultralytics/blob/"][href*="?source=5#"] { background: #FC6D2F; color: #111F68; }
+#answer-chat a[href^="https://github.com/ultralytics/ultralytics/blob/"][href*="?source=6#"] { background: #BD00FF; color: #FFFFFF; }
 
 /* Sources drawn like YOLO detections: a box with a filled label tab on its top edge. */
 .sources-note,
@@ -34,7 +34,9 @@
   position: relative; margin: 22px 0 14px; padding: 10px 12px 8px;
   border: 2px solid var(--box); background: var(--block-background-fill);
 }
-.detection.uncited { border-style: dashed; opacity: 0.72; }
+.detection.uncited { border-style: dashed; }
+.detection.uncited .detection-meta,
+.detection.uncited details { opacity: 0.75; }
 .detection-label {
   position: absolute;
   top: -21px;

@@ -72,3 +72,13 @@ def test_extract_citations_handles_adjacent_and_grouped_citations():
     text = "Use resume=True [1][3]. Loaded [2, 4] and again [1]. Wide 【5】【3,6】. Not a cite: [x]"
 
     assert extract_citations(text) == [1, 3, 2, 4, 5, 6]
+
+
+def test_extract_citations_ignores_code_and_indexing_but_keeps_runs():
+    text = (
+        "Resume [1][2]. Grouped [3, 4]. In code `[5]` counts. Indexing results[0], "
+        "f(x)[7], data[0][17] and `xywh[:, 2]` don't.\n```python\nimgsz = [640, 640]\nx[1]\n```\n"
+        "~~~\ny[2]\n~~~\nA link [6](https://x) is not a citation."
+    )
+
+    assert extract_citations(text) == [1, 2, 3, 4, 5]
