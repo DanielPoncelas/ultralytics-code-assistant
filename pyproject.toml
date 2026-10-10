@@ -10,7 +10,6 @@ dependencies = [
     "pydantic-settings>=2.15.0",
     "pymongo>=4.18.3",
     "sentence-transformers>=6.1.0",
-    "torch>=2.14.1",
     "typer>=0.27.3",
 ]
 
@@ -22,6 +21,9 @@ dev = [
     "pytest>=9.1.1",
     "ruff>=0.17.0",
 ]
+# Exactly one PyTorch build is installed; see [tool.uv.sources].
+cpu = ["torch>=2.14.1"]
+cuda = ["torch>=2.14.1"]
 
 [build-system]
 requires = ["uv_build>=0.13.0,<0.14.0"]
@@ -29,15 +31,28 @@ build-backend = "uv_build"
 
 [tool.uv]
 required-version = ">=0.13.0"
+default-groups = ["dev", "cpu"]
+conflicts = [[{ group = "cpu" }, { group = "cuda" }]]
 
-# CPU-only PyTorch: ~200 MB instead of multi-GB CUDA wheels, and runs on any machine.
-# Embedding is a one-off indexing job plus one short query per question, so a GPU is not needed.
+# PyTorch build selection:
+# - default: CPU-only wheels on Linux/Windows (~200 MB instead of multi-GB CUDA wheels).
+#   macOS uses the regular wheels, which already include Apple-GPU (MPS) acceleration.
+# - `--no-group cpu --group cuda`: CUDA 12.6 wheels for NVIDIA GPUs (driver >= 525).
+#   Only worth it to speed up `index`; answering questions is fast on CPU.
 [tool.uv.sources]
-torch = [{ index = "pytorch-cpu" }]
+torch = [
+    { index = "pytorch-cpu", group = "cpu", marker = "sys_platform != 'darwin'" },
+    { index = "pytorch-cuda", group = "cuda" },
+]
 
 [[tool.uv.index]]
 name = "pytorch-cpu"
 url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cuda"
+url = "https://download.pytorch.org/whl/cu126"
 explicit = true
 
 [tool.ruff]
