@@ -81,6 +81,7 @@ def run_answer_evaluation(
         for i, q in enumerate(questions, start=1):
             record = _answer_and_grade(llm, judge, throttle, settings, q, sources[q.id])
             result.records.append(record)
+            _checkpoint(output_dir, record)
             status = (
                 f"ERROR ({record.error[:120]})"
                 if record.error
@@ -137,6 +138,13 @@ def retry_failed_answers(
     return _write_reports(list(results.values()), questions, judge_model, settings, output_dir)
 
 
+def _checkpoint(output_dir: Path, record: AnswerRecord) -> None:
+    """Append each graded answer to a partial file, so a crash never loses finished work."""
+    output_dir.mkdir(parents=True, exist_ok=True)
+    with (output_dir / "answers.partial.jsonl").open("a") as f:
+        f.write(json.dumps(asdict(record), ensure_ascii=False) + "\n")
+
+
 def _load_existing(output_dir: Path, exclude: Sequence[str]) -> list[LLMResult]:
     path = output_dir / "answers.jsonl"
     results: dict[str, LLMResult] = {}
@@ -181,6 +189,7 @@ def _write_reports(
         for result in results:
             for record in result.records:
                 f.write(json.dumps(asdict(record), ensure_ascii=False) + "\n")
+    (output_dir / "answers.partial.jsonl").unlink(missing_ok=True)  # complete results written
     chosen, reason = choose_llm(results)
     markdown_path.write_text(
         render_answers_markdown(results, chosen, reason, questions, judge_model, settings)
