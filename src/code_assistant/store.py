@@ -15,6 +15,38 @@ EMBEDDING_FIELD = "embedding"
 # Metadata fields usable as pre-filters in $vectorSearch (e.g. only search `task: "segment"`).
 FILTER_FIELDS = ("folder", "kind", "model_family", "task")
 
+TEXT_INDEX_NAME = "chunks_text_index"
+# Keyword index. The "code" analyzer splits identifiers into words, so a question about "nms"
+# matches `agnostic_nms`, `NMSModel` or `self.args.nms` (whitespace + wordDelimiterGraph).
+TEXT_INDEX_DEFINITION: dict[str, Any] = {
+    "analyzers": [
+        {
+            "name": "code",
+            "tokenizer": {"type": "whitespace"},
+            "tokenFilters": [
+                {
+                    "type": "wordDelimiterGraph",
+                    "delimiterOptions": {
+                        "generateWordParts": True,
+                        "splitOnCaseChange": True,
+                        "preserveOriginal": True,
+                    },
+                },
+                {"type": "lowercase"},
+            ],
+        }
+    ],
+    "mappings": {
+        "dynamic": False,
+        "fields": {
+            "qualified_name": {"type": "string", "analyzer": "code"},
+            "code": {"type": "string", "analyzer": "code"},
+            "docstring": {"type": "string", "analyzer": "lucene.english"},
+            **{field: {"type": "token"} for field in FILTER_FIELDS},
+        },
+    },
+}
+
 
 @dataclass(frozen=True)
 class SyncResult:
@@ -89,44 +121,97 @@ class ChunkStore:
         deleted = self.collection.delete_many({"_id": {"$nin": ids}}).deleted_count
         return SyncResult(upserted=upserted, modified=modified, deleted=deleted)
 
+    def text_search(
+        self, query: str, limit: int, filters: dict[str, Any] | None = None
+    ) -> list[dict[str, Any]]:
+        """Keyword (BM25) search over symbol names, docstrings and code. Same shape as vectors."""
+        compound: dict[str, Any] = {
+            "should": [
+                {
+                    "text": {
+                        "query": query,
+                        "path": "qualified_name",
+                        "score": {"boost": {"value": 3}},
+                    }
+                },
+                {"text": {"query": query, "path": "docstring", "score": {"boost": {"value": 2}}}},
+                {"text": {"query": query, "path": "code"}},
+            ],
+            "minimumShouldMatch": 1,
+        }
+        if filters:
+            compound["filter"] = [{"equals": {"path": f, "value": v}} for f, v in filters.items()]
+        pipeline = [
+            {"$search": {"index": TEXT_INDEX_NAME, "compound": compound}},
+            {"$limit": limit},
+            {"$set": {"score": {"$meta": "searchScore"}}},
+            {"$unset": EMBEDDING_FIELD},
+        ]
+        return list(self.collection.aggregate(pipeline))
+
     def ensure_vector_index(self, dimensions: int) -> str:
-        """Create the vector search index, or update it if its definition changed."""
-        definition = vector_index_definition(dimensions)
-        existing = next(iter(self.collection.list_search_indexes(self.index_name)), None)
+        return self._ensure_index(
+            self.index_name, vector_index_definition(dimensions), "vectorSearch"
+        )
+
+    def ensure_text_index(self) -> str:
+        return self._ensure_index(TEXT_INDEX_NAME, TEXT_INDEX_DEFINITION, "search")
+
+    def wait_until_queryable(self, dimensions: int, timeout_s: float = 300) -> None:
+        self._wait(self.index_name, vector_index_definition(dimensions), timeout_s)
+
+    def wait_until_text_index_ready(self, timeout_s: float = 300) -> None:
+        self._wait(TEXT_INDEX_NAME, TEXT_INDEX_DEFINITION, timeout_s)
+
+    def _ensure_index(self, name: str, definition: dict[str, Any], kind: str) -> str:
+        """Create the search index, or update it if its definition changed."""
+        existing = next(iter(self.collection.list_search_indexes(name)), None)
         if existing is None:
-            model = SearchIndexModel(
-                definition=definition, name=self.index_name, type="vectorSearch"
-            )
+            model = SearchIndexModel(definition=definition, name=name, type=kind)
             self.collection.create_search_index(model)
             return "created"
-        if existing.get("latestDefinition") != definition:
-            self.collection.update_search_index(self.index_name, definition)
+        if not _contains(existing.get("latestDefinition"), definition):
+            self.collection.update_search_index(name, definition)
             return "updated"
         return "unchanged"
 
-    def wait_until_queryable(
-        self, dimensions: int, timeout_s: float = 300, poll_s: float = 5
+    def _wait(
+        self, name: str, definition: dict[str, Any], timeout_s: float, poll_s: float = 5
     ) -> None:
-        """Atlas builds search indexes asynchronously; block until ours serves `dimensions`.
+        """Atlas builds search indexes asynchronously; block until ours serves `definition`.
 
         After an update the old definition can still report READY, so the definition is
         checked too; a FAILED build raises immediately instead of waiting for the timeout.
         """
-        expected = vector_index_definition(dimensions)
         deadline = time.monotonic() + timeout_s
         while time.monotonic() < deadline:
-            index = next(iter(self.collection.list_search_indexes(self.index_name)), None)
+            index = next(iter(self.collection.list_search_indexes(name)), None)
             if index and index.get("status") == "FAILED":
-                raise RuntimeError(f"Vector index {self.index_name!r} build failed: {index}")
+                raise RuntimeError(f"Search index {name!r} build failed: {index}")
             if (
                 index
                 and index.get("queryable")
                 and index.get("status") == "READY"
-                and index.get("latestDefinition") == expected
+                and _contains(index.get("latestDefinition"), definition)
             ):
                 return
             time.sleep(poll_s)
-        raise TimeoutError(f"Vector index {self.index_name!r} not ready after {timeout_s}s")
+        raise TimeoutError(f"Search index {name!r} not ready after {timeout_s}s")
+
+
+def _contains(actual: Any, expected: Any) -> bool:
+    """True if `expected` is a subset of `actual` (Atlas may add defaults to a definition)."""
+    if isinstance(expected, dict):
+        return isinstance(actual, dict) and all(
+            _contains(actual.get(k), v) for k, v in expected.items()
+        )
+    if isinstance(expected, list):
+        return (
+            isinstance(actual, list)
+            and len(actual) == len(expected)
+            and all(_contains(a, e) for a, e in zip(actual, expected, strict=True))
+        )
+    return actual == expected
 
 
 def vector_index_definition(dimensions: int) -> dict[str, Any]:

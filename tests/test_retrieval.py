@@ -104,3 +104,41 @@ def test_index_compatibility_check():
         check_index_compatible(None, "model/a")
     with pytest.raises(IndexMismatchError, match="not comparable"):
         check_index_compatible("model/a", "model/b")
+
+
+def test_reciprocal_rank_fusion_rewards_agreement_and_keeps_both_lists():
+    from code_assistant.retrieval import SearchResult, reciprocal_rank_fusion
+
+    def r(name):
+        return SearchResult.from_document(make_doc(name, 0.5))
+
+    fused = reciprocal_rank_fusion([[r("A"), r("B"), r("C")], [r("D"), r("B")]])
+
+    names = [x.qualified_name for x in fused]
+    assert names[0] == "B"  # ranked by both lists
+    assert set(names) == {"A", "B", "C", "D"}
+
+
+class HybridStore(FakeStore):
+    def __init__(self, documents, keyword_documents=None, fail=False):
+        super().__init__(documents)
+        self.keyword_documents, self.fail = keyword_documents or [], fail
+
+    def text_search(self, query, limit, filters=None):
+        if self.fail:
+            raise RuntimeError("no text index")
+        return self.keyword_documents[:limit]
+
+
+def test_hybrid_search_adds_keyword_matches_and_degrades_to_vectors():
+    store = HybridStore([make_doc("Semantic.only", 0.9)], [make_doc("NMSModel", 3.2)])
+
+    names = [
+        x.qualified_name for x in Retriever(store, FakeEmbedder(), hybrid=True).search("nms", k=2)
+    ]
+
+    assert set(names) == {"Semantic.only", "NMSModel"}
+    failing = HybridStore([make_doc("Semantic.only", 0.9)], fail=True)
+    assert [
+        x.qualified_name for x in Retriever(failing, FakeEmbedder(), hybrid=True).search("nms", k=2)
+    ] == ["Semantic.only"]

@@ -212,7 +212,7 @@ def _retrieve_all(
     with ChunkStore.from_settings(settings) as store:
         check_index_compatible(store.indexed_model(), settings.embedding_model)
         embedder = Embedder(settings.embedding_model, device=settings.embedding_device)
-        retriever = Retriever(store, embedder)
+        retriever = Retriever(store, embedder, hybrid=settings.hybrid_search)
         return {q.id: retriever.search(q.question, k=settings.retrieval_k) for q in questions}
 
 

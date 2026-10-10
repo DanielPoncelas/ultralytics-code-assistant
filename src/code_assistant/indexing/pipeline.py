@@ -154,6 +154,9 @@ def run_indexing(
             index_status = store.ensure_vector_index(int(vectors.shape[1]))
             log(f"Vector index {index_status}; waiting until it is queryable ...")
             store.wait_until_queryable(int(vectors.shape[1]))
+            text_status = store.ensure_text_index()  # keyword side of hybrid search
+            log(f"Text index {text_status}; waiting until it is queryable ...")
+            store.wait_until_text_index_ready()
 
     return IndexReport(
         files=len(files),
