@@ -1,5 +1,6 @@
 """Command-line entry point: `uv run code-assistant <command>`."""
 
+from pathlib import Path
 from typing import Annotated
 
 import typer
@@ -9,6 +10,8 @@ from code_assistant.config import get_settings
 from code_assistant.health import check_mongodb, check_openrouter
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
+eval_app = typer.Typer(no_args_is_help=True, help="Evaluate retrieval and answer quality.")
+app.add_typer(eval_app, name="eval")
 
 OK = typer.style("✔", fg=typer.colors.GREEN)
 FAIL = typer.style("✘", fg=typer.colors.RED)
@@ -124,3 +127,35 @@ def search(
         )
         if show_code:
             typer.echo(typer.style(result.code, dim=True) + "\n")
+
+
+@eval_app.command("retrieval")
+def eval_retrieval(
+    models: Annotated[
+        list[str] | None,
+        typer.Option("--model", help="Model(s) to evaluate (repeatable). Default: all candidates."),
+    ] = None,
+    questions: Annotated[Path, typer.Option(help="Question file.")] = Path("eval/questions.toml"),
+    output: Annotated[Path, typer.Option(help="Report directory.")] = Path("eval/results"),
+    atlas: Annotated[
+        bool, typer.Option(help="Also compare Atlas $vectorSearch with the exact search.")
+    ] = True,
+) -> None:
+    """Score embedding models on the labelled questions and apply the selection rule."""
+    from code_assistant.embeddings import EMBEDDING_MODELS
+    from code_assistant.evaluation.runner import run_retrieval_evaluation
+
+    evaluation = run_retrieval_evaluation(
+        get_settings(),
+        models or list(EMBEDDING_MODELS),
+        questions,
+        output,
+        check_atlas=atlas,
+        log=typer.echo,
+    )
+    typer.echo(f"{OK} Chosen model: {evaluation.chosen.model}. {evaluation.reason}")
+    if evaluation.agreement:
+        typer.echo(
+            f"{OK} Atlas vs exact search: top-5 overlap {evaluation.agreement.overlap_at_5:.1%}"
+        )
+    typer.echo(f"{OK} Report: {evaluation.markdown_path} (raw data: {evaluation.json_path})")

@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 class EmbeddingModelSpec:
     name: str
     revision: str
+    params_m: int  # parameters in millions (from the Hugging Face safetensors metadata)
     query_prompt: str
     max_seq_length: int
     trust_remote_code: bool = False
@@ -30,6 +31,7 @@ EMBEDDING_MODELS: dict[str, EmbeddingModelSpec] = {
         EmbeddingModelSpec(
             name="Qwen/Qwen3-Embedding-0.6B",
             revision="97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3",
+            params_m=596,
             query_prompt=(
                 "Instruct: Given a question about the Ultralytics YOLO codebase, "
                 "retrieve the source code that answers it\nQuery:"
@@ -40,6 +42,7 @@ EMBEDDING_MODELS: dict[str, EmbeddingModelSpec] = {
         EmbeddingModelSpec(
             name="ibm-granite/granite-embedding-english-r2",
             revision="47ea694b257b703fee9253d75c2b1f2985180498",
+            params_m=149,
             query_prompt="",
             max_seq_length=2048,
         ),
@@ -47,6 +50,7 @@ EMBEDDING_MODELS: dict[str, EmbeddingModelSpec] = {
         EmbeddingModelSpec(
             name="Alibaba-NLP/gte-modernbert-base",
             revision="e7f32e3c00f91d699e8c43b53106206bcc72bb22",
+            params_m=149,
             query_prompt="",
             max_seq_length=2048,
         ),
@@ -54,6 +58,7 @@ EMBEDDING_MODELS: dict[str, EmbeddingModelSpec] = {
         EmbeddingModelSpec(
             name="BAAI/bge-small-en-v1.5",
             revision="5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            params_m=33,
             query_prompt="Represent this sentence for searching relevant passages: ",
             max_seq_length=512,
         ),
