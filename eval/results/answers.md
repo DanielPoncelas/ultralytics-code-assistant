@@ -18,10 +18,10 @@ _Generated on 2026-10-10 by `uv run code-assistant eval answers`._
 
 | Model | Coverage | Fully correct | Grounded | Citations OK | OOS refusal | False refusal | Errors | Median latency |
 |---|---|---|---|---|---|---|---|---|
-| `cohere/north-mini-code:free` ✅ | **53.8%** | 32.5% | 77.8% | 45.0% | 3/6 | 0.0% | 1 | 10.1 s |
-| `dots-studio/dots-3-note-preview:free` | **42.9%** | 20.0% | 82.2% | 72.5% | 3/6 | 0.0% | 1 | 15.9 s |
-| `poolside/laguna-s-2.1:free` | **36.2%** | 12.5% | 80.4% | 60.0% | 4/6 | 18.8% | 0 | 8.5 s |
-| `google/gemma-4-31b-it:free` | **13.8%** | 7.5% | 88.9% | 17.5% | 0/6 | 0.0% | 37 | 8.0 s |
+| `cohere/north-mini-code:free` ✅ | **53.8%** | 32.5% | 77.8% | 52.5% | 3/6 | 0.0% | 1 | 10.1 s |
+| `dots-studio/dots-3-note-preview:free` | **42.9%** | 20.0% | 82.2% | 80.0% | 3/6 | 0.0% | 1 | 15.9 s |
+| `poolside/laguna-s-2.1:free` | **36.2%** | 12.5% | 80.4% | 65.0% | 4/6 | 18.8% | 0 | 8.5 s |
+| `google/gemma-4-31b-it:free` | **13.8%** | 7.5% | 88.9% | 20.0% | 0/1 (5 errors) | 0.0% | 37 | 8.0 s |
 
 ## Decision
 
