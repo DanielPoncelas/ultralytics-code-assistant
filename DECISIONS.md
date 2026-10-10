@@ -245,6 +245,14 @@ Every significant design decision, with the alternatives considered and the trad
   - concise, with snippets.
 - **Why the partial-answer rule:** the first version said "if the sources don't contain the answer, say so". In the first real test the model then refused a question it could mostly answer, because one helper method was missing from the sources. The rule was rewritten before the evaluation was run.
 - **Indirect prompt injection:** retrieved text is *data*. The prompt says so, and any `<source>`/`</sources>` sequence inside indexed code is escaped, so the code can't close the block and inject fake context (covered by a test). The risk is low here, because the corpus is Ultralytics' own code. It becomes real as soon as the index includes third-party repos, issues or user uploads.
+- **Prompt v2 (after the evaluation, checked manually):** each new rule targets an observed failure.
+  - Quote values exactly; a search range or tuner bound is not a default (Cohere's "default lr0 = 1e-5").
+  - Citations only as `[n]`, in every paragraph or row with facts ("(source 5)" went undetected).
+  - No "usually"/"probably" descriptions of code that isn't in the sources (invented rows in val vs predict).
+  - Use the conversation only to resolve references.
+  - Direct answer → how to use it → details.
+
+  The answer-evaluation numbers in the README were measured with v1. Re-running it costs ~92 requests per model.
 - **k = 6 chunks:** Hit@k on the retrieval evaluation is 77.5% at 5, 80% at 6 and 80% at 8. Six is the knee, at roughly 6–7k prompt tokens.
 - **Follow-ups:** a follow-up like "can it be disabled?" is first rewritten by the LLM into a standalone query ("How can NMS be disabled?") using the last turns, so retrieval keeps the subject; a new topic is returned unchanged, which avoids mixing topics (the risk of simply concatenating the previous question).
 
