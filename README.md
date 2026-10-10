@@ -139,7 +139,7 @@ Five questions taken from real Ultralytics GitHub issues. They were chosen befor
 ### Pipeline
 
 ```
- fetch (git, pinned tag + commit check) ─► chunk (stdlib ast) ─► embed (local model, CPU) ─► store (Atlas, upsert by id)
+ fetch (git, pinned tag + commit check) ─► chunk (stdlib ast) ─► embed (local open-source model) ─► store (Atlas, upsert by id)
 ```
 
 ### How code is chunked, and why
