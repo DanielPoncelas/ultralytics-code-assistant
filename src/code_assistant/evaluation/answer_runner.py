@@ -77,7 +77,11 @@ def run_answer_evaluation(
         for i, q in enumerate(questions, start=1):
             record = _answer_and_grade(llm, judge, throttle, settings, q, sources[q.id])
             result.records.append(record)
-            status = "ERROR" if record.error else f"coverage {record.verdict.coverage:.0%}"
+            status = (
+                f"ERROR ({record.error[:120]})"
+                if record.error
+                else f"coverage {record.verdict.coverage:.0%}"
+            )
             log(f"  [{i}/{len(questions)}] {q.id}: {status}")
         llm.close()
         log(

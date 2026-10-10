@@ -267,3 +267,71 @@ def eval_answers(
     )
     typer.echo(f"{OK} Chosen LLM: {evaluation.chosen.model}. {evaluation.reason}")
     typer.echo(f"{OK} Report: {evaluation.markdown_path} (raw data: {evaluation.jsonl_path})")
+
+
+@eval_app.command("review")
+def eval_review(
+    model: Annotated[
+        str | None, typer.Option(help="Model to review (default: first in results).")
+    ] = None,
+    n: Annotated[int, typer.Option(help="Number of answers to sample.")] = 10,
+    results: Annotated[Path, typer.Option(help="Answer results.")] = Path(
+        "eval/results/answers.jsonl"
+    ),
+    output: Annotated[Path, typer.Option(help="Sheet to write.")] = Path(
+        "eval/results/judge_review.md"
+    ),
+    force: Annotated[
+        bool, typer.Option(help="Overwrite an existing (possibly filled) sheet.")
+    ] = False,
+) -> None:
+    """Write a blind review sheet: a human ticks the key facts each sampled answer states."""
+    import json
+
+    from code_assistant.evaluation.dataset import load_questions
+    from code_assistant.evaluation.judge_review import render_review_sheet, sample_records
+
+    if output.exists() and not force:
+        typer.echo(f"{FAIL} {output} exists (it may contain your ticks). Use --force to overwrite.")
+        raise typer.Exit(code=1)
+    records = [json.loads(line) for line in results.read_text().splitlines()]
+    model = model or records[0]["model"]
+    sample = sample_records([r for r in records if r["model"] == model], n=n)
+    questions = {q.id: q for q in load_questions()}
+    output.write_text(render_review_sheet(sample, questions, model))
+    typer.echo(
+        f"{OK} Wrote {output} with {len(sample)} answers from {model}. Tick the facts, then "
+        "run `uv run code-assistant eval agreement`."
+    )
+
+
+@eval_app.command("agreement")
+def eval_agreement(
+    sheet: Annotated[Path, typer.Option(help="Filled review sheet.")] = Path(
+        "eval/results/judge_review.md"
+    ),
+    results: Annotated[Path, typer.Option(help="Answer results.")] = Path(
+        "eval/results/answers.jsonl"
+    ),
+) -> None:
+    """Compare the human ticks in the review sheet with the judge's verdicts."""
+    import json
+    import re
+
+    from code_assistant.evaluation.judge_review import agreement, parse_review_sheet
+
+    text = sheet.read_text()
+    model = re.search(r"answers by `([^`]+)`", text).group(1)
+    human = parse_review_sheet(text)
+    judge = {
+        r["question_id"]: r["verdict"]["facts_covered"]
+        for r in map(json.loads, results.read_text().splitlines())
+        if r["model"] == model and r["verdict"] and r["question_id"] in human
+    }
+    result = agreement(human, judge)
+    typer.echo(
+        f"{OK} Judge vs human on {result.facts} facts ({len(human)} answers by {model}): "
+        f"{result.rate:.1%} agreement, Cohen's kappa {result.kappa:.2f}. "
+        f"Judge stricter than human on {result.human_yes_judge_no}, more lenient on "
+        f"{result.human_no_judge_yes}."
+    )
