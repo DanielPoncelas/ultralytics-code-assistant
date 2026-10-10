@@ -122,6 +122,7 @@ Each result shows the symbol, file and lines, and a permalink to the exact lines
 
 ```bash
 uv run code-assistant eval retrieval     # embedding models → eval/results/retrieval.md
+uv run code-assistant eval search        # vector / hybrid / reranked → eval/results/search.md
 uv run code-assistant eval answers       # LLMs + judge       → eval/results/answers.md
 uv run code-assistant eval review        # blind human check of the judge (then: eval agreement)
 ```
@@ -140,7 +141,8 @@ All settings are read from environment variables or `.env`:
 | `EMBEDDING_DEVICE` | no | auto | `cuda`, `mps` or `cpu` |
 | `LLM_MODELS` | no | see `config.py` | Comma-separated OpenRouter models, tried in order (fallback chain) |
 | `RETRIEVAL_K` | no | `6` | Code units given to the LLM |
-| `HYBRID_SEARCH` | no | `false` | Merge keyword (BM25) and vector results with RRF |
+| `HYBRID_SEARCH` | no | `false` | Merge keyword (BM25) and vector results with RRF (ignored while the reranker is on) |
+| `RERANK_MODEL` | no | `nvidia/llama-nemotron-rerank-vl-1b-v2:free` | OpenRouter reranker that reorders the vector + keyword candidates (free). Empty disables it. The chat has a "Rerank the sources" checkbox to turn it off per question |
 | `PAID_LLM_MODEL` | no | `openai/gpt-5-nano` | Paid model offered in the chat ("Use a paid model"), tried before the free chain. Empty hides the option. Needs OpenRouter credits (≈ $0.0004 per answer); without them, the free models answer |
 | `MONGODB_DATABASE` / `MONGODB_COLLECTION` | no | `code_assistant` / `chunks` | Where chunks are stored |
 
@@ -219,15 +221,17 @@ Result for `v8.4.175`: **104 files → 1,532 chunks** (1,072 methods, 214 class 
 2. Run Atlas `$vectorSearch` with `limit = 3k` and `numCandidates = 20 × limit`. That's MongoDB's guidance for near-exact recall, and we **measured 99% top-5 overlap with an exact search**.
 3. Collapse the parts of the same symbol (a long function split into parts could otherwise fill the top-k) and return k distinct code units.
 4. Optional metadata pre-filters (`folder`, `task`, `kind`) narrow the search before ranking.
+5. **Rerank** (on by default): an Atlas Search keyword index (BM25, created by `index`) adds its top 20 to the top 20 vector results. A hosted reranker (`nvidia/llama-nemotron-rerank-vl-1b-v2:free` through OpenRouter's `/rerank`, same API key) reads each (question, code) pair and reorders the ~33 candidates, and the best 6 go to the LLM. If the reranker fails (e.g. a 429 from the free tier), the search falls back to vector order instead of failing.
 
-**Hybrid search (implemented, off by default).** An Atlas Search keyword index (created by `index`) lets you combine vector and BM25 results with Reciprocal Rank Fusion (`HYBRID_SEARCH=true`). Its analyzer splits identifiers, so "nms" matches `agnostic_nms` and `NMSModel`. Measured on the 40 questions (`uv run code-assistant eval hybrid`, no LLM calls):
+Why: the keyword index's analyzer splits identifiers, so "nms" matches `agnostic_nms` and `NMSModel`, and together the two lists contain the right code for 38 of 40 questions. Vector order alone puts it in the top 6 for only 32. Measured on the 40 questions (`uv run code-assistant eval search`, no LLM calls):
 
-| Retrieval | Hit@1 | Hit@5 | Hit@6 | MRR@10 |
-|---|---|---|---|---|
-| Vector only (default) | 52.5% | 77.5% | **80.0%** | 0.626 |
-| Hybrid (vector + keyword, RRF) | **57.5%** | 75.0% | 77.5% | **0.664** |
+| Search | Hit@1 | Hit@5 | Hit@6 | MRR@10 | Latency |
+|---|---|---|---|---|---|
+| Vector only | 52.5% | 77.5% | 80.0% | 0.626 | 0.10 s |
+| Hybrid (vector + keyword, RRF) | 57.5% | 75.0% | 77.5% | 0.664 | 0.13 s |
+| **Reranked (default)** | **62.5%** | **90.0%** | **92.5%** | **0.738** | 0.68 s |
 
-It ranks the right code first more often but drops one question from the top 6 the LLM sees. The rule fixed beforehand ("keep only if Hit@6 doesn't drop") keeps it off. The correct code is, however, among the top 20 vector plus top 20 keyword candidates for 38 of 40 questions, so the gap is ordering, not recall.
+The reranker fixes 6 questions and loses 1 (`val-test-split`, rank 5 → 8). The two it can't fix aren't among the candidates. Hybrid search with Reciprocal Rank Fusion is also implemented (`HYBRID_SEARCH=true`) but stays off: it lost one question from the top 6 (D24 in [DECISIONS.md](DECISIONS.md)).
 
 ### Embedding model choice
 
@@ -266,7 +270,7 @@ Full report with per-category results and failure analysis: [`eval/results/retri
   - the sources are numbered and wrapped in `<source>` tags;
   - the model answers only from them, cites `[n]` per statement, answers the supported part and says what is missing, and replies "I couldn't find this in the indexed code" only when nothing relevant was retrieved;
   - retrieved text is treated as untrusted data (indirect prompt-injection guard, tested).
-- **Context:** 6 code units, the knee of the retrieval curve (Hit@5 77.5%, Hit@6 80%, Hit@8 80%).
+- **Context:** 6 code units, the knee of the vector retrieval curve (Hit@5 77.5%, Hit@6 80%, Hit@8 80%); with the reranker, Hit@6 is 92.5%.
 - **Fallback chain:** if the first model is rate-limited, errors, times out or returns an empty answer, the next one answers. The CLI says which model answered and which failed. While streaming, fallback only happens before the first token, so two models' answers are never spliced.
 
 ### LLM choice

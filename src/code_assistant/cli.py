@@ -16,6 +16,7 @@ app.add_typer(eval_app, name="eval")
 
 OK = typer.style("✔", fg=typer.colors.GREEN)
 FAIL = typer.style("✘", fg=typer.colors.RED)
+RERANK_INTERVAL_S = 3.5  # stay under the ~20 requests/minute of free OpenRouter models
 
 
 @app.callback()
@@ -96,9 +97,11 @@ def search(
         str | None, typer.Option(help="Only return function, method, class or module chunks.")
     ] = None,
     show_code: Annotated[bool, typer.Option(help="Print the code of each result.")] = False,
+    rerank: Annotated[bool, typer.Option(help="Reorder the results with RERANK_MODEL.")] = True,
 ) -> None:
-    """Semantic search over the indexed code (no LLM involved)."""
+    """Search the indexed code, as the chat does (no LLM involved)."""
     from code_assistant.embeddings import Embedder
+    from code_assistant.rerank import OpenRouterReranker
     from code_assistant.retrieval import IndexMismatchError, Retriever, check_index_compatible
     from code_assistant.store import ChunkStore
 
@@ -115,7 +118,13 @@ def search(
             typer.echo(f"{FAIL} {exc}")
             raise typer.Exit(code=1) from exc
         embedder = Embedder(settings.embedding_model, device=settings.embedding_device)
-        results = Retriever(store, embedder).search(query, k=k, filters=filters)
+        retriever = Retriever(
+            store,
+            embedder,
+            hybrid=settings.hybrid_search,
+            reranker=OpenRouterReranker.from_settings(settings),
+        )
+        results = retriever.search(query, k=k, filters=filters, rerank=rerank)
 
     if not results:
         typer.echo("No results.")
@@ -135,6 +144,7 @@ def build_assistant(settings, models: list[str] | None = None):
     from code_assistant.assistant import CodeAssistant
     from code_assistant.embeddings import Embedder
     from code_assistant.llm import OpenRouterClient
+    from code_assistant.rerank import OpenRouterReranker
     from code_assistant.retrieval import Retriever, check_index_compatible
     from code_assistant.store import ChunkStore
 
@@ -153,7 +163,12 @@ def build_assistant(settings, models: list[str] | None = None):
     except Exception:
         store.close()  # don't leak the Mongo client when setup fails
         raise
-    retriever = Retriever(store, embedder, hybrid=settings.hybrid_search)
+    retriever = Retriever(
+        store,
+        embedder,
+        hybrid=settings.hybrid_search,
+        reranker=OpenRouterReranker.from_settings(settings),
+    )
     return CodeAssistant(
         retriever, llm, tag=settings.ultralytics_tag, k=settings.retrieval_k, paid_llm=paid_llm
     ), store
@@ -495,41 +510,78 @@ def eval_agreement(
     )
 
 
-@eval_app.command("hybrid")
-def eval_hybrid(
+@eval_app.command("search")
+def eval_search(
     questions: Annotated[Path, typer.Option(help="Question file.")] = Path("eval/questions.toml"),
-    output: Annotated[Path, typer.Option(help="Report file.")] = Path("eval/results/hybrid.md"),
+    output: Annotated[Path, typer.Option(help="Report file.")] = Path("eval/results/search.md"),
 ) -> None:
-    """Compare vector-only and hybrid retrieval on Atlas (no LLM calls)."""
+    """Compare vector, hybrid and reranked retrieval on Atlas (no LLM calls)."""
+    import statistics
+    import time
+
     from code_assistant.embeddings import Embedder
+    from code_assistant.evaluation.answer_runner import Throttle
     from code_assistant.evaluation.dataset import load_questions
     from code_assistant.evaluation.retrieval_eval import first_relevant_rank
+    from code_assistant.rerank import OpenRouterReranker
     from code_assistant.retrieval import Retriever
     from code_assistant.store import ChunkStore
 
     settings = get_settings()
     in_scope = [q for q in load_questions(questions) if q.in_scope]
     embedder = Embedder(settings.embedding_model, device="cpu")
-    rows = []
+    embedder.embed_query("warm-up")  # exclude model loading from the latency
+    reranker = OpenRouterReranker.from_settings(settings)
+    rows, ranks_by_name, notes = [], {}, []
     with ChunkStore.from_settings(settings) as store:
-        for name, hybrid in (("Vector only", False), ("Hybrid (vector + keyword, RRF)", True)):
-            retriever = Retriever(store, embedder, hybrid=hybrid)
-            ranks = [
-                first_relevant_rank(
-                    [r.symbol for r in retriever.search(q.question, k=10)], q.relevant
-                )
-                for q in in_scope
-            ]
+        strategies = [
+            ("Vector only", Retriever(store, embedder)),
+            ("Hybrid (vector + keyword, RRF)", Retriever(store, embedder, hybrid=True)),
+        ]
+        if reranker:
+            name = f"Reranked (`{reranker.model}`)"
+            strategies.append((name, Retriever(store, embedder, reranker=reranker)))
+        for name, retriever in strategies:
+            ranks, latencies = [], []
+            throttle = Throttle(RERANK_INTERVAL_S if retriever.reranker else 0)
+            for q in in_scope:
+                throttle.wait()
+                started = time.perf_counter()
+                results = retriever.search(q.question, k=10)
+                latencies.append(time.perf_counter() - started)
+                ranks.append(first_relevant_rank([r.symbol for r in results], q.relevant))
             hits = [sum(1 for r in ranks if r and r <= k) / len(ranks) for k in (1, 5, 6)]
             mrr = sum(1 / r for r in ranks if r) / len(ranks)
-            rows.append(f"| {name} | " + " | ".join(f"{h:.1%}" for h in hits) + f" | {mrr:.3f} |")
+            rows.append(
+                f"| {name} | "
+                + " | ".join(f"{h:.1%}" for h in hits)
+                + f" | {mrr:.3f} | {statistics.median(latencies):.2f} s |"
+            )
+            ranks_by_name[name] = ranks
             typer.echo(rows[-1])
+            if retriever.rerank_failures:
+                notes.append(
+                    f"⚠ The reranker failed on {retriever.rerank_failures} questions, which "
+                    "fell back to vector order. Re-run for clean numbers."
+                )
+                typer.echo(f"{FAIL} {notes[-1]}")
+    per_question = "\n".join(
+        f"| `{q.id}` | " + " | ".join(str(r[i] or "–") for r in ranks_by_name.values()) + " |"
+        for i, q in enumerate(in_scope)
+    )
     output.write_text(
-        "# Hybrid retrieval evaluation\n\n"
+        "# Search strategy evaluation\n\n"
         f"{len(in_scope)} in-scope questions, `{settings.embedding_model}`, live Atlas queries "
-        "(generated by `uv run code-assistant eval hybrid`). Hit@6 is what the LLM sees.\n\n"
-        "| Retrieval | Hit@1 | Hit@5 | Hit@6 | MRR@10 |\n|---|---|---|---|---|\n"
+        "(generated by `uv run code-assistant eval search`). Hit@6 is what the LLM sees. "
+        "Latency is the median search time per question, including the query embedding on "
+        "CPU and, for the reranker, the OpenRouter call.\n\n"
+        + "".join(f"{note}\n\n" for note in notes)
+        + "| Search | Hit@1 | Hit@5 | Hit@6 | MRR@10 | Latency |\n|---|---|---|---|---|---|\n"
         + "\n".join(rows)
+        + "\n\n## Rank of the first relevant code unit per question\n\n"
+        "– = not in the top 10.\n\n"
+        f"| Question | {' | '.join(ranks_by_name)} |\n|---|{'---|' * len(ranks_by_name)}\n"
+        + per_question
         + "\n",
         encoding="utf-8",
     )

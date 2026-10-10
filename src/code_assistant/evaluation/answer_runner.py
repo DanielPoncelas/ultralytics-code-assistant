@@ -22,6 +22,7 @@ from code_assistant.evaluation.answer_report import render_answers_markdown
 from code_assistant.evaluation.dataset import DatasetError, EvalQuestion, load_questions
 from code_assistant.llm import LLMError, OpenRouterClient
 from code_assistant.prompt import build_messages, extract_citations
+from code_assistant.rerank import OpenRouterReranker
 from code_assistant.retrieval import Retriever, SearchResult, check_index_compatible
 from code_assistant.store import ChunkStore
 
@@ -212,7 +213,12 @@ def _retrieve_all(
     with ChunkStore.from_settings(settings) as store:
         check_index_compatible(store.indexed_model(), settings.embedding_model)
         embedder = Embedder(settings.embedding_model, device=settings.embedding_device)
-        retriever = Retriever(store, embedder, hybrid=settings.hybrid_search)
+        retriever = Retriever(
+            store,
+            embedder,
+            hybrid=settings.hybrid_search,
+            reranker=OpenRouterReranker.from_settings(settings),
+        )
         return {q.id: retriever.search(q.question, k=settings.retrieval_k) for q in questions}
 
 

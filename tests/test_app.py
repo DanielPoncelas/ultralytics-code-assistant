@@ -99,12 +99,12 @@ def test_sources_panel_marks_cited_and_uncited_boxes_after_the_answer():
     assert rendered.count('class="detection cited"') == 2
     assert rendered.count('class="detection uncited"') == 1
     assert "2 of 3 retrieved code units are cited" in rendered
-    assert "0.87" in rendered and "lines 10–20" in rendered
+    assert "0.873" in rendered and "lines 10–20" in rendered
 
 
 def test_sources_panel_states():
     assert "appears here" in render_sources([])
-    assert "ranked by similarity" in render_sources(SOURCES)
+    assert "most relevant first" in render_sources(SOURCES)
     assert "doesn't cite any" in render_sources(SOURCES, cited=[], answered=True)
 
 
@@ -149,15 +149,15 @@ class FakeAssistant:
     def __init__(self, events=None, error=None):
         self.events, self.error, self.calls = events or [], error, []
 
-    def ask_stream(self, question, history=(), filters=None, use_paid=False):
-        self.calls.append((question, list(history), filters))
+    def ask_stream(self, question, history=(), filters=None, use_paid=False, rerank=True):
+        self.calls.append((question, list(history), filters, rerank))
         yield from self.events
         if self.error:
             raise self.error
 
 
-def run(assistant, message="How?", chat=None, history=None, folder="Any", task="Any"):
-    return list(respond(assistant, message, chat or [], history or [], folder, task))
+def run(assistant, message="How?", chat=None, history=None, folder="Any", task="Any", rerank=True):
+    return list(respond(assistant, message, chat or [], history or [], folder, task, rerank=rerank))
 
 
 def test_respond_streams_sources_then_text_then_final_answer():
@@ -269,3 +269,11 @@ def test_status_shows_the_rewritten_search_query_only_when_it_changed():
     assert "Searched for: “How can NMS be disabled?”" in render_status(
         answer(search_query="How can NMS be disabled?")
     )
+
+
+def test_respond_passes_the_rerank_choice():
+    assistant = FakeAssistant([SOURCES, answer()])
+
+    run(assistant, rerank=False)
+
+    assert assistant.calls[0][3] is False
