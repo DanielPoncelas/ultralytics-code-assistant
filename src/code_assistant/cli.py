@@ -1,5 +1,7 @@
 """Command-line entry point: `uv run code-assistant <command>`."""
 
+from typing import Annotated
+
 import typer
 from pydantic import ValidationError
 
@@ -56,3 +58,25 @@ def check() -> None:
 
     if failed:
         raise typer.Exit(code=1)
+
+
+@app.command()
+def index(
+    model: Annotated[
+        str | None, typer.Option(help="Embedding model (default: EMBEDDING_MODEL setting).")
+    ] = None,
+    upload: Annotated[
+        bool, typer.Option(help="Upload to Atlas. --no-upload only computes and caches vectors.")
+    ] = True,
+) -> None:
+    """Fetch the pinned Ultralytics source, chunk it, embed it and store it in Atlas."""
+    from code_assistant.indexing.pipeline import run_indexing  # heavy imports (torch)
+
+    report = run_indexing(get_settings(), model_name=model, upload=upload, log=typer.echo)
+    summary = (
+        f"{report.chunks} chunks from {report.files} files "
+        f"({report.dimensions}-d vectors) in {report.seconds:.0f}s"
+    )
+    if upload:
+        summary += f": {report.upserted} new, {report.modified} updated, {report.deleted} removed"
+    typer.echo(f"{OK} Indexed {summary}.")
