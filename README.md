@@ -2,9 +2,21 @@
 
 A code assistant that answers questions about [Ultralytics YOLO](https://github.com/ultralytics/ultralytics) by retrieving the relevant source code and generating a grounded answer.
 
-- **Indexes** the Python code of `ultralytics/models`, `engine` and `data` at a pinned release (`v8.4.175`): 104 files, 1,532 chunks split along functions, methods and classes.
-- **Searches** it with MongoDB Atlas Vector Search, adds keyword matches and reranks the candidates.
-- **Answers** with a free OpenRouter model. Every statement cites its source as `[n]`, a link to the exact lines on GitHub.
+## At a glance
+
+**The core**, as the brief asks:
+
+| Brief | Implementation |
+|---|---|
+| Chat interface | Gradio app: answers stream in, with the code they used shown next to them |
+| Code indexing | `ultralytics/models`, `engine` and `data` at release `v8.4.175`: 104 files, 1,532 chunks split along functions, methods and classes with Python's `ast` |
+| Vector search | MongoDB Atlas Vector Search over open-source embeddings (`BAAI/bge-small-en-v1.5`, run locally) |
+| Answer generation | A free OpenRouter LLM. Every statement cites its source as `[n]`, a link to the exact lines on GitHub |
+
+**Optional extras**, each with a switch in the chat. The first two were measured on 40 real questions:
+- **Keyword search and a reranker** (on by default): related code reaches the LLM for 37 of 40 questions instead of 32.
+- **A second embedding model, Qwen3-Embedding-8B** (served by OpenRouter): 40 of 40. It needs some OpenRouter credit, about $0.0000002 per question.
+- **A paid LLM** (`openai/gpt-5-nano`), with the free models as fallback.
 
 Built without RAG frameworks: plain `pymongo`, `httpx` and `sentence-transformers`, managed with uv.
 
@@ -64,6 +76,8 @@ Step 4 should print three ticks. If a line shows `✘`, its message says which s
 ```
 
 Step 5 clones Ultralytics at `v8.4.175` and verifies the commit. It chunks the code and uploads it to Atlas twice, once per embedding model (bge-small and Qwen3-8B, see [Model choices](#model-choices-and-rationale)), and creates the vector and keyword indexes. The chunk vectors are committed in `embeddings/`, so nothing has to be embedded and the step takes a few minutes. Re-running it is safe: chunks are updated in place, never duplicated.
+
+Step 6 loads the embedding model. The first time, it downloads bge-small (about 130 MB, pinned to an exact revision) from Hugging Face, so the first start takes longer; later starts take a few seconds. Each question is then embedded locally on the CPU, which is why the default setup costs nothing.
 
 **Reproducing the embeddings.** Delete `embeddings/` and run step 5 again to recompute the vectors: about 7 minutes on a laptop CPU for bge-small, and less than a cent of OpenRouter credit for Qwen3-8B. The files are used only if their fingerprint (every chunk's text plus the model revision) matches, so stale vectors are never uploaded.
 
