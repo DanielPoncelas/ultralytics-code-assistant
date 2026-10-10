@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     ultralytics_commit: str = "69c95d1add13a232382e53b3aa5094ec0c7738db"
     source_dirs: tuple[str, ...] = ("ultralytics/models", "ultralytics/engine", "ultralytics/data")
     cache_dir: Path = Path(".cache")
+    # Chunk vectors per model, committed to the repo so `index` and `eval retrieval` can skip
+    # embedding the corpus (used only if they match the current chunks and model revision).
+    embeddings_dir: Path = Path("embeddings")
 
     # Embedding model (must be a key of `embeddings.EMBEDDING_MODELS`).
     embedding_model: str = "BAAI/bge-small-en-v1.5"

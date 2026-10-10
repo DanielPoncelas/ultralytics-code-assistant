@@ -4,7 +4,7 @@ Embedding is by far the slowest indexing step (minutes on a GPU, much longer on 
 Caching the vectors means:
 - re-running `index` (e.g. after an Atlas reset) does not recompute them;
 - several candidate models can be compared offline without re-embedding;
-- the cache file can be shipped as a snapshot so others can skip the step entirely.
+- the files are committed to the repo (`embeddings/`), so others can skip the step entirely.
 
 The key includes a fingerprint of every embedded text plus the exact model revision, so
 any change to the source, the chunker or the model invalidates the cache automatically.
@@ -26,9 +26,9 @@ def fingerprint(texts: list[str], spec: EmbeddingModelSpec) -> str:
     return digest.hexdigest()[:16]
 
 
-def cache_path(cache_dir: Path, spec: EmbeddingModelSpec, key: str) -> Path:
+def cache_path(directory: Path, spec: EmbeddingModelSpec, key: str) -> Path:
     slug = spec.name.replace("/", "__")
-    return cache_dir / "embeddings" / f"{slug}-{key}.npz"
+    return directory / f"{slug}-{key}.npz"
 
 
 def load(path: Path, ids: list[str]) -> np.ndarray | None:

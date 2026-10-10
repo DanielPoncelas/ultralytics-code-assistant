@@ -77,7 +77,9 @@ You don't need to create the vector search index by hand. The indexing command c
    uv run code-assistant index
    ```
 
-   This clones Ultralytics at the pinned release (`v8.4.175`) and splits `ultralytics/{models,engine,data}` into ~1,500 chunks. It embeds them locally with an open-source model, uploads them to Atlas and creates the vector search index. The first run downloads the embedding model (`BAAI/bge-small-en-v1.5`, ~130 MB) from Hugging Face. The command is idempotent: re-running it updates chunks in place and never duplicates them. Computed embeddings are cached in `.cache/embeddings/`, so a second run skips the slow step.
+   This clones Ultralytics at the pinned release (`v8.4.175`) and splits `ultralytics/{models,engine,data}` into ~1,500 chunks. It embeds them locally with an open-source model, uploads them to Atlas and creates the vector search index. The first run downloads the embedding model (`BAAI/bge-small-en-v1.5`, ~130 MB) from Hugging Face. The command is idempotent: re-running it updates chunks in place and never duplicates them.
+
+   **Precomputed embeddings.** The repository ships the chunk vectors in `embeddings/` (1.4 MB for the default model). `index` uses them when they match the current chunks and model revision, which they do at the pinned release, so it only uploads to Atlas. The model is still downloaded, because every question is embedded with it. If anything changes (source, chunker or model), the vectors are recomputed and saved there. To reproduce them from scratch, delete `embeddings/` first.
 
    **Hardware and speed.** Embedding runs on the fastest device available (NVIDIA GPU, Apple GPU, otherwise CPU), detected automatically. No GPU is required with the default model.
 
@@ -127,7 +129,7 @@ uv run code-assistant eval answers       # LLMs + judge       → eval/results/a
 uv run code-assistant eval review        # blind human check of the judge (then: eval agreement)
 ```
 
-Evaluating all four candidate models needs their embeddings. The first run computes them, which takes minutes on a GPU and hours on CPU for the larger models. Use `--model BAAI/bge-small-en-v1.5` to evaluate only the default model.
+The vectors of all four candidate embedding models are shipped in `embeddings/`, so `eval retrieval` only embeds the 40 questions: the full comparison took 105 s on the author's laptop, CPU only (plus downloading each model, ~2.5 GB in total). Without them (e.g. after deleting the folder to recompute), the first run takes minutes on a GPU and hours on CPU for the larger models. Use `--model BAAI/bge-small-en-v1.5` to evaluate only the default model.
 
 ### Configuration
 
