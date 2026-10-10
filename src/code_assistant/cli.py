@@ -129,6 +129,78 @@ def search(
             typer.echo(typer.style(result.code, dim=True) + "\n")
 
 
+def build_assistant(settings, models: list[str] | None = None):
+    """Wire retriever + LLM client from settings (fails fast on an incompatible index)."""
+    from code_assistant.assistant import CodeAssistant
+    from code_assistant.embeddings import Embedder
+    from code_assistant.llm import OpenRouterClient
+    from code_assistant.retrieval import Retriever, check_index_compatible
+    from code_assistant.store import ChunkStore
+
+    store = ChunkStore.from_settings(settings)
+    check_index_compatible(store.indexed_model(), settings.embedding_model)
+    retriever = Retriever(
+        store, Embedder(settings.embedding_model, device=settings.embedding_device)
+    )
+    llm = OpenRouterClient.from_settings(settings, models=models)
+    return CodeAssistant(
+        retriever, llm, tag=settings.ultralytics_tag, k=settings.retrieval_k
+    ), store
+
+
+@app.command()
+def ask(
+    question: Annotated[str, typer.Argument(help="Question about the Ultralytics codebase.")],
+    model: Annotated[
+        list[str] | None,
+        typer.Option("--model", help="LLM(s) to use, in fallback order (default: LLM_MODELS)."),
+    ] = None,
+) -> None:
+    """Answer a question with retrieved code and an LLM, citing the sources."""
+    from code_assistant.assistant import Answer
+    from code_assistant.llm import LLMError
+    from code_assistant.retrieval import IndexMismatchError
+
+    settings = get_settings()
+    try:
+        assistant, store = build_assistant(settings, model)
+    except IndexMismatchError as exc:
+        typer.echo(f"{FAIL} {exc}")
+        raise typer.Exit(code=1) from exc
+    try:
+        answer = None
+        for event in assistant.ask_stream(question):
+            if isinstance(event, Answer):
+                answer = event
+            elif isinstance(event, str):
+                typer.echo(event, nl=False)
+    except LLMError as exc:
+        typer.echo(f"\n{FAIL} {exc}")
+        raise typer.Exit(code=1) from exc
+    finally:
+        store.close()
+
+    assert answer is not None
+    typer.echo("\n\n" + typer.style("Sources", bold=True))
+    for number, source in enumerate(answer.sources, start=1):
+        cited = "*" if number in answer.citations else " "
+        typer.echo(f" {cited}[{number}] {source.qualified_name}  {source.github_url}")
+    fallback = (
+        f" after {', '.join(a.model for a in answer.failed_attempts)} failed"
+        if answer.failed_attempts
+        else ""
+    )
+    typer.echo(
+        typer.style(
+            f"\nAnswered by {answer.model}{fallback} in {answer.latency_s:.1f}s. "
+            "* = cited in the answer.",
+            dim=True,
+        )
+    )
+    if answer.invalid_citations:
+        typer.echo(f"{FAIL} Answer cites non-existent sources: {answer.invalid_citations}")
+
+
 @eval_app.command("retrieval")
 def eval_retrieval(
     models: Annotated[
