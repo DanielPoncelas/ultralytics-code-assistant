@@ -248,6 +248,9 @@ def eval_answers(
     retry_failed: Annotated[
         bool, typer.Option(help="Only re-run answers that failed in the existing results.")
     ] = False,
+    append: Annotated[
+        bool, typer.Option(help="Keep existing results of other models and add these.")
+    ] = False,
 ) -> None:
     """Generate answers with each LLM, grade them with an LLM judge, and choose an LLM.
 
@@ -273,6 +276,7 @@ def eval_answers(
         output,
         judge_model=judge or JUDGE_MODEL,
         limit=limit,
+        append=append,
         log=typer.echo,
     )
     typer.echo(f"{OK} Chosen LLM: {evaluation.chosen.model}. {evaluation.reason}")

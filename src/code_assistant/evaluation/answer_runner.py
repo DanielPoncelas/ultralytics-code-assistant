@@ -58,8 +58,11 @@ def run_answer_evaluation(
     output_dir: Path,
     judge_model: str = JUDGE_MODEL,
     limit: int | None = None,
+    append: bool = False,
     log: Callable[[str], None] = print,
 ) -> AnswerEvaluation:
+    """Evaluate `models`. With `append`, results for other models already in the output
+    directory are kept, so a candidate can be added without re-running the others."""
     questions = load_questions(questions_path)[:limit]
     missing = [q.id for q in questions if q.in_scope and not q.key_facts]
     if missing:
@@ -70,7 +73,7 @@ def run_answer_evaluation(
     judge = OpenRouterClient.from_settings(settings, models=[judge_model], max_retries=4)
     judge.max_tokens = JUDGE_MAX_TOKENS
 
-    results = []
+    results = _load_existing(output_dir, exclude=models) if append else []
     for model in models:
         log(f"Generating and judging answers with {model} ...")
         llm = OpenRouterClient.from_settings(settings, models=[model], max_retries=4)
@@ -132,6 +135,17 @@ def retry_failed_answers(
         results.setdefault(record.model, LLMResult(record.model)).records.append(record)
     questions = [by_id[qid] for qid in dict.fromkeys(r.question_id for r in records)]
     return _write_reports(list(results.values()), questions, judge_model, settings, output_dir)
+
+
+def _load_existing(output_dir: Path, exclude: Sequence[str]) -> list[LLMResult]:
+    path = output_dir / "answers.jsonl"
+    results: dict[str, LLMResult] = {}
+    if path.exists():
+        for line in path.read_text().splitlines():
+            record = record_from_dict(json.loads(line))
+            if record.model not in exclude:
+                results.setdefault(record.model, LLMResult(record.model)).records.append(record)
+    return list(results.values())
 
 
 def record_from_dict(data: dict) -> AnswerRecord:
