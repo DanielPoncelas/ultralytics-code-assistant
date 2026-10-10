@@ -2,204 +2,204 @@
 
 Generated on 2026-10-10 with `uv run code-assistant examples` (index: Ultralytics `v8.4.175`, embeddings: `BAAI/bge-small-en-v1.5`, top 6 sources). Answers are reproduced exactly as generated; LLM output varies between runs.
 
-## 1. My training run was interrupted at epoch 63. How do I resume it from the last checkpoint, and what state gets restored?
+## 1. How do the lr0 and lrf hyperparameters work? Is the learning rate decayed linearly or with a cosine schedule?
 
-*Source: [issue #17492](https://github.com/ultralytics/ultralytics/issues/17492) · answered by `cohere/north-mini-code:free` in 24.0 s*
+*Source: [issue #2849](https://github.com/ultralytics/ultralytics/issues/2849) · answered by `cohere/north-mini-code:free` in 5.2 s*
 
-**How to resume from the interrupted run**
+**Answer**
 
-```bash
-# From the project root
-yolo train resume=model=path/to/last.pt   # or: yolo train resume=True
-```
+- **`lr0`** – the *initial* learning rate for the optimizer.  
+- **`lrf`** – the *final* learning‑rate **fraction** (the final LR = `lr0 * lrf`).  
 
-**What happens under the hood**
+The decay **shape** (linear vs. cosine) is controlled by the trainer’s `cos_lr` flag:
 
-1. **`Model.train`** sees `args.get("resume")` is `True` and, if a valid checkpoint (`self.ckpt`) exists, sets `args["resume"]` and `args["data"]` to the checkpoint path.  
-   → *[3]*
+| `cos_lr` value | Schedule used | Formula (from source [1]) |
+|----------------|---------------|---------------------------|
+| `True`         | **Cosine**    | `self.lf = one_cycle(1, self.args.lrf, self.epochs)` |
+| `False`        | **Linear**    | `self.lf = lambda x: max(1 - x / self.epochs, 0) * (1.0 - self.args.lrf) + self.args.lrf` |
 
-2. **`BaseTrainer.check_resume`** is called (via the trainer constructor). It:
-   - Locates the latest checkpoint (`last.pt`) if `resume` is a path.  
-   - Loads the checkpoint’s `args` (training configuration) and merges any allowed overrides.  
-   - Sets `self.resume = True` and updates `self.args` with the checkpoint’s settings.  
-   → *[2]*
-
-3. **`BaseTrainer.resume_training`** is invoked (usually inside `trainer.train()`). It:
-   - Reads `ckpt["epoch"]` → `start_epoch = epoch + 1` (so epoch 63 → start at epoch 64).  
-   - Calls `self._load_checkpoint_state(ckpt)` which restores all training state.  
-   - For distillation models, re‑initialises `model.criterion` and sets its `updates`.  
-   - Stores the new `self.start_epoch`.  
-   → *[1]*
-
-**What state is restored from the checkpoint**
-
-The checkpoint saved by `BaseTrainer.save_model` (`last.pt`, `best.pt`, `epochX.pt`) contains:
-
-| Key                | Restored by `resume_training` (`_load_checkpoint_state`) |
-|--------------------|----------------------------------------------------------|
-| `epoch`            | `self.start_epoch` (next epoch to train)                |
-| `best_fitness`     | `self.best_fitness`                                      |
-| `stopper`          | `self.stopper` (best fitness / epoch)                   |
-| `optimizer`        | Full optimizer state (learning rates, momentum, …)     |
-| `scaler`           | Gradient‑scaler state (for mixed‑precision)             |
-| `ema`              | Exponential moving‑average model weights                |
-| `modelopt`         | Quantization state (QAT)                                 |
-| `train_args`       | `self.args` (training hyper‑parameters)                  |
-| `train_metrics`    | `self.metrics` (previous epoch metrics)                 |
-| `train_results`    | `self.read_results_csv()` (CSV log)                      |
-| `date`, `version`, `git`, `license`, `docs` | Metadata (not used for training) |
-
-*For distillation models the `model.criterion` is rebuilt and its `updates` are set to `start_epoch‑1` so loss tracking continues correctly.*  
-→ *[1][5]*
-
-**Result**
-
-- Training continues from **epoch 64** (the next epoch after the interruption).  
-- Optimizer, scheduler, scaler, EMA weights, and all logged metrics are restored.  
-- The model’s `criterion` (including any distillation‑specific logic) is re‑initialised with the correct update count.  
-
-That’s the complete picture of resuming a stopped YOLO training run.
-
-**Retrieved sources** (bold = cited in the answer):
-
-1. **[`BaseTrainer.resume_training`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/trainer.py#L1124-L1141)** — `ultralytics/engine/trainer.py` L1124-1141
-2. **[`BaseTrainer.check_resume`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/trainer.py#L1020-L1065)** — `ultralytics/engine/trainer.py` L1020-1065
-3. **[`Model.train`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/model.py#L875-L913)** — `ultralytics/engine/model.py` L875-913
-4. [`BaseTrainer._handle_nan_recovery`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/trainer.py#L1084-L1122) — `ultralytics/engine/trainer.py` L1084-1122
-5. **[`BaseTrainer.save_model`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/trainer.py#L764-L833)** — `ultralytics/engine/trainer.py` L764-833
-6. [`_rewind`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/models/yolo/depth/calibrate.py#L38-L49) — `ultralytics/models/yolo/depth/calibrate.py` L38-49
-
-## 2. Which data augmentations are applied by default when training a detection model?
-
-*Source: [issue #2412](https://github.com/ultralytics/ultralytics/issues/2412) · answered by `cohere/north-mini-code:free` in 5.0 s*
-
-**Default data augmentations for detection training**
-
-When you train a detection model (e.g., YOLO object detection), the default augmentation pipeline is defined in `v8_transforms` (source 3). It applies the following transforms in order:
-
-| Augmentation | Purpose | Applied by default? |
-|--------------|---------|---------------------|
-| **Mosaic** | Combines 4 images into one, increasing dataset diversity | ✅ |
-| **RandomPerspective** (affine) | Random cropping, scaling, rotation, shear, perspective | ✅ |
-| **CopyPaste** | Copies objects from one image to another for rare‑class augmentation | ✅ (if `hyp.copy_paste` > 0) |
-| **MixUp** | Linear interpolation of images and targets | ✅ (if `hyp.mixup` > 0) |
-| **CutMix** | Patches from other images are mixed in | ✅ (if `hyp.cutmix` > 0) |
-| **Albumentations** | User‑specified custom transforms (via `hyp.augmentations`) | ✅ (if provided) |
-| **RandomHSV** | Adjust hue, saturation, value for color variation | ✅ |
-| **RandomFlip** (horizontal & vertical) | Random left‑right / up‑down flips (controlled by `hyp.fliplr` / `hyp.flipud`) | ✅ |
-
-These transforms are composed into a single `Compose` object that is used by the detection trainer’s data loading pipeline (see `DetectionTrainer._build_train_pipeline` in source 2). Any custom augmentations you add via the `hyp.augmentations` list are inserted into the Albumentations step.
+So the learning‑rate starts at `lr0`, ends at `lr0 × lrf`, and follows either a cosine curve (if `cos_lr=True`) or a straight‑line decay (if `cos_lr=False`). The schedule is applied each epoch via `self.scheduler.step()` (see source [3]).
 
 **Key points**
 
-- The pipeline is **hard‑coded** in `v8_transforms` (source 3) and is the default for all YOLO detection tasks.
-- You can adjust the strength of each augmentation via the `hyp` namespace (e.g., `hyp.mosaic`, `hyp.copy_paste`, `hyp.mixup`, `hyp.cutmix`, `hyp.fliplr`, `hyp.flipud`, `hyp.hsv_h`, etc.).
-- If you need different augmentations (e.g., for classification), you would use `classify_augmentations` (source 5) instead.
+- `lr0` and `lrf` are part of the default hyperparameter space defined in the Tuner (source [2]):  
+  ```python
+  "lr0": (1e-5, 1e-2),      # initial LR
+  "lrf": (0.01, 1.0),      # final LR fraction
+  ```
+- The actual LR values are scaled by `self.lf(epoch)` during training (source [3]), which implements the chosen schedule.
 
-**Example snippet (source 3)**
+**Retrieved sources** (bold = cited in the answer):
+
+1. **[`BaseTrainer._setup_scheduler`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/trainer.py#L268-L274)** — `ultralytics/engine/trainer.py` L268-274
+2. **[`Tuner.__init__`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/tuner.py#L79-L142)** — `ultralytics/engine/tuner.py` L79-142
+3. **[`BaseTrainer._do_train`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/trainer.py#L466-L542)** — `ultralytics/engine/trainer.py` L466-542
+4. [`Model.train`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/model.py#L807-L877) — `ultralytics/engine/model.py` L807-877
+5. [`TinyViT.set_layer_lr_decay`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/models/sam/modules/tiny_encoder.py#L900-L933) — `ultralytics/models/sam/modules/tiny_encoder.py` L900-933
+6. [`TinyViT.__init__`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/models/sam/modules/tiny_encoder.py#L787-L864) — `ultralytics/models/sam/modules/tiny_encoder.py` L787-864
+
+## 2. What does close_mosaic do, and at which point of training is mosaic augmentation switched off?
+
+*Source: [issue #14886](https://github.com/ultralytics/ultralytics/issues/14886) · answered by `cohere/north-mini-code:free` in 8.4 s*
+
+**What `close_mosaic` does**
+
+- **Disables mosaic (and related) augmentations** – it sets `hyp.mosaic`, `hyp.copy_paste`, `hyp.mixup` and `hyp.cutmix` to `0.0` and rebuilds the dataset transforms so those augmentations are no longer applied.  
+  *[YOLODataset.close_mosaic]*[2]  
+
+- **Updates the dataloader** – it also forces the dataset’s `mosaic` flag to `False` (if present) and calls the dataset’s own `close_mosaic` method (if it exists).  
+  *[BaseTrainer._close_dataloader_mosaic]*[1]  
+
+- **For concatenated datasets** – `YOLOConcatDataset.close_mosaic` propagates the call to each child dataset.  
+  *[YOLOConcatDataset.close_mosaic]*[3]  
+
+- **YOLO‑E specific extension** – `YOLOEVPTrainer._close_dataloader_mosaic` first calls the parent `_close_dataloader_mosaic` and then appends a `LoadVisualPrompt` transform to the dataset’s transforms.  
+  *[YOLOEVPTrainer._close_dataloader_mosaic]*[5]
+
+**When mosaic is switched off**
+
+Mosaic (and the related augmentations) are turned off **at the start of the final `close_mosaic` epochs**:
 
 ```python
-transforms = v8_transforms(
-    dataset,
-    imgsz=640,
-    hyp=hyp,  # contains all the hyper‑parameters above
-)
+if not mosaic_closed and epoch >= self.epochs - self.args.close_mosaic:
+    mosaic_closed = True
+    self._close_dataloader_mosaic()
+    self.train_loader.reset()
 ```
 
-Thus, the **default detection augmentations** are **Mosaic → RandomPerspective → CopyPaste → MixUp → CutMix → Albumentations → RandomHSV → RandomFlip (horizontal & vertical)**.
+Thus, if `args.close_mosaic = N`, mosaic is used for the first `epochs - N` epochs and is disabled beginning with epoch `epochs - N`.  
+*[BaseTrainer._do_train]*[6]
 
 **Retrieved sources** (bold = cited in the answer):
 
-1. [`Model.train`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/model.py#L807-L877) — `ultralytics/engine/model.py` L807-877
-2. [`DetectionTrainer`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/models/yolo/detect/train.py#L24-L256) — `ultralytics/models/yolo/detect/train.py` L24-256
-3. [`v8_transforms`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/data/augment.py#L2831-L2912) — `ultralytics/data/augment.py` L2831-2912
-4. [`YOLOMultiModalDataset`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/data/dataset.py#L564-L629) — `ultralytics/data/dataset.py` L564-629
-5. [`classify_augmentations`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/data/augment.py#L2965-L3036) — `ultralytics/data/augment.py` L2965-3036
-6. [`MixUp`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/data/augment.py#L784-L883) — `ultralytics/data/augment.py` L784-883
+1. **[`BaseTrainer._close_dataloader_mosaic`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/trainer.py#L1143-L1149)** — `ultralytics/engine/trainer.py` L1143-1149
+2. **[`YOLODataset.close_mosaic`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/data/dataset.py#L386-L396)** — `ultralytics/data/dataset.py` L386-396
+3. **[`YOLOConcatDataset.close_mosaic`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/data/dataset.py#L877-L886)** — `ultralytics/data/dataset.py` L877-886
+4. [`BaseTrainer`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/trainer.py#L79-L1242) — `ultralytics/engine/trainer.py` L79-1242
+5. **[`YOLOEVPTrainer._close_dataloader_mosaic`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/models/yolo/yoloe/train.py#L274-L281)** — `ultralytics/models/yolo/yoloe/train.py` L274-281
+6. **[`BaseTrainer._do_train`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/trainer.py#L466-L542)** — `ultralytics/engine/trainer.py` L466-542
 
-## 3. Why do model.val() and model.predict() give different detections on the same images?
+## 3. Which data augmentations are applied by default when training a detection model?
 
-*Source: [issue #2783](https://github.com/ultralytics/ultralytics/issues/2783) · answered by `cohere/north-mini-code:free` in 13.9 s*
+*Source: [issue #2412](https://github.com/ultralytics/ultralytics/issues/2412) · answered by `cohere/north-mini-code:free` in 17.6 s*
 
-**Short answer:**  
-`model.val()` and `model.predict()` use different default hyper‑parameters and post‑processing settings, so the same image can produce different detections.
+**Default detection augmentations (YOLOv8)**  
 
-**Why the difference?**  
+When you call `model.train()` on a detection model, the training pipeline uses the transforms defined in `v8_transforms` (see source 1). By default (i.e., with the standard `hyp` values), the following augmentations are applied in order:
 
-| Aspect | `model.predict()` | `model.val()` (validator) |
-|--------|-------------------|---------------------------|
-| **Default confidence** | `conf = 0.25` (hard‑coded in `Model.predict`)【4】 | Validator uses its own `conf` (usually lower, e.g. `0.001`‑`0.05`) – not shown in the snippet but implied by the validator’s `self.args`. |
-| **IOU / NMS** | May keep user‑provided `iou`/`agnostic_nms` (YOLOE sets `agnostic_nms=True` by default)【3】 | Validator typically uses class‑specific NMS and a different `iou` threshold. |
-| **Maximum detections** | `max_det` is taken from `self.args.max_det` when plotting【1】 (validator‑specific). | `model.predict()` does not enforce a `max_det` in the predictor; the validator does. |
-| **Rectangular inference** | `rect = True` by default【4】 | Validator often runs with `rect = False` (or a different `rect` setting). |
-| **Source of thresholds** | All thresholds come from `args = {**self.overrides, **custom, **kwargs}`【4】 | Validator builds its own `args` (e.g., `self.args`) which can differ from the predictor’s defaults. |
+| Augmentation | Description | Source |
+|--------------|-------------|--------|
+| **Mosaic** | Combines 4 images into one, creating a mixed‑context training sample. | [1] |
+| **RandomPerspective** (often called *affine*) | Applies random degrees, translation, scale, shear, and perspective distortion. | [1] |
+| **CopyPaste** | Copies objects from one image to another (with a default `p=0.5`). | [1] |
+| **MixUp** | Linear interpolation between an image and its label. | [1] |
+| **CutMix** | Cuts a region from one image and pastes it into another. | [1] |
+| **RandomHSV** | Randomly adjusts hue, saturation, and value. | [1] |
+| **RandomFlip** (horizontal & vertical) | Random horizontal (`p=hyp.fliplr`) and vertical (`p=hyp.flipud`) flips. | [1] |
+| **Albumentations** | Included in the pipeline but with `transforms=None` by default, so no extra transforms are applied unless you set `hyp.augmentations`. | [1] |
 
-Because `model.predict()` hard‑codes `conf=0.25`, `rect=True`, and (for YOLOE) `agnostic_nms=True`【3,4】, while the validation routine uses its own defaults (different `conf`, `iou`, `max_det`, NMS mode, etc.)【1,3,4】, the two pipelines apply different filtering and post‑processing to the raw model outputs. This leads to **different sets of bounding boxes** even when the same image and model are used.
+**Key points**
 
-**What you can do to make them match:**  
-- Explicitly pass the same `conf`, `iou`, `max_det`, `agnostic_nms`, and `rect` values to both `model.val()` (via `self.overrides` or `args`) and `model.predict()`.  
-- Ensure the validator’s `self.args` are aligned with the predictor’s `args` (e.g., set `conf=0.25` in the validator’s configuration).  
+- The **Albumentations** wrapper is always present (so you can later inject custom transforms via `hyp.augmentations`), but it adds no extra operations unless you provide a list of transforms.
+- All of the above are part of the `Compose` returned by `v8_transforms`, which is the default training pipeline for detection models (see `DetectionTrainer._build_train_pipeline` in source 5, which ultimately calls `v8_transforms`).
 
-When the hyper‑parameters are identical, the detections from `model.val()` and `model.predict()` will be consistent.
+So, out‑of the box, a detection model sees **Mosaic → RandomPerspective → CopyPaste → MixUp → CutMix → RandomHSV → RandomFlip (H & V)** during each training iteration.
 
 **Retrieved sources** (bold = cited in the answer):
 
-1. [`DetectionValidator.plot_predictions`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/models/yolo/detect/val.py#L451-L477) — `ultralytics/models/yolo/detect/val.py` L451-477
-2. [`ClassificationValidator`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/models/yolo/classify/val.py#L18-L219) — `ultralytics/models/yolo/classify/val.py` L18-219
-3. [`YOLOE.predict`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/models/yolo/model.py#L532-L567) — `ultralytics/models/yolo/model.py` L532-567
-4. [`Model.predict`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/model.py#L491-L555) — `ultralytics/engine/model.py` L491-555
-5. [`DetectionValidator.plot_val_samples`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/models/yolo/detect/val.py#L436-L449) — `ultralytics/models/yolo/detect/val.py` L436-449
-6. [`SemanticSegmentationValidator.plot_predictions`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/models/yolo/semantic/val.py#L181-L190) — `ultralytics/models/yolo/semantic/val.py` L181-190
+1. **[`v8_transforms`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/data/augment.py#L2831-L2912)** — `ultralytics/data/augment.py` L2831-2912
+2. [`Model.train`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/model.py#L807-L877) — `ultralytics/engine/model.py` L807-877
+3. [`classify_augmentations`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/data/augment.py#L2965-L3036) — `ultralytics/data/augment.py` L2965-3036
+4. [`DetectionTrainer.build_dataset`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/models/yolo/detect/train.py#L64-L76) — `ultralytics/models/yolo/detect/train.py` L64-76
+5. [`DetectionTrainer`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/models/yolo/detect/train.py#L24-L256) — `ultralytics/models/yolo/detect/train.py` L24-256
+6. [`Format.__init__`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/data/augment.py#L2356-L2393) — `ultralytics/data/augment.py` L2356-2393
 
-## 4. How can I export a model to ONNX with a dynamic batch size and NMS included in the graph?
+## 4. How does the TensorRT export work? Does it go through ONNX first?
 
-*Source: [issue #23339](https://github.com/ultralytics/ultralytics/issues/23339) · answered by `cohere/north-mini-code:free` in 4.0 s*
+*Source: [issue #1225](https://github.com/ultralytics/ultralytics/issues/1225) · answered by `cohere/north-mini-code:free` in 2.7 s*
 
-To export a YOLO model to ONNX with dynamic batch size and NMS included in the graph, use these parameters:
+**Yes – TensorRT export goes through ONNX first.**
+
+The `Exporter.export_engine` method (source 1) follows this flow:
 
 ```python
-model.export(
-    format="onnx",  # ONNX format
-    dynamic=True,  # Enable dynamic batch size
-    nms=True,  # Include NMS in the graph
-    batch=16,  # Maximum batch size (required when dynamic=True)
-    simplify=True,  # Optional: simplify the ONNX model
-)
+def export_engine(self, prefix=colorstr("TensorRT:")):
+    # 1️⃣ Export to ONNX (required before TRT import)
+    f_onnx = self.export_onnx()                     # ← creates .onnx file
+    from ultralytics.utils.export.engine import onnx2engine
+
+    assert Path(f_onnx).exists(), f"failed to export ONNX file: {f_onnx}"
+
+    # 2️⃣ Convert ONNX → TensorRT engine
+    f = self.file.with_suffix(".engine")           # output .engine file
+    onnx2engine(
+        f_onnx,
+        f,
+        self.args.workspace,
+        self.args.quantize,
+        self.args.dynamic,
+        self.im.shape,
+        dla=self.dla,
+        dataset=self.get_int8_calibration_dataloader(prefix) if self.args.quantize == 8 and not self.qat else None,
+        metadata=self.metadata,
+        verbose=self.args.verbose,
+        prefix=prefix,
+    )
+    return f
 ```
 
-**Key points:**
-- `dynamic=True` enables shape flexibility for batch dimension
-- `nms=True` embeds NMS post-processing directly in the ONNX graph
-- `batch=16` (or any value > 1) is required when using `dynamic=True` to specify the maximum batch size
-- The NMS will be included as part of the exported ONNX model, reducing post-processing overhead during inference
+- **Step 1** – `self.export_onnx()` generates the intermediate ONNX model.  
+- **Step 2** – `onnx2engine` (from `ultralytics.utils.export.engine`) converts that ONNX file into the final TensorRT engine (`.engine`).
 
-The exported model will have dynamic input shapes for the batch dimension and contain the NMS operation within the ONNX graph itself.
+The method also handles optional features like INT8 quantization, dynamic shapes, workspace size, DLA cores, and calibration data, but the core export pipeline always passes through ONNX.
 
 **Retrieved sources** (bold = cited in the answer):
 
-1. [`Exporter.export_onnx`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/exporter.py#L1175-L1245) — `ultralytics/engine/exporter.py` L1175-1245
-2. [`Exporter.__call__`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/exporter.py#L842-L911) — `ultralytics/engine/exporter.py` L842-911
-3. [`Model.export`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/model.py#L753-L805) — `ultralytics/engine/model.py` L753-805
-4. [`Exporter.export_qnn`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/exporter.py#L1662-L1682) — `ultralytics/engine/exporter.py` L1662-1682
-5. [`NMSModel.forward`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/exporter.py#L1957-L2023) — `ultralytics/engine/exporter.py` L1957-2023
-6. [`Exporter.export_mnn`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/exporter.py#L1333-L1344) — `ultralytics/engine/exporter.py` L1333-1344
+1. [`Exporter.export_engine`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/exporter.py#L1437-L1460) — `ultralytics/engine/exporter.py` L1437-1460
+2. [`Exporter.export_saved_model`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/exporter.py#L1462-L1496) — `ultralytics/engine/exporter.py` L1462-1496
+3. [`Exporter`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/exporter.py#L530-L1868) — `ultralytics/engine/exporter.py` L530-1868
+4. [`Exporter.__call__`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/exporter.py#L909-L975) — `ultralytics/engine/exporter.py` L909-975
+5. [`Model.export`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/model.py#L753-L805) — `ultralytics/engine/model.py` L753-805
+6. [`export_formats`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/exporter.py#L155-L285) — `ultralytics/engine/exporter.py` L155-285
 
-## 5. What are the default values of the initial learning rate and momentum?
+## 5. How do I set my own class names for open-vocabulary detection with YOLO-World?
 
-*Source: [issue #2849](https://github.com/ultralytics/ultralytics/issues/2849) · answered by `cohere/north-mini-code:free` in 5.9 s*
+*Source: [issue #10038](https://github.com/ultralytics/ultralytics/issues/10038) · answered by `cohere/north-mini-code:free` in 4.1 s*
 
-The default values are defined in the hyperparameter‑tuning space:
+To set your own class names for open-vocabulary detection with YOLO-World, use the `set_classes` method:
 
-- **Initial learning rate (`lr0`)**: `1e‑5`  
-- **Momentum**: `0.7` (the minimum value in the momentum range)
+```python
+from ultralytics import YOLOWorld
 
-*Source: [1]*
+# Load YOLO-World model
+model = YOLOWorld("yolov8s-world.pt")
+
+# Set custom class names for detection
+model.set_classes(["person", "car", "bicycle"])
+```
+
+**Key details:**
+- The `set_classes` method accepts a list of strings representing your desired categories
+- It automatically drops any background class (represented by " ")
+- After setting classes, the predictor is reset (`self.predictor = None`)
+- This enables open-vocabulary detection for your specified classes
+
+**Example usage:**
+```python
+# Set classes before inference
+model.set_classes(["person", "dog", "cat", "bus"])
+
+# Now the model will detect only these classes
+results = model("image.jpg")
+```
+
+The method internally calls `self.model.set_classes(classes)` and updates the model's names attribute, making your custom classes available for detection.
 
 **Retrieved sources** (bold = cited in the answer):
 
-1. **[`Tuner.__init__`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/tuner.py#L79-L142)** — `ultralytics/engine/tuner.py` L79-142
-2. [`BaseTrainer.build_optimizer`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/trainer.py#L1215-L1242) — `ultralytics/engine/trainer.py` L1215-1242
-3. [`TinyViT.set_layer_lr_decay`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/models/sam/modules/tiny_encoder.py#L900-L933) — `ultralytics/models/sam/modules/tiny_encoder.py` L900-933
-4. [`HungarianMatcher.__init__`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/models/utils/ops.py#L44-L66) — `ultralytics/models/utils/ops.py` L44-66
-5. [`Hiera.__init__`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/models/sam/modules/encoders.py#L652-L736) — `ultralytics/models/sam/modules/encoders.py` L652-736
-6. [`Model._val_data`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/engine/model.py#L1167-L1181) — `ultralytics/engine/model.py` L1167-1181
+1. [`YOLOWorld`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/models/yolo/model.py#L148-L211) — `ultralytics/models/yolo/model.py` L148-211
+2. [`YOLOWorld.set_classes`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/models/yolo/model.py#L202-L211) — `ultralytics/models/yolo/model.py` L202-211
+3. [`WorldValidator`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/models/yolo/world/val.py#L12-L40) — `ultralytics/models/yolo/world/val.py` L12-40
+4. [`YOLOWorld.__init__`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/models/yolo/model.py#L173-L188) — `ultralytics/models/yolo/model.py` L173-188
+5. [`WorldValidator.__call__`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/models/yolo/world/val.py#L20-L40) — `ultralytics/models/yolo/world/val.py` L20-40
+6. [`YOLOE.set_classes`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/models/yolo/model.py#L354-L369) — `ultralytics/models/yolo/model.py` L354-369
