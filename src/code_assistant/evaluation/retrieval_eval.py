@@ -11,10 +11,12 @@ import statistics
 import time
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
+from pathlib import Path
 
 import numpy as np
 
 from code_assistant.evaluation.dataset import EvalQuestion
+from code_assistant.retrieval import SearchResult
 
 MRR_DEPTH = 10
 # Pre-registered decision rule: best Hit@5 wins, unless a smaller model is within this margin.
@@ -75,6 +77,44 @@ def first_relevant_rank(ranked: Sequence[str], relevant: Sequence[str]) -> int |
         if symbol in relevant:
             return position
     return None
+
+
+EvidenceLine = tuple[str, int, str]  # (path, line number, stripped text)
+
+
+def evidence_lines(evidence: Sequence[str], checkout: Path) -> list[EvidenceLine]:
+    """Every non-blank line of the labelled evidence (`path:start-end`) in the source checkout."""
+    lines = []
+    for entry in evidence:
+        path, _, span = entry.rpartition(":")
+        start, _, end = span.partition("-")
+        source = (checkout / path).read_text(encoding="utf-8").splitlines()
+        for number in range(int(start), int(end or start) + 1):
+            if text := source[number - 1].strip():
+                lines.append((path, number, text))
+    return lines
+
+
+def evidence_coverage(results: Sequence[SearchResult], lines: Sequence[EvidenceLine]) -> float:
+    """Share of the evidence lines that are in the retrieved code, i.e. that the LLM sees.
+
+    Stricter than Hit@k, which needs only one relevant symbol: a question whose answer
+    combines two methods is fully covered only if both are retrieved. A class or module
+    summary spans its whole source range but contains only part of it, so for summaries the
+    line must also appear in the chunk's text.
+    """
+
+    def covered(path: str, number: int, text: str) -> bool:
+        return any(
+            r.path == path
+            and r.start_line <= number <= r.end_line
+            and (
+                r.kind in ("function", "method") or text in (s.strip() for s in r.code.splitlines())
+            )
+            for r in results
+        )
+
+    return sum(covered(*line) for line in lines) / len(lines)
 
 
 def evaluate_model(

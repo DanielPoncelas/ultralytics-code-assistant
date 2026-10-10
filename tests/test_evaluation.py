@@ -192,3 +192,44 @@ def test_render_markdown_marks_chosen_model_and_lists_failures():
     assert "| `good` ✅ |" in report
     assert "### `q1` (not in top 10)" in report
     assert "`x.py::X`" in report  # 'ultralytics/' prefix trimmed
+
+
+# -- evidence coverage ---------------------------------------------------------------------
+
+
+def _result(kind, start, end, code="", path="pkg/a.py"):
+    from code_assistant.retrieval import SearchResult
+
+    return SearchResult(
+        id=f"{kind}{start}", kind=kind, path=path, qualified_name=f"{kind}{start}", code=code,
+        start_line=start, end_line=end, github_url="https://x", score=0.5,
+    )  # fmt: skip
+
+
+def test_evidence_lines_reads_non_blank_lines_from_the_checkout(tmp_path):
+    from code_assistant.evaluation.retrieval_eval import evidence_lines
+
+    (tmp_path / "pkg").mkdir()
+    (tmp_path / "pkg/a.py").write_text("def f():\n\n    conf = 0.25\n    return conf\n")
+
+    lines = evidence_lines(["pkg/a.py:1-3", "pkg/a.py:4"], tmp_path)
+
+    assert lines == [
+        ("pkg/a.py", 1, "def f():"),
+        ("pkg/a.py", 3, "conf = 0.25"),
+        ("pkg/a.py", 4, "return conf"),
+    ]
+
+
+def test_evidence_coverage_counts_lines_across_chunks_and_checks_summary_text():
+    from code_assistant.evaluation.retrieval_eval import evidence_coverage
+
+    lines = [("pkg/a.py", 10, "conf = 0.25"), ("pkg/a.py", 30, "conf = 0.001")]
+    method_with_first = _result("method", 5, 20)
+    summary_spanning_both = _result("class", 1, 100, code="class A:\n    conf = 0.25")
+    other_file = _result("method", 25, 35, path="pkg/b.py")
+
+    assert evidence_coverage([method_with_first], lines) == 0.5
+    assert evidence_coverage([method_with_first, _result("method", 21, 40)], lines) == 1.0
+    assert evidence_coverage([summary_spanning_both], lines) == 0.5  # only the line it contains
+    assert evidence_coverage([other_file], lines) == 0.0
