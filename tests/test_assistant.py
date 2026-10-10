@@ -107,3 +107,15 @@ def test_failed_rewrite_falls_back_to_the_original_question():
     list(CodeAssistant(retriever, llm, tag="v1").ask_stream("Can it be disabled?", HISTORY))
 
     assert retriever.calls[0][0] == "Can it be disabled?"
+
+
+def test_paid_option_uses_the_paid_client_for_rewrite_and_answer():
+    free, paid = RewritingLLM("free query"), RewritingLLM("paid query")
+    retriever = FakeRetriever([source("A")])
+    assistant = CodeAssistant(retriever, free, tag="v1", paid_llm=paid)
+
+    *_, answer = assistant.ask_stream("Can it be disabled?", HISTORY, use_paid=True)
+
+    assert paid.rewrite_calls == 1 and free.rewrite_calls == 0
+    assert retriever.calls[0][0] == "paid query"
+    assert paid.messages is not None and free.messages is None

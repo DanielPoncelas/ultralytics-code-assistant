@@ -48,6 +48,9 @@ class Settings(BaseSettings):
         "dots-studio/dots-3-note-preview:free",
         "poolside/laguna-s-2.1:free",
     )
+    # Optional paid model offered in the chat ("Use a paid model"); tried first when enabled,
+    # with the free chain as fallback. Empty hides the option.
+    paid_llm_model: str | None = "openai/gpt-5-nano"
     llm_temperature: float = 0.0
     # Includes the hidden reasoning tokens of reasoning models (e.g. Cohere North), which
     # truncated some answers at 2,000 in the evaluation.

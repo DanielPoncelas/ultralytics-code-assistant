@@ -99,7 +99,7 @@ You don't need to create the vector search index by hand. The indexing command c
 uv run code-assistant app        # then open http://127.0.0.1:7860
 ```
 
-Answers stream as they are generated. Each `[n]` citation links to the exact lines on GitHub and is coloured like its source in the side panel, where the retrieved code is drawn the way YOLO draws detections. Follow-up questions keep the conversation context: they are rewritten into a standalone search query first (shown as “Searched for: …”).
+Answers stream as they are generated. Each `[n]` citation links to the exact lines on GitHub and is coloured like its source in the side panel, where the retrieved code is drawn the way YOLO draws detections. An optional **Use a paid model** checkbox tries `PAID_LLM_MODEL` first, with the free models as fallback. Follow-up questions keep the conversation context: they are rewritten into a standalone search query first (shown as “Searched for: …”).
 
 **Ask a question** (retrieval + LLM answer, streamed, with cited sources):
 
@@ -141,6 +141,7 @@ All settings are read from environment variables or `.env`:
 | `LLM_MODELS` | no | see `config.py` | Comma-separated OpenRouter models, tried in order (fallback chain) |
 | `RETRIEVAL_K` | no | `6` | Code units given to the LLM |
 | `HYBRID_SEARCH` | no | `false` | Merge keyword (BM25) and vector results with RRF |
+| `PAID_LLM_MODEL` | no | `openai/gpt-5-nano` | Paid model offered in the chat ("Use a paid model"), tried before the free chain. Empty hides the option. Needs OpenRouter credits (≈ $0.0004 per answer); without them, the free models answer |
 | `MONGODB_DATABASE` / `MONGODB_COLLECTION` | no | `code_assistant` / `chunks` | Where chunks are stored |
 
 ## Example questions

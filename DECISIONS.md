@@ -358,6 +358,14 @@ Every significant design decision, with the alternatives considered and the trad
 
 - **Reranker tried, not adopted:** a cross-encoder (`mixedbread-ai/mxbai-rerank-xsmall-v1`, 71M) reordering the ~32 candidates. On the laptop CPU, loading took 23 s and a single reranked search took over a minute, against a budget of under 2 s. It was stopped before scoring all 40 questions. It remains the natural next step for ranking on a GPU or with a hosted reranker, since the right code is among the candidates for 38/40 questions.
 
+## D25. Optional paid model in the chat (free by default)
+
+- **Decision:** a "Use a paid model" checkbox (off by default) puts `PAID_LLM_MODEL` (`openai/gpt-5-nano`) in front of the free chain, for both the follow-up rewrite and the answer.
+- **Why:** free models are the weakest link. They often return empty answers (Cohere) and fill gaps by guessing. The assignment allows "any free OpenRouter model or your preference", so the default stays free and the paid model is an opt-in.
+- **Cost:** about $0.0004 per answer, and it uses credits rather than the free quota.
+- **Robustness:** HTTP 402 (no credits) is no longer fatal: the paid model fails and the free models answer, so the option never breaks the app for someone without credits.
+- **Not measured yet:** running the answer evaluation with the paid model first would cost a few cents and would quantify the gain.
+
 ---
 
 ## Known limitations (running list)

@@ -143,12 +143,19 @@ def build_assistant(settings, models: list[str] | None = None):
         check_index_compatible(store.indexed_model(), settings.embedding_model)
         embedder = Embedder(settings.embedding_model, device=settings.embedding_device)
         llm = OpenRouterClient.from_settings(settings, models=models, interactive=True)
+        paid_llm = (
+            OpenRouterClient.from_settings(
+                settings, models=[settings.paid_llm_model, *llm.models], interactive=True
+            )
+            if settings.paid_llm_model
+            else None
+        )
     except Exception:
         store.close()  # don't leak the Mongo client when setup fails
         raise
     retriever = Retriever(store, embedder, hybrid=settings.hybrid_search)
     return CodeAssistant(
-        retriever, llm, tag=settings.ultralytics_tag, k=settings.retrieval_k
+        retriever, llm, tag=settings.ultralytics_tag, k=settings.retrieval_k, paid_llm=paid_llm
     ), store
 
 
