@@ -1,0 +1,95 @@
+#masthead { gap: 0; padding: 8px 4px 4px; }
+#masthead h1 { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.02em; margin: 0; }
+#masthead p { margin: 4px 0 0; max-width: 72ch; color: var(--body-text-color-subdued); }
+#masthead .scope { font-size: 0.875rem; }
+#sources-column h2 { font-size: 1rem; font-weight: 600; margin: 4px 0 8px; }
+
+.chat-empty { text-align: center; color: var(--body-text-color-subdued); }
+.chat-empty p { margin: 4px 0; }
+#examples { flex-wrap: wrap; gap: 6px; }
+#examples button { flex: 0 0 auto; min-width: 0; }
+
+/* Citations: [n] links coloured like source n (marker added by citation_url). */
+#answer-chat a[href*="?source="] {
+  display: inline-block; padding: 0 5px; margin: 0 1px; border-radius: 3px;
+  font-size: 0.78em; font-weight: 700; line-height: 1.5; text-decoration: none;
+  vertical-align: 0.1em;
+}
+#answer-chat a[href*="?source=1#"] { background: #042AFF; color: #FFFFFF; }
+#answer-chat a[href*="?source=2#"] { background: #0BDBEB; color: #111F68; }
+#answer-chat a[href*="?source=3#"] { background: #00DFB7; color: #111F68; }
+#answer-chat a[href*="?source=4#"] { background: #FF6FDD; color: #111F68; }
+#answer-chat a[href*="?source=5#"] { background: #FF444F; color: #FFFFFF; }
+#answer-chat a[href*="?source=6#"] { background: #BD00FF; color: #FFFFFF; }
+
+/* Sources drawn like YOLO detections: a box with a filled label tab on its top edge. */
+.sources-note,
+.sources-empty {
+  margin: 0 0 12px;
+  color: var(--body-text-color-subdued);
+  font-size: 0.875rem;
+}
+.sources-empty { padding: 24px 4px; }
+.detection {
+  position: relative; margin: 22px 0 14px; padding: 10px 12px 8px;
+  border: 2px solid var(--box); background: var(--block-background-fill);
+}
+.detection.uncited { border-style: dashed; opacity: 0.72; }
+.detection-label {
+  position: absolute;
+  top: -21px;
+  left: -2px;
+  display: flex;
+  gap: 8px;
+  max-width: calc(100% + 4px);
+  padding: 1px 8px;
+  background: var(--box);
+  font-weight: 600;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Gradio's prose styles set text colour on descendants: pin the computed label ink. */
+#sources .detection .detection-label,
+#sources .detection .detection-label span {
+  color: var(--label-ink) !important;
+}
+.detection-label span:first-child { overflow: hidden; text-overflow: ellipsis; }
+.detection-score { font-variant-numeric: tabular-nums; opacity: 0.85; }
+.detection-meta {
+  margin: 2px 0 6px;
+  font-size: 0.85rem;
+  color: var(--body-text-color-subdued);
+}
+.detection-path { word-break: break-all; }
+.detection-meta a { color: #042AFF; white-space: nowrap; }
+.dark .detection-meta a { color: #8199FF; }
+.detection details summary { cursor: pointer; font-size: 0.85rem; }
+.detection details summary:focus-visible { outline: 2px solid var(--box); outline-offset: 2px; }
+.detection pre { max-height: 320px; overflow: auto; margin: 8px 0 0; padding: 8px; font-size: 0.78rem; background: #F4F6FB; }
+.dark .detection pre { background: #0E1430; }
+
+.status { margin: 8px 0 0; font-size: 0.875rem; color: var(--body-text-color-subdued); }
+.status-busy::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 8px;
+  border: 2px solid #042AFF; border-right-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; }
+.status-error { color: #C4161C; }
+.dark .status-error { color: #FF8A8F; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .status-busy::before { animation: none; } }
+
+/* Primary action: the Ask button inside the question box. */
+#question button {
+  background: #042AFF;
+  color: #FFFFFF;
+  font-weight: 600;
+}
+#question button:hover { background: #0322D6; }
+#new-conversation {
+  align-self: flex-start;
+  flex: none;
+  width: fit-content;
+  min-width: 0;
+}
+#status { min-height: 0; }
+#status .status { margin: 0; }
