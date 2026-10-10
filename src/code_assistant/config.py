@@ -62,6 +62,9 @@ class Settings(BaseSettings):
     retrieval_k: int = 6
     # Vector + keyword search merged with RRF. Off: it improved Hit@1 but not Hit@6 (D24).
     hybrid_search: bool = False
+    # Reranker (OpenRouter `/rerank`) that reorders the top-20 vector + top-20 keyword
+    # candidates: Hit@6 32 -> 37 of 40 questions (D26). Free; empty disables it.
+    rerank_model: str | None = "nvidia/llama-nemotron-rerank-vl-1b-v2:free"
 
     @field_validator("llm_models", mode="before")
     @classmethod

@@ -2,6 +2,7 @@ import pytest
 
 from code_assistant.retrieval import (
     CANDIDATES_PER_RESULT,
+    RERANK_POOL,
     IndexMismatchError,
     Retriever,
     build_filter,
@@ -142,3 +143,40 @@ def test_hybrid_search_adds_keyword_matches_and_degrades_to_vectors():
     assert [
         x.qualified_name for x in Retriever(failing, FakeEmbedder(), hybrid=True).search("nms", k=2)
     ] == ["Semantic.only"]
+
+
+class FakeReranker:
+    def __init__(self, fail=False):
+        self.fail, self.candidates = fail, None
+
+    def rerank(self, query, results):
+        if self.fail:
+            raise RuntimeError("429")
+        self.candidates = [r.qualified_name for r in results]
+        return list(reversed(results))
+
+
+def test_reranker_reorders_vector_and_keyword_candidates():
+    store = HybridStore(
+        [make_doc("A", 0.9), make_doc("B", 0.8)], [make_doc("NMSModel", 3.2), make_doc("A", 1.0)]
+    )
+    reranker = FakeReranker()
+
+    results = Retriever(store, FakeEmbedder(), reranker=reranker).search("nms", k=2)
+
+    assert reranker.candidates == ["A", "B", "NMSModel"]  # deduplicated union
+    assert [r.qualified_name for r in results] == ["NMSModel", "B"]
+    assert store.calls[0]["limit"] == RERANK_POOL * 3  # a larger pool than k
+
+
+def test_reranker_failure_falls_back_to_vector_order_and_can_be_skipped():
+    store = HybridStore([make_doc("A", 0.9), make_doc("B", 0.8)], [make_doc("C", 2.0)])
+    retriever = Retriever(store, FakeEmbedder(), reranker=FakeReranker(fail=True))
+
+    assert [r.qualified_name for r in retriever.search("q", k=2)] == ["A", "B"]
+    assert retriever.rerank_failures == 1
+
+    retriever.reranker = FakeReranker()
+    skipped = retriever.search("q", k=2, rerank=False)
+    assert [r.qualified_name for r in skipped] == ["A", "B"]
+    assert retriever.reranker.candidates is None  # not called

@@ -332,7 +332,7 @@ Every significant design decision, with the alternatives considered and the trad
   - **Cohere sometimes cites as 【4】.** The citation parser now accepts it. No evaluation answer used it, so the metrics are unaffected.
 - **Fallback chain order:** by coverage, one model per provider (Cohere → dots-3 → Laguna). An outage at one provider, like Google's today, doesn't take the assistant down.
 - **What would improve answers most** (measured gaps, not guesses):
-  1. **Retrieval:** in 8 of 40 in-scope questions the relevant code was not among the 6 sources (Hit@6 = 80%), so no model could fully answer them.
+  1. **Retrieval:** in 8 of 40 in-scope questions the relevant code was not among the 6 sources (Hit@6 = 80%), so no model could fully answer them. The reranker (D26) later brought this down to 3.
   2. **Indexing `cfg/`**, so default-value questions have real answers to retrieve.
   3. **A stronger, paid model** for production.
   4. **Prompt work against misreading** (e.g. "a search space is not a default").
@@ -343,7 +343,7 @@ Every significant design decision, with the alternatives considered and the trad
 
 - **What:** an Atlas Search text index (`chunks_text_index`, created and kept in sync by `code-assistant index`) over `qualified_name` (boost 3), `docstring` (boost 2) and `code`. A custom "code" analyzer (whitespace + wordDelimiterGraph + lowercase) splits identifiers, so "nms" matches `agnostic_nms`, `NMSModel` and `self.args.nms`. Vector and keyword lists are merged with **Reciprocal Rank Fusion** (k = 60), which uses ranks only, so cosine and BM25 scales don't matter. If the text search fails, retrieval falls back to vectors only.
 - **Rule fixed before measuring:** keep hybrid only if Hit@6 (what the LLM sees) doesn't drop and Hit@5 or MRR improves.
-- **Result** (40 questions, live Atlas, `eval/results/hybrid.md`):
+- **Result** (40 questions, live Atlas, `eval/results/search.md`):
   - Hit@1: 52.5% → 57.5%.
   - Hit@5: 77.5% → 75.0%.
   - **Hit@6: 80.0% → 77.5%.**
@@ -356,7 +356,7 @@ Every significant design decision, with the alternatives considered and the trad
   - The candidate pool of top-20 vector plus top-20 keyword results (~32 code units) contains the correct code for **38/40** questions, against 32/40 in today's top 6. Retrieval *finds* the code; it ranks it poorly.
   - That makes the keyword side the candidate generator for the next experiment: a reranker.
 
-- **Reranker tried, not adopted:** a cross-encoder (`mixedbread-ai/mxbai-rerank-xsmall-v1`, 71M) reordering the ~32 candidates. On the laptop CPU, loading took 23 s and a single reranked search took over a minute, against a budget of under 2 s. It was stopped before scoring all 40 questions. It remains the natural next step for ranking on a GPU or with a hosted reranker, since the right code is among the candidates for 38/40 questions.
+- **Local reranker tried, not adopted:** a cross-encoder (`mixedbread-ai/mxbai-rerank-xsmall-v1`, 71M) reordering the ~32 candidates. On the laptop CPU, loading took 23 s and a single reranked search took over a minute, against a budget of under 2 s. It was stopped before scoring all 40 questions. It remains the natural next step for ranking on a GPU or with a hosted reranker, since the right code is among the candidates for 38/40 questions. A hosted reranker was adopted in D26.
 
 ## D25. Optional paid model in the chat (free by default)
 
@@ -366,13 +366,47 @@ Every significant design decision, with the alternatives considered and the trad
 - **Robustness:** HTTP 402 (no credits) is no longer fatal: the paid model fails and the free models answer, so the option never breaks the app for someone without credits.
 - **Not measured yet:** running the answer evaluation with the paid model first would cost a few cents and would quantify the gain.
 
+## D26. Hosted reranker, on by default
+
+- **What:** the top 20 vector and top 20 keyword results (~33 distinct code units) are reordered by `nvidia/llama-nemotron-rerank-vl-1b-v2:free` through OpenRouter's `/rerank` endpoint, and the best 6 go to the LLM. Each document sent is `path :: qualified_name` plus the code.
+- **Why hosted:** the local cross-encoder took over a minute per search on CPU (D24). OpenRouter serves rerankers with the same API key, so there's no new account and no extra setup step.
+- **Candidates and cost:** OpenRouter lists 9 rerankers. Three were measured, from one real call each for the price:
+  - NVIDIA nemotron-rerank 1B `:free` ($0);
+  - Voyage rerank-2.5-lite ($0.02 per M tokens, a retrieval specialist);
+  - Qwen3-Reranker-8B ($0.20 per M tokens, open weights).
+
+  Cohere rerank-4-fast was skipped: it costs $0.002 per search, more than Voyage-lite.
+- **Rule fixed before measuring:** adopt only if Hit@6 improves by at least 2 questions and the added latency stays under ~2 s.
+- **Result** (40 questions):
+
+  | | Hit@1 | Hit@6 | MRR@10 | Added latency (median) | Cost of the run |
+  |---|---|---|---|---|---|
+  | Vector only | 21 | 32 | 0.628 | – | – |
+  | **NVIDIA `:free`** | **25** | **37** | 0.738 | 0.5 s | $0 |
+  | Voyage 2.5-lite | 24 | 35 | 0.713 | 0.4 s | $0.011 |
+  | Qwen3-Reranker-8B | 25 | 35 | 0.744 | 1.1 s | $0.13 |
+
+  All three pass the rule. The free one is best on Hit@6 and costs nothing, so it was chosen. The run through the app's code path (`uv run code-assistant eval search` → `eval/results/search.md`) reproduces it: Hit@6 80.0% → **92.5%**, MRR 0.626 → 0.738, 0.68 s median search time.
+- **Per question:**
+  - It fixes 6: `train-plot-augmented`, `data-multi-rtsp`, `data-rtsp-reconnect`, `predict-box-size`, `predict-plot-no-boxes` and `model-sam2-dynamic`.
+  - It loses 1: `val-test-split` (rank 5 → 8).
+  - It cannot fix `train-freeze` and `train-grad-accum`, whose code isn't among the candidates.
+  - 6 wins against 1 loss is a strong signal but not significant at n = 40 (sign test p ≈ 0.12).
+- **Trade-offs:**
+  - Free models allow ~20 requests per minute. The first evaluation run got 429 on 19 of 40 questions, so `eval search` now paces the calls and reports any fallback.
+  - Each chat question uses one more free request.
+  - If the reranker fails, the search falls back to vector order and the question still gets answered. The fallback is logged, not shown in the UI.
+  - The reranker's scores are small (about 0.04 for a good match), but only their order matters. The source labels show them with three decimals.
+- **Opt-out:** `RERANK_MODEL=` (empty) disables it. The chat's "Rerank the sources" checkbox turns it off per question, e.g. to compare both orders in a demo, and `search --no-rerank` does the same in the CLI.
+- **Not re-measured:** the answer evaluation (`eval/results/answers.md`) and `docs/examples.md` were produced with vector-only retrieval.
+
 ---
 
 ## Known limitations (running list)
 
 - **Atlas database user has the Atlas Admin role** (created by Atlas' automated security setup). Acceptable for the assignment. In production: a least-privilege user with `readWrite` on the app database only, and ideally separate credentials for the indexer (write) and the chat app (read).
 - **Retrieval only covers `models/`, `engine/` and `data/`** (assignment scope). Questions about `ultralytics/utils`, `nn` or `cfg` (e.g. default hyperparameters in `default.yaml`, or `EarlyStopping` in `utils/torch_utils.py`) can't be grounded. The assistant must say so rather than guess.
-- **Retrieval misses** on 9/40 evaluation questions (Hit@5 77.5%). The main failure modes are:
+- **Retrieval misses:** vector search alone misses 9/40 evaluation questions at Hit@5 (77.5%); with the reranker (D26), 3/40 miss the top 6. The main failure modes are:
   - logic buried in long methods (`_do_train`, `_setup_train`);
   - a vocabulary gap between user language and API names;
   - near-duplicate model families (SAM2 vs SAM3 predictors).
@@ -385,6 +419,6 @@ Every significant design decision, with the alternatives considered and the trad
 ## Future work (running list)
 
 - **API-served embeddings as an alternative backend.** OpenRouter serves open-source embedding models, e.g. `qwen/qwen3-embedding-8b`: Apache-2.0, 13× larger than our 0.6B, $0.01 per million tokens. Indexing the whole corpus (~500k tokens) would cost about $0.005. This would remove PyTorch and the 1.2 GB model download from the install, and it would index in ~1–2 minutes on any machine. Trade-offs: the account needs paid credits; the provider can't be pinned to a model revision, so vectors may drift; there's a runtime dependency on a third party (we saw upstream 429s on free LLMs); and the code leaves the machine. Not done because the assignment emphasises free tiers and self-contained reproducibility. A pluggable `Embedder` backend would make it a config switch.
-- **Hybrid search (vector + full-text).** Combine `$vectorSearch` with an Atlas Search (BM25) index on code, symbol names and docstrings, fused with reciprocal rank fusion. This targets misses where the question shares rare words with the code (`accumulate`, `freeze`, `RTSP`). It would be measured with the same evaluation before adoption.
+- **Better candidates for logic buried in long methods.** The two questions the reranker can't fix (`train-freeze`, `train-grad-accum`) are answered by a few lines inside `_setup_train` / `_do_train`, which aren't among the vector or keyword candidates. Smaller chunks for long methods, or a short summary per method, are the next things to measure.
 - **A larger, double-labelled evaluation set** (100+ questions mined from issues and discussions), so that differences of a few points become measurable.
 - **Chunk-size experiment for small-context models:** a 2,000-char budget removes bge-small's truncation (32.5% of chunks). Compare against the current 4,000.

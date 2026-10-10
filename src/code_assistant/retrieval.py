@@ -15,6 +15,9 @@ MAX_CANDIDATES = 10_000  # Atlas upper bound
 # Split units can return several parts of the same symbol; fetch extra so that k distinct
 # symbols remain after deduplication.
 OVERFETCH = 3
+# Candidates per list (vector and keyword) given to the reranker. The right code is among
+# them for 38 of 40 evaluation questions (D24).
+RERANK_POOL = 20
 
 
 class IndexMismatchError(RuntimeError):
@@ -106,24 +109,47 @@ class VectorStore(Protocol):
     ) -> list[dict[str, Any]]: ...
 
 
+class ResultReranker(Protocol):
+    def rerank(self, query: str, results: list[SearchResult]) -> list[SearchResult]: ...
+
+
 class Retriever:
-    """Hybrid retrieval: semantic (vectors) + keyword (BM25), merged with Reciprocal Rank Fusion.
+    """Semantic search, optionally combined with keyword search and a reranker.
 
     Vectors capture meaning ("stop training early"); keywords catch exact identifiers that an
-    embedding dilutes ("nms", "rect", "close_mosaic"). If keyword search fails (e.g. the text
-    index doesn't exist yet), results are vector-only.
+    embedding dilutes ("nms", "rect", "close_mosaic"). With a reranker, the top vector and
+    keyword candidates are reordered by a model that reads each (question, code) pair; without
+    one, `hybrid` merges both lists with Reciprocal Rank Fusion. If keyword search or the
+    reranker fails, results fall back to vector order instead of failing the question.
     """
 
-    def __init__(self, store: VectorStore, embedder: QueryEmbedder, hybrid: bool = False) -> None:
+    def __init__(
+        self,
+        store: VectorStore,
+        embedder: QueryEmbedder,
+        hybrid: bool = False,
+        reranker: ResultReranker | None = None,
+    ) -> None:
         self.store = store
         self.embedder = embedder
         self.hybrid = hybrid
+        self.reranker = reranker
+        self.rerank_failures = 0  # fallbacks to vector order (reported by the evaluation)
 
     def search(
-        self, query: str, k: int = 5, filters: dict[str, str] | None = None
+        self,
+        query: str,
+        k: int = 5,
+        filters: dict[str, str] | None = None,
+        rerank: bool = True,
     ) -> list[SearchResult]:
-        """Return the k most relevant distinct code units for a natural-language query."""
-        limit = k * OVERFETCH
+        """Return the k most relevant distinct code units for a natural-language query.
+
+        `rerank=False` skips the reranker for this query (the chat's "Rerank sources" box).
+        """
+        reranker = self.reranker if rerank else None
+        pool = max(k, RERANK_POOL) if reranker else k
+        limit = pool * OVERFETCH
         documents = self.store.vector_search(
             self.embedder.embed_query(query),
             limit=limit,
@@ -131,15 +157,28 @@ class Retriever:
             filters=build_filter(filters),
         )
         semantic = deduplicate([SearchResult.from_document(d) for d in documents], key=_symbol)
-        if not self.hybrid:
+        if not (self.hybrid or reranker):
             return semantic[:k]
-        try:
-            keyword_docs = self.store.text_search(query, limit=limit, filters=filters)
-        except Exception as exc:  # degrade to vector-only rather than fail the question
-            logger.warning("Keyword search failed, using vector search only: %s", exc)
-            return semantic[:k]
-        keyword = deduplicate([SearchResult.from_document(d) for d in keyword_docs], key=_symbol)
+        keyword = self._keyword_search(query, limit, filters)
+        if reranker:
+            candidates = deduplicate(semantic[:pool] + keyword[:pool], key=_symbol)
+            try:
+                return reranker.rerank(query, candidates)[:k]
+            except Exception as exc:
+                self.rerank_failures += 1
+                logger.warning("Reranking failed, using vector order: %s", exc)
+                return semantic[:k]
         return reciprocal_rank_fusion([semantic, keyword])[:k]
+
+    def _keyword_search(
+        self, query: str, limit: int, filters: dict[str, str] | None
+    ) -> list[SearchResult]:
+        try:
+            documents = self.store.text_search(query, limit=limit, filters=filters)
+        except Exception as exc:  # e.g. the text index doesn't exist yet: use vectors only
+            logger.warning("Keyword search failed, using vector search only: %s", exc)
+            return []
+        return deduplicate([SearchResult.from_document(d) for d in documents], key=_symbol)
 
 
 def _symbol(result: SearchResult) -> str:

@@ -14,8 +14,9 @@ class FakeRetriever:
     def __init__(self, results):
         self.results, self.calls = results, []
 
-    def search(self, query, k=5, filters=None):
+    def search(self, query, k=5, filters=None, rerank=True):
         self.calls.append((query, k))
+        self.rerank = rerank
         return self.results[:k]
 
 
@@ -119,3 +120,11 @@ def test_paid_option_uses_the_paid_client_for_rewrite_and_answer():
     assert paid.rewrite_calls == 1 and free.rewrite_calls == 0
     assert retriever.calls[0][0] == "paid query"
     assert paid.messages is not None and free.messages is None
+
+
+def test_rerank_choice_reaches_the_retriever():
+    retriever = FakeRetriever([source("A")])
+
+    list(CodeAssistant(retriever, FakeLLM("x"), tag="v1").ask_stream("q", rerank=False))
+
+    assert retriever.rerank is False

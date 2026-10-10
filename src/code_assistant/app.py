@@ -1,7 +1,7 @@
 """Gradio chat interface.
 
 Design: the code used for an answer is shown the way YOLO draws a detection, as a box with a
-coloured label tab (symbol name and similarity score, like class name and confidence),
+coloured label tab (symbol name and relevance score, like class name and confidence),
 using Ultralytics' own annotation palette. Each [n] citation in the answer is a link to the
 exact lines on GitHub, coloured like its source box.
 
@@ -133,7 +133,7 @@ def render_sources(
             f'--label-ink: {label_text_color(color)}">'
             f'<header class="detection-label"><span>[{number}] '
             f"{html.escape(source.qualified_name)}</span>"
-            f'<span class="detection-score">{source.score:.2f}</span></header>'
+            f'<span class="detection-score">{source.score:.3f}</span></header>'
             f'<p class="detection-meta"><span class="detection-path">'
             f"{html.escape(source.path)}, lines {source.start_line}–{source.end_line}{part}."
             f'</span> <a href="{html.escape(source.github_url)}" target="_blank" '
@@ -150,7 +150,7 @@ def render_sources(
             else "The answer doesn't cite any of the retrieved code."
         )
     else:
-        note = "Retrieved code, ranked by similarity to your question."
+        note = "Retrieved code, most relevant first."
     return f'<p class="sources-note">{note}</p>' + "".join(boxes)
 
 
@@ -211,6 +211,7 @@ def respond(
     folder: str | None,
     task: str | None,
     use_paid: bool = False,
+    rerank: bool = True,
 ) -> Iterator[tuple[str, Chat, list[dict[str, str]], str, str]]:
     """Stream (textbox, chat, history, sources HTML, status HTML) updates for one question.
 
@@ -232,7 +233,7 @@ def respond(
     filters = build_filters(folder, task)
     try:
         for event in assistant.ask_stream(
-            question, history=history, filters=filters, use_paid=use_paid
+            question, history=history, filters=filters, use_paid=use_paid, rerank=rerank
         ):
             if isinstance(event, Answer):
                 chat[-1] = {"role": "assistant", "content": render_answer(event.text, sources)}
@@ -323,6 +324,13 @@ def build_app(assistant: CodeAssistant, tag: str, tasks: Sequence[str]) -> gr.Bl
                     visible=bool(paid_model),
                     elem_id="use-paid",
                 )
+                rerank_model = getattr(assistant.retriever.reranker, "model", "")
+                use_rerank = gr.Checkbox(
+                    bool(rerank_model),
+                    label=f"Rerank the sources with {rerank_model}",
+                    visible=bool(rerank_model),
+                    elem_id="use-rerank",
+                )
                 with gr.Row(elem_id="examples"):
                     example_buttons = [
                         (gr.Button(label, size="sm", variant="secondary"), question)
@@ -345,12 +353,16 @@ def build_app(assistant: CodeAssistant, tag: str, tasks: Sequence[str]) -> gr.Bl
 
         outputs = [textbox, chatbot, history, sources_html, status_html]
 
-        def handle(message, chat, hist, folder_value, task_value, paid):
-            yield from respond(assistant, message, chat, hist, folder_value, task_value, paid)
+        def handle(message, chat, hist, folder_value, task_value, paid, rerank):
+            yield from respond(
+                assistant, message, chat, hist, folder_value, task_value, paid, rerank
+            )
 
         def ask_example(question: str):
-            def handler(chat, hist, folder_value, task_value, paid):
-                yield from respond(assistant, question, chat, hist, folder_value, task_value, paid)
+            def handler(chat, hist, folder_value, task_value, paid, rerank):
+                yield from respond(
+                    assistant, question, chat, hist, folder_value, task_value, paid, rerank
+                )
 
             return handler
 
@@ -366,12 +378,14 @@ def build_app(assistant: CodeAssistant, tag: str, tasks: Sequence[str]) -> gr.Bl
             return [gr.update(interactive=True)] * len(controls)
 
         answering = [textbox.submit(lock, None, controls, queue=False).then(
-            handle, [textbox, chatbot, history, folder, task, use_paid], outputs
+            handle, [textbox, chatbot, history, folder, task, use_paid, use_rerank], outputs
         )]  # fmt: skip
         for button, question in example_buttons:
             answering.append(
                 button.click(lock, None, controls, queue=False).then(
-                    ask_example(question), [chatbot, history, folder, task, use_paid], outputs
+                    ask_example(question),
+                    [chatbot, history, folder, task, use_paid, use_rerank],
+                    outputs,
                 )
             )
         for event in answering:

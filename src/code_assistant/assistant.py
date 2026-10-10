@@ -45,8 +45,10 @@ class CodeAssistant:
         self.tag = tag
         self.k = k
 
-    def retrieve(self, question: str, filters: dict[str, str] | None = None) -> list[SearchResult]:
-        return self.retriever.search(question, k=self.k, filters=filters)
+    def retrieve(
+        self, question: str, filters: dict[str, str] | None = None, rerank: bool = True
+    ) -> list[SearchResult]:
+        return self.retriever.search(question, k=self.k, filters=filters, rerank=rerank)
 
     def _client(self, use_paid: bool) -> OpenRouterClient:
         return self.paid_llm if use_paid and self.paid_llm else self.llm
@@ -85,10 +87,11 @@ class CodeAssistant:
         history: Sequence[Message] = (),
         filters: dict[str, str] | None = None,
         use_paid: bool = False,
+        rerank: bool = True,
     ) -> Iterator[list[SearchResult] | str | Answer]:
         """Yield the retrieved sources first, then text deltas, then the final `Answer`."""
         query = self.search_query(question, history, use_paid)
-        sources = self.retrieve(query, filters)
+        sources = self.retrieve(query, filters, rerank)
         yield sources
         llm = self._client(use_paid)
         for event in llm.stream(build_messages(question, sources, self.tag, history)):
