@@ -93,6 +93,14 @@ You don't need to create the vector search index by hand. The indexing command c
 
 ## Usage
 
+**Chat in the browser:**
+
+```bash
+uv run code-assistant app        # then open http://127.0.0.1:7860
+```
+
+Answers stream as they are generated. Each `[n]` citation links to the exact lines on GitHub and is coloured like its source in the side panel, where the retrieved code is drawn the way YOLO draws detections. Follow-up questions keep the conversation context.
+
 **Ask a question** (retrieval + LLM answer, streamed, with cited sources):
 
 ```bash

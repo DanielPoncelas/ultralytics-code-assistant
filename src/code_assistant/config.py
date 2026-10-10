@@ -52,7 +52,9 @@ class Settings(BaseSettings):
     # Includes the hidden reasoning tokens of reasoning models (e.g. Cohere North), which
     # truncated some answers at 2,000 in the evaluation.
     llm_max_tokens: int = 4000
-    llm_timeout_s: float = 90.0
+    llm_timeout_s: float = 90.0  # batch use (evaluation)
+    # Interactive use (CLI, chat UI): give up on a silent model sooner and fall back.
+    llm_interactive_timeout_s: float = 30.0
     # Chunks given to the LLM: Hit@k plateaus at 6 (80%) in the retrieval evaluation.
     retrieval_k: int = 6
 

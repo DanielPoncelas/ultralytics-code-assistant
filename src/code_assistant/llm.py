@@ -95,8 +95,13 @@ class OpenRouterClient:
 
     @classmethod
     def from_settings(
-        cls, settings: "Settings", models: Sequence[str] | None = None, max_retries: int = 0
+        cls,
+        settings: "Settings",
+        models: Sequence[str] | None = None,
+        max_retries: int = 0,
+        interactive: bool = False,
     ) -> "OpenRouterClient":
+        timeout = settings.llm_interactive_timeout_s if interactive else settings.llm_timeout_s
         return cls(
             max_retries=max_retries,
             api_key=settings.openrouter_api_key.get_secret_value(),
@@ -104,7 +109,7 @@ class OpenRouterClient:
             base_url=settings.openrouter_base_url,
             temperature=settings.llm_temperature,
             max_tokens=settings.llm_max_tokens,
-            timeout_s=settings.llm_timeout_s,
+            timeout_s=timeout,
         )
 
     def close(self) -> None:

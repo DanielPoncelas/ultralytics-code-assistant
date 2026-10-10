@@ -143,10 +143,56 @@ def build_assistant(settings, models: list[str] | None = None):
     retriever = Retriever(
         store, Embedder(settings.embedding_model, device=settings.embedding_device)
     )
-    llm = OpenRouterClient.from_settings(settings, models=models)
+    llm = OpenRouterClient.from_settings(settings, models=models, interactive=True)
     return CodeAssistant(
         retriever, llm, tag=settings.ultralytics_tag, k=settings.retrieval_k
     ), store
+
+
+@app.command(name="app")
+def run_app(
+    host: Annotated[
+        str, typer.Option(help="Interface to bind (0.0.0.0 for the network).")
+    ] = "127.0.0.1",
+    port: Annotated[int, typer.Option(help="Port to serve on.")] = 7860,
+    share: Annotated[bool, typer.Option(help="Create a temporary public Gradio link.")] = False,
+) -> None:
+    """Start the chat interface in the browser."""
+    import logging
+    import os
+
+    # Gradio sends usage analytics by default; a local tool doesn't need to.
+    os.environ.setdefault("GRADIO_ANALYTICS_ENABLED", "False")
+    from code_assistant.app import CSS, THEME, build_app
+    from code_assistant.retrieval import IndexMismatchError
+
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+    for noisy in ("httpx", "sentence_transformers"):  # one log line per HTTP request otherwise
+        logging.getLogger(noisy).setLevel(logging.WARNING)
+    settings = get_settings()
+    typer.echo("Loading the embedding model and connecting to Atlas ...")
+    try:
+        assistant, store = build_assistant(settings)
+    except IndexMismatchError as exc:
+        typer.echo(f"{FAIL} {exc}")
+        raise typer.Exit(code=1) from exc
+    try:
+        assistant.retriever.embedder.embed_query(
+            "warm-up"
+        )  # load the model before the first question
+        tasks = sorted(t for t in store.collection.distinct("task") if t)
+        demo = build_app(assistant, settings.ultralytics_tag, tasks)
+        typer.echo(f"{OK} Ready. Models (fallback order): {', '.join(settings.llm_models)}")
+        demo.launch(
+            server_name=host,
+            server_port=port,
+            share=share,
+            theme=THEME,
+            css=CSS,
+            footer_links=[],
+        )
+    finally:
+        store.close()
 
 
 @app.command()
