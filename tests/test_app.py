@@ -149,8 +149,10 @@ class FakeAssistant:
     def __init__(self, events=None, error=None):
         self.events, self.error, self.calls = events or [], error, []
 
-    def ask_stream(self, question, history=(), filters=None, use_paid=False, rerank=True):
-        self.calls.append((question, list(history), filters, rerank))
+    def ask_stream(
+        self, question, history=(), filters=None, use_paid=False, rerank=True, embedding_model=None
+    ):
+        self.calls.append((question, list(history), filters, rerank, embedding_model))
         yield from self.events
         if self.error:
             raise self.error
@@ -277,3 +279,21 @@ def test_respond_passes_the_rerank_choice():
     run(assistant, rerank=False)
 
     assert assistant.calls[0][3] is False
+
+
+def test_respond_passes_the_embedding_model_choice():
+    assistant = FakeAssistant([SOURCES, answer()])
+
+    list(respond(assistant, "How?", [], [], "Any", "Any", False, True, "qwen/qwen3-embedding-8b"))
+
+    assert assistant.calls[0][4] == "qwen/qwen3-embedding-8b"
+
+
+def test_respond_explains_an_embedding_failure():
+    from code_assistant.embeddings import EmbeddingError
+
+    assistant = FakeAssistant(error=EmbeddingError("qwen/x needs OpenRouter credits (HTTP 402)."))
+
+    *_, last = run(assistant)
+
+    assert "needs OpenRouter credits" in last[4] and "other embedding model" in last[4]

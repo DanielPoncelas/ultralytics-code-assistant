@@ -67,7 +67,10 @@ def check() -> None:
 @app.command()
 def index(
     model: Annotated[
-        str | None, typer.Option(help="Embedding model (default: EMBEDDING_MODEL setting).")
+        str | None,
+        typer.Option(
+            help="Embedding model (default: EMBEDDING_MODEL, then ALT_EMBEDDING_MODEL if set)."
+        ),
     ] = None,
     upload: Annotated[
         bool, typer.Option(help="Upload to Atlas. --no-upload only computes and caches vectors.")
@@ -76,14 +79,18 @@ def index(
     """Fetch the pinned Ultralytics source, chunk it, embed it and store it in Atlas."""
     from code_assistant.indexing.pipeline import run_indexing  # heavy imports (torch)
 
-    report = run_indexing(get_settings(), model_name=model, upload=upload, log=typer.echo)
-    summary = (
-        f"{report.chunks} chunks from {report.files} files "
-        f"({report.dimensions}-d vectors) in {report.seconds:.0f}s"
-    )
-    if upload:
-        summary += f": {report.upserted} new, {report.modified} updated, {report.deleted} removed"
-    typer.echo(f"{OK} Indexed {summary}.")
+    settings = get_settings()
+    for name in [model] if model else settings.indexed_models:
+        report = run_indexing(settings, model_name=name, upload=upload, log=typer.echo)
+        summary = (
+            f"{report.chunks} chunks from {report.files} files "
+            f"({report.dimensions}-d vectors) in {report.seconds:.0f}s"
+        )
+        if upload:
+            summary += (
+                f": {report.upserted} new, {report.modified} updated, {report.deleted} removed"
+            )
+        typer.echo(f"{OK} Indexed {name}: {summary}.")
 
 
 @app.command()
@@ -162,14 +169,26 @@ def build_assistant(settings, models: list[str] | None = None):
     except Exception:
         store.close()  # don't leak the Mongo client when setup fails
         raise
-    retriever = Retriever(
-        store,
-        embedder,
-        hybrid=settings.hybrid_search,
-        reranker=OpenRouterReranker.from_settings(settings),
-    )
+    reranker = OpenRouterReranker.from_settings(settings)
+    retriever = Retriever(store, embedder, hybrid=settings.hybrid_search, reranker=reranker)
+    alt_retriever = None
+    alt = settings.alt_embedding_model
+    if alt and alt != settings.embedding_model:
+        alt_store = ChunkStore.from_settings(settings, alt, client=store.client)
+        if alt_store.indexed_model() == alt:
+            alt_embedder = Embedder(alt, device=settings.embedding_device)
+            alt_retriever = Retriever(
+                alt_store, alt_embedder, hybrid=settings.hybrid_search, reranker=reranker
+            )
+        else:
+            typer.echo(f"{FAIL} {alt} is not indexed (run `code-assistant index`); not offered.")
     return CodeAssistant(
-        retriever, llm, tag=settings.ultralytics_tag, k=settings.retrieval_k, paid_llm=paid_llm
+        retriever,
+        llm,
+        tag=settings.ultralytics_tag,
+        k=settings.retrieval_k,
+        paid_llm=paid_llm,
+        alt_retriever=alt_retriever,
     ), store
 
 
@@ -358,7 +377,9 @@ def examples(
 def eval_retrieval(
     models: Annotated[
         list[str] | None,
-        typer.Option("--model", help="Model(s) to evaluate (repeatable). Default: all candidates."),
+        typer.Option(
+            "--model", help="Model(s) to evaluate (repeatable). Default: the four local candidates."
+        ),
     ] = None,
     questions: Annotated[Path, typer.Option(help="Question file.")] = Path("eval/questions.toml"),
     output: Annotated[Path, typer.Option(help="Report directory.")] = Path("eval/results"),
@@ -367,12 +388,12 @@ def eval_retrieval(
     ] = True,
 ) -> None:
     """Score embedding models on the labelled questions and apply the selection rule."""
-    from code_assistant.embeddings import EMBEDDING_MODELS
+    from code_assistant.embeddings import LOCAL_MODELS
     from code_assistant.evaluation.runner import run_retrieval_evaluation
 
     evaluation = run_retrieval_evaluation(
         get_settings(),
-        models or list(EMBEDDING_MODELS),
+        models or LOCAL_MODELS,
         questions,
         output,
         check_atlas=atlas,
@@ -520,9 +541,23 @@ def eval_search(
             "(~40 free requests per strategy; writes facts.jsonl and a blind review sheet)."
         ),
     ] = False,
+    embedding_model: Annotated[
+        str | None,
+        typer.Option(
+            help="Evaluate another embedding model from its saved vectors (exact search) "
+            "instead of the deployed Atlas index."
+        ),
+    ] = None,
 ) -> None:
-    """Compare vector, hybrid and reranked retrieval on Atlas."""
+    """Compare vector, hybrid and reranked retrieval."""
     from code_assistant.evaluation.search_eval import run_search_evaluation
 
-    run_search_evaluation(get_settings(), questions, output, with_facts=facts, log=typer.echo)
+    run_search_evaluation(
+        get_settings(),
+        questions,
+        output,
+        with_facts=facts,
+        embedding_model=embedding_model,
+        log=typer.echo,
+    )
     typer.echo(f"{OK} Report: {output}")

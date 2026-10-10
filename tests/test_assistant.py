@@ -128,3 +128,19 @@ def test_rerank_choice_reaches_the_retriever():
     list(CodeAssistant(retriever, FakeLLM("x"), tag="v1").ask_stream("q", rerank=False))
 
     assert retriever.rerank is False
+
+
+class NamedRetriever(FakeRetriever):
+    def __init__(self, results, name):
+        super().__init__(results)
+        self.embedder = type("E", (), {"spec": type("S", (), {"name": name})})()
+
+
+def test_the_selected_embedding_model_picks_its_retriever():
+    main, alt = NamedRetriever([source("A")], "bge"), NamedRetriever([source("B")], "qwen")
+    assistant = CodeAssistant(main, FakeLLM("x"), tag="v1", alt_retriever=alt)
+
+    assert assistant.embedding_models == ["bge", "qwen"]
+    assert assistant.retrieve("q", embedding_model="qwen")[0].qualified_name == "B"
+    assert assistant.retrieve("q", embedding_model="unknown")[0].qualified_name == "A"
+    assert assistant.retrieve("q")[0].qualified_name == "A"

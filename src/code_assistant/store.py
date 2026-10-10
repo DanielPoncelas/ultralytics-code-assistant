@@ -56,18 +56,34 @@ class SyncResult:
 
 
 class ChunkStore:
-    def __init__(self, uri: str, database: str, collection: str, index_name: str) -> None:
-        self._client: MongoClient = MongoClient(uri)
-        self.collection = self._client[database][collection]
+    def __init__(
+        self,
+        uri: str,
+        database: str,
+        collection: str,
+        index_name: str,
+        text_collection: str | None = None,
+        client: MongoClient | None = None,
+    ) -> None:
+        self.client: MongoClient = client or MongoClient(uri)
+        self.collection = self.client[database][collection]
+        # Keyword search may use another collection's text index: a second embedding model's
+        # collection holds the same chunks, and M0 clusters allow only 3 search indexes.
+        self.text_collection = self.client[database][text_collection or collection]
         self.index_name = index_name
 
     @classmethod
-    def from_settings(cls, settings: "Settings") -> "ChunkStore":
+    def from_settings(
+        cls, settings: "Settings", model: str | None = None, client: MongoClient | None = None
+    ) -> "ChunkStore":
+        """The collection of `model` (default EMBEDDING_MODEL); `client` shares a connection."""
         return cls(
             settings.mongodb_uri.get_secret_value(),
             settings.mongodb_database,
-            settings.mongodb_collection,
+            settings.collection_for(model or settings.embedding_model),
             settings.vector_index_name,
+            text_collection=settings.mongodb_collection,
+            client=client,
         )
 
     def __enter__(self) -> "ChunkStore":
@@ -77,7 +93,7 @@ class ChunkStore:
         self.close()
 
     def close(self) -> None:
-        self._client.close()
+        self.client.close()
 
     def vector_search(
         self,
@@ -147,7 +163,7 @@ class ChunkStore:
             {"$set": {"score": {"$meta": "searchScore"}}},
             {"$unset": EMBEDDING_FIELD},
         ]
-        return list(self.collection.aggregate(pipeline))
+        return list(self.text_collection.aggregate(pipeline))
 
     def ensure_vector_index(self, dimensions: int) -> str:
         return self._ensure_index(

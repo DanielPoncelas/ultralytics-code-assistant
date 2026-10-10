@@ -38,6 +38,9 @@ class Settings(BaseSettings):
     embedding_model: str = "BAAI/bge-small-en-v1.5"
     # "cuda", "mps" or "cpu". Empty = auto-detect the fastest available device.
     embedding_device: str | None = None
+    # Second model, selectable in the chat (D28): Qwen3-Embedding-8B served by OpenRouter
+    # (needs a few cents of credit). Stored in its own collection. Empty disables it.
+    alt_embedding_model: str | None = "qwen/qwen3-embedding-8b"
 
     # OpenRouter endpoint.
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
@@ -68,6 +71,18 @@ class Settings(BaseSettings):
     # Reranker (OpenRouter `/rerank`) that reorders the top-20 vector + top-20 keyword
     # candidates: Hit@6 32 -> 37 of 40 questions (D26). Free; empty disables it.
     rerank_model: str | None = "nvidia/llama-nemotron-rerank-vl-1b-v2:free"
+
+    def collection_for(self, model: str) -> str:
+        """EMBEDDING_MODEL uses MONGODB_COLLECTION; any other model gets its own collection."""
+        if model == self.embedding_model:
+            return self.mongodb_collection
+        return f"{self.mongodb_collection}_{model.split('/')[-1].replace(':', '_')}"
+
+    @property
+    def indexed_models(self) -> list[str]:
+        """Models `index` uploads: the main one, then the one selectable in the chat."""
+        alt = self.alt_embedding_model
+        return [self.embedding_model, *([alt] if alt and alt != self.embedding_model else [])]
 
     @field_validator("llm_models", mode="before")
     @classmethod

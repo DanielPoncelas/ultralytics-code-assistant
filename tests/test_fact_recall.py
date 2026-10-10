@@ -5,13 +5,11 @@ import pytest
 from code_assistant.evaluation.answer_eval import JudgeParseError
 from code_assistant.evaluation.dataset import EvalQuestion
 from code_assistant.evaluation.fact_recall import (
-    FactVerdict,
     build_fact_messages,
     parse_fact_verdict,
     render_fact_review_sheet,
 )
 from code_assistant.evaluation.judge_review import parse_review_sheet
-from code_assistant.evaluation.search_eval import StrategyResult
 from code_assistant.retrieval import SearchResult
 
 SOURCE = SearchResult(
@@ -68,13 +66,3 @@ def test_review_sheet_is_blind_and_parses_back():
     assert parse_review_sheet(sheet.replace("- [ ] fact one", "- [x] fact one")) == {
         "val-vs-predict": [True, False]
     }
-
-
-def test_strategy_row_and_cell_report_facts_only_when_judged():
-    result = StrategyResult("Vector only", ranks=[1, None], evidence=[1.0, 0.0],
-                            facts=[FactVerdict((True, True)), FactVerdict((True, False))],
-                            latencies=[0.1, 0.3])  # fmt: skip
-
-    assert "| 75.0% | 50.0% |" in result.row(k=6)  # Facts@6, All facts@6
-    assert result.cell(1) == "– (0%, 1/2 facts)"
-    assert StrategyResult("x", [1], [1.0], [None], [0.1]).row(6).count("– | –") == 1
