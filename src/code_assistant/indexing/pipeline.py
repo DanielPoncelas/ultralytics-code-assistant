@@ -117,7 +117,7 @@ def embed_chunks(
     texts = [c.embedding_text() for c in chunks]
     ids = [c.id for c in chunks]
     path = embedding_cache.cache_path(
-        settings.cache_dir, embedder.spec, embedding_cache.fingerprint(texts, embedder.spec)
+        settings.embeddings_dir, embedder.spec, embedding_cache.fingerprint(texts, embedder.spec)
     )
     vectors = embedding_cache.load(path, ids)
     if vectors is not None:

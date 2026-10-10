@@ -134,13 +134,13 @@ Every significant design decision, with the alternatives considered and the trad
 
 ## D14. On-disk embedding cache (doubles as a shareable snapshot)
 
-- **Decision:** after embedding, vectors are saved to `.cache/embeddings/<model>-<fingerprint>.npz`. The fingerprint hashes every embedded text plus the model name and revision, and the chunk ids are stored and checked on load.
+- **Decision:** after embedding, vectors are saved to `embeddings/<model>-<fingerprint>.npz`. The fingerprint hashes every embedded text plus the model name and revision, and the chunk ids are stored and checked on load.
 - **Why:** embedding is the only slow step. With the cache:
   - re-indexing is instant;
   - several models can be compared offline (`index --model X --no-upload`) without recomputing;
-  - the file can be published (e.g. as a GitHub Release asset) so that people without a GPU skip the step.
+  - the files are committed to the repo (`embeddings/`, ~11 MB for the four candidates), so people without a GPU skip the step. They're small enough for plain git (no LFS or release download), and the fingerprint means a stale file is never used: if the chunks change, the vectors are recomputed.
 - **Correctness:** any change to the source, the chunker or the model changes the fingerprint, so a stale cache can't be used by mistake (covered by tests).
-- **Size:** ~1,500 × 1,024 float32 ≈ 6 MB per model.
+- **Size:** 1,532 chunks, compressed: 1.4 MB (bge-small, 384 dimensions) to 3.7 MB (Qwen3-0.6B, 1,024 dimensions).
 
 ## D15. Atlas storage: idempotent upsert + vector index created from code
 
