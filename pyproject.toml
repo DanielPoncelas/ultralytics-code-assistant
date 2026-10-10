@@ -9,6 +9,8 @@ dependencies = [
     "httpx>=0.28.1",
     "pydantic-settings>=2.15.0",
     "pymongo>=4.18.3",
+    "sentence-transformers>=6.1.0",
+    "torch>=2.14.1",
     "typer>=0.27.3",
 ]
 
@@ -27,6 +29,16 @@ build-backend = "uv_build"
 
 [tool.uv]
 required-version = ">=0.13.0"
+
+# CPU-only PyTorch: ~200 MB instead of multi-GB CUDA wheels, and runs on any machine.
+# Embedding is a one-off indexing job plus one short query per question, so a GPU is not needed.
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu" }]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
 
 [tool.ruff]
 line-length = 100
