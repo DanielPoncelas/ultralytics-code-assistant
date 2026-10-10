@@ -104,6 +104,7 @@ def retry_failed_answers(
     questions_path: Path,
     output_dir: Path,
     judge_model: str = JUDGE_MODEL,
+    models: Sequence[str] | None = None,
     log: Callable[[str], None] = print,
 ) -> AnswerEvaluation:
     """Re-run only the answers that failed (transient provider/judge errors) and re-report.
@@ -114,14 +115,18 @@ def retry_failed_answers(
     jsonl_path = output_dir / "answers.jsonl"
     records = [record_from_dict(json.loads(line)) for line in jsonl_path.read_text().splitlines()]
     by_id = {q.id: q for q in load_questions(questions_path)}
-    failed = [r for r in records if r.error]
+
+    def should_retry(record: AnswerRecord) -> bool:
+        return bool(record.error) and (not models or record.model in models)
+
+    failed = [r for r in records if should_retry(r)]
     log(f"Retrying {len(failed)} failed answers ...")
     sources = _retrieve_all(settings, [by_id[qid] for qid in {r.question_id for r in failed}], log)
     throttle = Throttle(MIN_SECONDS_BETWEEN_REQUESTS)
     judge = OpenRouterClient.from_settings(settings, models=[judge_model], max_retries=4)
     judge.max_tokens = JUDGE_MAX_TOKENS
     for index, record in enumerate(records):
-        if not record.error:
+        if not should_retry(record):
             continue
         llm = OpenRouterClient.from_settings(settings, models=[record.model], max_retries=4)
         q = by_id[record.question_id]

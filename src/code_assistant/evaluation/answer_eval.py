@@ -25,6 +25,9 @@ JUDGE_MODEL = "nvidia/nemotron-3-super-120b-a12b:free"
 # Pre-registered LLM selection rule (see choose_llm).
 COVERAGE_TIE_MARGIN = 0.05
 MIN_OOS_REFUSAL = 0.5
+# Added after the first run, when one free candidate was rate-limited upstream for most of it:
+# a model that couldn't answer most questions is reported as unavailable, not ranked.
+MAX_ERROR_RATE = 0.5
 
 JUDGE_SYSTEM_PROMPT = """\
 You are a strict, fair grader of answers produced by a code assistant for the Ultralytics \
@@ -188,15 +191,17 @@ def choose_llm(results: Sequence[LLMResult]) -> tuple[LLMResult, str]:
     2. Among the rest, the best key-fact coverage wins; within 5 points of the best, prefer
        the more grounded model (fewer unsupported claims), then the faster one.
     """
+    available = [r for r in results if r.errors <= MAX_ERROR_RATE * len(r.records)]
+    unavailable = sorted(r.model for r in results if r not in available)
     eligible = [
-        r for r in results if r.oos_refusal_rate is None or r.oos_refusal_rate >= MIN_OOS_REFUSAL
+        r for r in available if r.oos_refusal_rate is None or r.oos_refusal_rate >= MIN_OOS_REFUSAL
     ]
     if not eligible:
         raise ValueError("No model meets the out-of-scope refusal requirement")
     best = max(eligible, key=lambda r: r.coverage)
     close = [r for r in eligible if best.coverage - r.coverage <= COVERAGE_TIE_MARGIN + 1e-9]
     chosen = max(close, key=lambda r: (r.grounded_rate, -r.median_latency_s))
-    excluded = sorted(r.model for r in results if r not in eligible)
+    excluded = sorted(r.model for r in available if r not in eligible)
     reason = (
         f"{chosen.model}: key-fact coverage {chosen.coverage:.1%}, "
         f"grounded {chosen.grounded_rate:.1%}."
@@ -210,4 +215,6 @@ def choose_llm(results: Sequence[LLMResult]) -> tuple[LLMResult, str]:
         reason += (
             f" Ineligible (refused < {MIN_OOS_REFUSAL:.0%} of out-of-scope questions): {excluded}."
         )
+    if unavailable:
+        reason += f" Unavailable (failed > {MAX_ERROR_RATE:.0%} of requests): {unavailable}."
     return chosen, reason

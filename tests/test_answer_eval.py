@@ -123,3 +123,13 @@ def test_answer_record_round_trips_through_json():
     assert record_from_dict(json.loads(json.dumps(asdict(original)))) == original
     failed = record("q", verdict=False)
     assert record_from_dict(json.loads(json.dumps(asdict(failed)))) == failed
+
+
+def test_choose_llm_reports_mostly_failing_models_as_unavailable():
+    working = LLMResult("working", [record(covered=(False,)), record(covered=(True,))])
+    blocked = LLMResult("blocked", [record(verdict=False), record(verdict=False), record()])
+
+    chosen, reason = choose_llm([working, blocked])
+
+    assert chosen is working
+    assert "Unavailable" in reason and "blocked" in reason

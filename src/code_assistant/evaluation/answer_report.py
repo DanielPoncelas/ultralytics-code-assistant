@@ -6,6 +6,7 @@ from datetime import date
 from code_assistant.config import Settings
 from code_assistant.evaluation.answer_eval import (
     COVERAGE_TIE_MARGIN,
+    MAX_ERROR_RATE,
     MIN_OOS_REFUSAL,
     AnswerRecord,
     LLMResult,
@@ -76,7 +77,9 @@ def render_answers_markdown(
         "",
         "## Decision",
         "",
-        f"Rule (fixed before running): models that decline fewer than {MIN_OOS_REFUSAL:.0%} of "
+        f"Rule (fixed before running; the availability clause was added after the first run): "
+        f"models that failed more than {MAX_ERROR_RATE:.0%} of requests are reported as "
+        f"unavailable; models that decline fewer than {MIN_OOS_REFUSAL:.0%} of "
         "out-of-scope questions are ineligible. Among the rest, the best coverage wins; within "
         f"{COVERAGE_TIE_MARGIN:.0%} of it, the more grounded model wins, then the faster one.",
         "",

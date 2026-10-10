@@ -264,7 +264,12 @@ def eval_answers(
     settings = get_settings()
     if retry_failed:
         evaluation = retry_failed_answers(
-            settings, questions, output, judge_model=judge or JUDGE_MODEL, log=typer.echo
+            settings,
+            questions,
+            output,
+            judge_model=judge or JUDGE_MODEL,
+            models=models,
+            log=typer.echo,
         )
         typer.echo(f"{OK} Chosen LLM: {evaluation.chosen.model}. {evaluation.reason}")
         typer.echo(f"{OK} Report: {evaluation.markdown_path}")
