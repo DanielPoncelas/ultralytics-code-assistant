@@ -166,7 +166,7 @@ def run_app(
 
     # Gradio sends usage analytics by default; a local tool doesn't need to.
     os.environ.setdefault("GRADIO_ANALYTICS_ENABLED", "False")
-    from code_assistant.app import CSS, THEME, build_app
+    from code_assistant.app import CSS, FORCE_LIGHT, THEME, build_app
     from code_assistant.retrieval import IndexMismatchError
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
@@ -192,6 +192,7 @@ def run_app(
             share=share,
             theme=THEME,
             css=CSS,
+            head=FORCE_LIGHT,
             footer_links=[],
         )
     finally:

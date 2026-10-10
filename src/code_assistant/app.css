@@ -1,19 +1,61 @@
-#masthead { gap: 0; padding: 8px 4px 4px; }
-#masthead h1 { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.02em; margin: 0; }
-#masthead p { margin: 4px 0 0; max-width: 72ch; color: var(--body-text-color-subdued); }
-#masthead .scope { font-size: 0.875rem; }
-#sources-column h2 { font-size: 1rem; font-weight: 600; margin: 4px 0 8px; }
+/* Layout ------------------------------------------------------------------------------ */
+.gradio-container { max-width: 1240px !important; margin: 0 auto !important; }
+#workspace { gap: 20px; }
 
-.chat-empty { text-align: center; color: var(--body-text-color-subdued); }
+/* Header */
+#masthead { gap: 0; padding: 28px 4px 12px; background: none; border: none; box-shadow: none; }
+#masthead .brand { display: flex; align-items: center; gap: 12px; }
+#masthead .brand-mark {
+  /* A detection box: four corner brackets, the visual motif of the sources panel. */
+  width: 30px; height: 30px; border-radius: 9px; background: #042AFF;
+  box-shadow: inset 0 0 0 7px #042AFF, inset 0 0 0 9px #FFFFFF;
+}
+#masthead h1 { margin: 0; font-size: 1.6rem; font-weight: 700; letter-spacing: -0.025em; color: #1A1D2B; }
+#masthead p { margin: 8px 0 0; max-width: 70ch; color: #6B7084; font-size: 0.98rem; }
+#masthead .scope { margin-top: 4px; font-size: 0.85rem; color: #8A8FA3; }
+
+/* Chat ---------------------------------------------------------------------------------- */
+#answer-chat { border-radius: 20px !important; }
+.chat-empty { text-align: center; color: #6B7084; }
 .chat-empty p { margin: 4px 0; }
-#examples { flex-wrap: wrap; gap: 6px; }
-#examples button { flex: 0 0 auto; min-width: 0; }
+#answer-chat .message { border-radius: 16px !important; }
 
-/* Citations: [n] links coloured like source n (marker added by citation_url). */
+/* Question box: pill input with the Ask button inside */
+#question { border-radius: 999px !important; padding: 4px 6px 4px 14px !important; }
+#question textarea { box-shadow: none !important; border: none !important; }
+#question button {
+  border-radius: 999px !important; padding: 0 20px !important;
+  background: #042AFF !important; color: #FFFFFF !important; font-weight: 600;
+}
+#question button:hover { background: #2A47FF !important; }
+
+/* Example chips */
+#examples { flex-wrap: wrap; gap: 8px; background: none; border: none; box-shadow: none; }
+#examples button {
+  flex: 0 0 auto; min-width: 0; border-radius: 999px !important; padding: 6px 14px !important;
+  background: #EEF1FF !important; color: #2233C9 !important; border: 1px solid #DFE4FF !important;
+  font-weight: 500;
+}
+#examples button:hover { background: #DFE4FF !important; }
+#filters { border-radius: 16px !important; }
+#new-conversation { align-self: flex-start; flex: none; width: fit-content; min-width: 0; }
+
+/* Status line */
+#status { min-height: 0; padding: 0 4px !important; background: none !important; border: 0 !important; box-shadow: none !important; }
+.status { margin: 0; font-size: 0.85rem; color: #6B7084; }
+.status-busy::before {
+  content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 8px; vertical-align: 1px;
+  border: 2px solid #042AFF; border-right-color: transparent; border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+.status-error { color: #C4161C; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .status-busy::before { animation: none; } }
+
+/* Citations: [n] pills coloured like source n (only links into the Ultralytics repo). */
 #answer-chat a[href^="https://github.com/ultralytics/ultralytics/blob/"][href*="?source="] {
-  display: inline-block; padding: 0 5px; margin: 0 1px; border-radius: 3px;
-  font-size: 0.78em; font-weight: 700; line-height: 1.5; text-decoration: none;
-  vertical-align: 0.1em;
+  display: inline-block; padding: 0 6px; margin: 0 1px; border-radius: 999px;
+  font-size: 0.75em; font-weight: 700; line-height: 1.6; text-decoration: none; vertical-align: 0.1em;
 }
 #answer-chat a[href^="https://github.com/ultralytics/ultralytics/blob/"][href*="?source=1#"] { background: #042AFF; color: #FFFFFF; }
 #answer-chat a[href^="https://github.com/ultralytics/ultralytics/blob/"][href*="?source=2#"] { background: #0BDBEB; color: #111F68; }
@@ -22,76 +64,41 @@
 #answer-chat a[href^="https://github.com/ultralytics/ultralytics/blob/"][href*="?source=5#"] { background: #FC6D2F; color: #111F68; }
 #answer-chat a[href^="https://github.com/ultralytics/ultralytics/blob/"][href*="?source=6#"] { background: #BD00FF; color: #FFFFFF; }
 
-/* Sources drawn like YOLO detections: a box with a filled label tab on its top edge. */
-.sources-note,
-.sources-empty {
-  margin: 0 0 12px;
-  color: var(--body-text-color-subdued);
-  font-size: 0.875rem;
+/* Sources panel ------------------------------------------------------------------------- */
+#sources-column {
+  padding: 20px !important; border-radius: 20px; background: #FFFFFF;
+  border: 1px solid #E8E9EF; box-shadow: 0 1px 2px rgba(16,24,40,.04), 0 12px 32px -18px rgba(16,24,40,.12);
 }
-.sources-empty { padding: 24px 4px; }
+#sources-column h2 { margin: 0 0 4px; font-size: 1rem; font-weight: 700; color: #1A1D2B; }
+.sources-note,
+.sources-empty { margin: 0 0 8px; font-size: 0.85rem; color: #6B7084; }
+.sources-empty { padding: 28px 16px; text-align: center; border: 1.5px dashed #E1E3EA; border-radius: 14px; }
+
+/* Retrieved code drawn like a YOLO detection: a box with a label tab on its top edge. */
 .detection {
-  position: relative; margin: 22px 0 14px; padding: 10px 12px 8px;
-  border: 2px solid var(--box); background: var(--block-background-fill);
+  position: relative; margin: 26px 0 14px; padding: 12px 14px 10px;
+  border: 2px solid var(--box); border-radius: 0 12px 12px 12px; background: #FFFFFF;
 }
 .detection.uncited { border-style: dashed; }
 .detection.uncited .detection-meta,
 .detection.uncited details { opacity: 0.75; }
 .detection-label {
-  position: absolute;
-  top: -21px;
-  left: -2px;
-  display: flex;
-  gap: 8px;
-  max-width: calc(100% + 4px);
-  padding: 1px 8px;
-  background: var(--box);
-  font-weight: 600;
-  font-size: 0.85rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  position: absolute; top: -24px; left: -2px; display: flex; gap: 8px; max-width: calc(100% + 4px);
+  padding: 2px 10px; border-radius: 8px 8px 0 0; background: var(--box);
+  font-weight: 600; font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 /* Gradio's prose styles set text colour on descendants: pin the computed label ink. */
 #sources .detection .detection-label,
-#sources .detection .detection-label span {
-  color: var(--label-ink) !important;
-}
+#sources .detection .detection-label span { color: var(--label-ink) !important; }
 .detection-label span:first-child { overflow: hidden; text-overflow: ellipsis; }
 .detection-score { font-variant-numeric: tabular-nums; opacity: 0.85; }
-.detection-meta {
-  margin: 2px 0 6px;
-  font-size: 0.85rem;
-  color: var(--body-text-color-subdued);
-}
+.detection-meta { margin: 0 0 6px; font-size: 0.82rem; color: #6B7084; }
 .detection-path { word-break: break-all; }
-.detection-meta a { color: #042AFF; white-space: nowrap; }
-.dark .detection-meta a { color: #8199FF; }
-.detection details summary { cursor: pointer; font-size: 0.85rem; }
-.detection details summary:focus-visible { outline: 2px solid var(--box); outline-offset: 2px; }
-.detection pre { max-height: 320px; overflow: auto; margin: 8px 0 0; padding: 8px; font-size: 0.78rem; background: #F4F6FB; }
-.dark .detection pre { background: #0E1430; }
-
-.status { margin: 8px 0 0; font-size: 0.875rem; color: var(--body-text-color-subdued); }
-.status-busy::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 8px;
-  border: 2px solid #042AFF; border-right-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; }
-.status-error { color: #C4161C; }
-.dark .status-error { color: #FF8A8F; }
-@keyframes spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .status-busy::before { animation: none; } }
-
-/* Primary action: the Ask button inside the question box. */
-#question button {
-  background: #042AFF;
-  color: #FFFFFF;
-  font-weight: 600;
+.detection-meta a { color: #042AFF; font-weight: 600; white-space: nowrap; text-decoration: none; }
+.detection-meta a:hover { text-decoration: underline; }
+.detection details summary { cursor: pointer; font-size: 0.82rem; color: #1A1D2B; }
+.detection details summary:focus-visible { outline: 2px solid var(--box); outline-offset: 2px; border-radius: 4px; }
+.detection pre {
+  max-height: 320px; overflow: auto; margin: 8px 0 0; padding: 10px 12px;
+  border-radius: 10px; background: #F5F6F8; font-size: 0.76rem;
 }
-#question button:hover { background: #0322D6; }
-#new-conversation {
-  align-self: flex-start;
-  flex: none;
-  width: fit-content;
-  min-width: 0;
-}
-#status { min-height: 0; }
-#status .status { margin: 0; }

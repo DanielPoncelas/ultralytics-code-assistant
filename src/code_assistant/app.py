@@ -284,7 +284,8 @@ def build_app(assistant: CodeAssistant, tag: str, tasks: Sequence[str]) -> gr.Bl
         history = gr.State([])
         with gr.Column(elem_id="masthead"):
             gr.HTML(
-                "<h1>Ultralytics code assistant</h1>"
+                '<div class="brand"><span class="brand-mark" aria-hidden="true"></span>'
+                "<h1>Ultralytics code assistant</h1></div>"
                 "<p>Ask how YOLO works. Answers come from the source code and cite the lines "
                 "they use.</p>"
                 f'<p class="scope">Searches ultralytics/models, engine and data at release '
@@ -378,42 +379,55 @@ def build_app(assistant: CodeAssistant, tag: str, tasks: Sequence[str]) -> gr.Bl
 
 THEME = gr.themes.Base(
     primary_hue=gr.themes.Color(
-        c50="#EEF2FF",
-        c100="#DCE3FF",
-        c200="#B6C4FF",
-        c300="#8199FF",
-        c400="#4C6BFF",
-        c500="#042AFF",
-        c600="#0322D6",
-        c700="#021BAA",
-        c800="#02147E",
+        c50="#EEF1FF",
+        c100="#DFE4FF",
+        c200="#BFC9FF",
+        c300="#8E9FFF",
+        c400="#5B73FF",
+        c500="#2F4BFF",
+        c600="#042AFF",
+        c700="#0322D6",
+        c800="#021BAA",
         c900="#111F68",
         c950="#0A1340",
     ),  # fmt: skip
-    neutral_hue=gr.themes.colors.slate,
-    font=[gr.themes.GoogleFont("Schibsted Grotesk"), "system-ui", "sans-serif"],
+    neutral_hue=gr.themes.colors.zinc,
+    font=[gr.themes.GoogleFont("Plus Jakarta Sans"), "system-ui", "sans-serif"],
     font_mono=[gr.themes.GoogleFont("JetBrains Mono"), "ui-monospace", "monospace"],
-    radius_size=gr.themes.sizes.radius_sm,
+    radius_size=gr.themes.sizes.radius_lg,
 ).set(
-    body_background_fill="#F4F6FB",
-    body_background_fill_dark="#0E1430",
-    body_text_color="#111F68",
-    body_text_color_dark="#E7EBFA",
-    body_text_color_subdued="#5B6488",
-    body_text_color_subdued_dark="#9AA3C7",
+    body_background_fill="#F5F6F8",
+    body_text_color="#1A1D2B",
+    body_text_color_subdued="#6B7084",
+    background_fill_secondary="#F5F6F8",
+    color_accent_soft="#EEF1FF",
     block_background_fill="#FFFFFF",
-    block_background_fill_dark="#151C3D",
-    block_border_color="#D9DEEA",
-    block_border_color_dark="#2A3462",
-    border_color_primary="#D9DEEA",
-    border_color_primary_dark="#2A3462",
-    button_primary_background_fill="#042AFF",
-    button_primary_background_fill_hover="#0322D6",
-    button_primary_text_color="#FFFFFF",
+    block_border_color="#E8E9EF",
+    block_border_width="1px",
+    block_radius="16px",
+    block_shadow="0 1px 2px rgba(16,24,40,.04), 0 12px 32px -18px rgba(16,24,40,.12)",
+    border_color_primary="#E8E9EF",
     input_background_fill="#FFFFFF",
-    input_background_fill_dark="#151C3D",
-    shadow_drop="none",
-    block_shadow="none",
+    input_border_color="#E8E9EF",
+    input_radius="999px",
+    button_primary_background_fill="#042AFF",
+    button_primary_background_fill_hover="#2A47FF",
+    button_primary_text_color="#FFFFFF",
+    button_secondary_background_fill="#FFFFFF",
+    button_secondary_background_fill_hover="#F1F2F6",
+    button_secondary_border_color="#E8E9EF",
+    button_secondary_text_color="#1A1D2B",
+    button_large_radius="999px",
+    button_small_radius="999px",
 )
+
+# Light mode only: Gradio follows the OS theme, so pin ?__theme=light.
+FORCE_LIGHT = """<script>
+  const url = new URL(window.location);
+  if (url.searchParams.get("__theme") !== "light") {
+    url.searchParams.set("__theme", "light");
+    window.location.replace(url);
+  }
+</script>"""
 
 CSS = (Path(__file__).parent / "app.css").read_text(encoding="utf-8")
