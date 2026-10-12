@@ -46,6 +46,8 @@ No GPU is needed. The app runs on CPU and needs about 4 GB of free disk for the 
 3. Open **Connect → Drivers → Python** and copy the connection string (`mongodb+srv://...`). Ignore the `pip install` hint.
 
 You don't create any index by hand: the `index` command creates them.
+
+**Already have an Atlas account?** Create a new project (**Projects → New Project**) and follow the steps above inside it. Each project can have one free cluster, and starting empty avoids the 3-index limit.
 </details>
 
 ### Run it from scratch
@@ -90,7 +92,7 @@ Step 6 loads the embedding model. The first time, it downloads bge-small (about 
 | Symptom | Fix |
 |---|---|
 | `check` can't reach MongoDB Atlas | Your IP address isn't in the cluster's access list (**Network Access → Add current IP**), or the password in `MONGODB_URI` is wrong. |
-| `index` fails while creating an index | The cluster already has other search indexes. M0 allows 3; use an empty cluster. |
+| `index` fails while creating an index | The cluster already has other search indexes, and M0 allows 3. Use an empty cluster in a new project, or set `ALT_EMBEDDING_MODEL=` (empty) to skip the second embedding model, which then needs only 2 indexes. |
 | "No model could answer right now" | The free models are busy, or the key has used its 50 daily requests. Wait a minute, or turn on the paid model in the chat (needs OpenRouter credit). |
 | "qwen/qwen3-embedding-8b needs OpenRouter credits" | Pick `BAAI/bge-small-en-v1.5` as the embedding model, or add credit to the key. |
 
