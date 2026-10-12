@@ -95,7 +95,7 @@ Step 6 first prints "Loading the embedding model and connecting to Atlas …". T
 
 | Symptom | Fix |
 |---|---|
-| `check` can't reach MongoDB Atlas | Check `MONGODB_URI`: are `<db_username>` and `<db_password>` replaced by the **database user** (not your Atlas login)? Is your IP address in **Security → Network Access** (**Add IP Address → Add Current IP Address**)? Does the password contain special characters? |
+| `check` can't reach MongoDB Atlas, or the error says `SSL handshake failed` / `TLSV1_ALERT_INTERNAL_ERROR` | That error usually means your IP address isn't allowed, for example after changing networks. Check `MONGODB_URI`: are `<db_username>` and `<db_password>` replaced by the **database user** (not your Atlas login)? Is your IP address in **Security → Network Access** (**Add IP Address → Add Current IP Address**)? Does the password contain special characters? |
 | `index` fails while creating an index | The cluster already has other search indexes, and M0 allows 3. Use an empty cluster in a new project, or set `ALT_EMBEDDING_MODEL=` (empty) to skip the second embedding model, which then needs only 2 indexes. |
 | "No model could answer right now" | The free models are busy, or the key has used its 50 daily requests. Wait a minute, or turn on the paid model in the chat (needs OpenRouter credit). |
 | "qwen/qwen3-embedding-8b needs OpenRouter credits" | Pick `BAAI/bge-small-en-v1.5` as the embedding model, or add credit to the key. |
