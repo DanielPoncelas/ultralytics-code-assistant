@@ -145,6 +145,23 @@ def search(
             typer.echo(typer.style(result.code, dim=True) + "\n")
 
 
+def connect_assistant(settings, models: list[str] | None = None):
+    """`build_assistant`, turning setup failures into a clear message instead of a traceback."""
+    from pymongo.errors import PyMongoError
+
+    from code_assistant.retrieval import IndexMismatchError
+
+    try:
+        return build_assistant(settings, models)
+    except IndexMismatchError as exc:
+        typer.echo(f"{FAIL} {exc}")
+        raise typer.Exit(code=1) from exc
+    except PyMongoError as exc:  # usually an IP missing from the Atlas access list
+        typer.echo(f"{FAIL} MongoDB Atlas unreachable: {str(exc)[:200]}")
+        typer.echo("  Check MONGODB_URI and that your IP is in Atlas → Security → Network Access.")
+        raise typer.Exit(code=1) from exc
+
+
 def build_assistant(settings, models: list[str] | None = None):
     """Wire retriever + LLM client from settings (fails fast on an incompatible index)."""
     from code_assistant.assistant import CodeAssistant
@@ -207,18 +224,13 @@ def run_app(
     # Gradio sends usage analytics by default; a local tool doesn't need to.
     os.environ.setdefault("GRADIO_ANALYTICS_ENABLED", "False")
     from code_assistant.app import CSS, FORCE_LIGHT, THEME, build_app
-    from code_assistant.retrieval import IndexMismatchError
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
     for noisy in ("httpx", "sentence_transformers"):  # one log line per HTTP request otherwise
         logging.getLogger(noisy).setLevel(logging.WARNING)
     settings = get_settings()
     typer.echo("Loading the embedding model and connecting to Atlas ...")
-    try:
-        assistant, store = build_assistant(settings)
-    except IndexMismatchError as exc:
-        typer.echo(f"{FAIL} {exc}")
-        raise typer.Exit(code=1) from exc
+    assistant, store = connect_assistant(settings)
     try:
         assistant.retriever.embedder.embed_query(
             "warm-up"
@@ -250,14 +262,9 @@ def ask(
     """Answer a question with retrieved code and an LLM, citing the sources."""
     from code_assistant.assistant import Answer
     from code_assistant.llm import LLMError
-    from code_assistant.retrieval import IndexMismatchError
 
     settings = get_settings()
-    try:
-        assistant, store = build_assistant(settings, model)
-    except IndexMismatchError as exc:
-        typer.echo(f"{FAIL} {exc}")
-        raise typer.Exit(code=1) from exc
+    assistant, store = connect_assistant(settings, model)
     try:
         answer = None
         for event in assistant.ask_stream(question):
@@ -327,7 +334,7 @@ def examples(
 
     settings = get_settings()
     selected = [q for q in load_questions(questions) if q.example]
-    assistant, store = build_assistant(settings)
+    assistant, store = connect_assistant(settings)
     sections = [
         "# Example answers",
         "",
