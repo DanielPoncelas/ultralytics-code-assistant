@@ -2,7 +2,7 @@
 
 A code assistant that answers questions about [Ultralytics YOLO](https://github.com/ultralytics/ultralytics) by retrieving the relevant source code and generating a grounded answer.
 
-▶ **[Watch the 2-minute overview](https://youtu.be/ywWCiSTG0Y4)**: what was built, how it was measured, and what failed along the way.
+▶ **[Watch the 2-minute overview](https://youtu.be/ywWCiSTG0Y4)**: what was built, how it was measured, and what failed along the way. (The video was generated with Claude, based on this repository.)
 
 ## At a glance
 
