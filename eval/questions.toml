@@ -191,7 +191,7 @@ evidence = [
 id = "train-autobatch"
 question = "If I set batch=-1, how does YOLO choose the batch size automatically?"
 category = "training"
-source = "https://github.com/ultralytics/ultralytics/issues/16301"
+source = "https://github.com/ultralytics/ultralytics/issues/1659"
 mentions_symbol = true
 relevant = [
     "ultralytics/engine/trainer.py::BaseTrainer.auto_batch",
@@ -232,7 +232,7 @@ evidence = [
 id = "train-tune"
 question = "How does model.tune() search for better hyperparameters? Is it a grid search?"
 category = "training"
-source = "https://github.com/ultralytics/ultralytics/issues/7531"
+source = "https://github.com/ultralytics/ultralytics/issues/9331"
 mentions_symbol = true
 relevant = [
     "ultralytics/engine/tuner.py::Tuner",
@@ -314,7 +314,7 @@ evidence = [
 id = "data-cache"
 question = "What is the difference between cache='ram' and cache='disk', and how does YOLO check whether there is enough memory?"
 category = "data"
-source = "https://github.com/ultralytics/ultralytics/issues/2411"
+source = "https://github.com/ultralytics/ultralytics/issues/9871"
 mentions_symbol = true
 relevant = [
     "ultralytics/data/base.py::BaseDataset.cache_images",
@@ -534,7 +534,7 @@ evidence = [
 id = "predict-crop"
 question = "How do I crop the detected objects out of an image and save them as separate files?"
 category = "prediction"
-source = "https://github.com/ultralytics/ultralytics/issues/9344"
+source = "https://github.com/ultralytics/ultralytics/issues/1376"
 mentions_symbol = false
 relevant = ["ultralytics/engine/results.py::Results.save_crop"]
 key_facts = [
@@ -742,7 +742,7 @@ evidence = [
 id = "model-yoloworld-classes"
 question = "How do I set my own class names for open-vocabulary detection with YOLO-World?"
 category = "models"
-source = "https://github.com/ultralytics/ultralytics/issues/10038"
+source = "https://github.com/ultralytics/ultralytics/issues/20889"
 mentions_symbol = false
 example = true
 relevant = ["ultralytics/models/yolo/model.py::YOLOWorld.set_classes"]
