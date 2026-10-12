@@ -63,7 +63,7 @@ Each experiment had its decision rule written down **before** it ran.
 xychart-beta
     title "Questions where every key fact reaches the LLM (All facts@6, %)"
     x-axis ["bge-small", "bge + reranker", "Qwen3-8B", "Qwen3-8B + reranker"]
-    y-axis "% of 40 questions" 0 --> 100
+    y-axis "% of questions" 0 --> 100
     bar [35.0, 42.5, 43.6, 53.8]
 ```
 
@@ -75,7 +75,7 @@ xychart-beta
 | Qwen3-8B, vector only | **77.5%** | **100%** | **0.865** | **69.3%** | 71.4% | 43.6% | 0.53 s |
 | Qwen3-8B + reranker | 60.0% | 97.5% | 0.749 | 69.1% | **73.9%** | **53.8%** | 1.15 s |
 
-Latency is the median search time per question, including embedding the question on CPU or through the API. In two runs the judge failed on one question, which is left out of Facts@6.
+Latency is the median search time per question, including embedding the question on CPU or through the API. In three runs (bge-small hybrid, Qwen3-8B vector only, and Qwen3-8B + reranker) the judge failed on one question, which is left out, so their Facts@6 and All facts@6 are out of 39 questions.
 
 **What the numbers say:**
 - **Qwen3-8B is the only clear improvement.** With vector search alone it fixes all 8 questions bge-small misses and breaks none (sign test p ≈ 0.008). The reranker's 6 fixed and 1 broken (p ≈ 0.12) is promising but not conclusive at this size.
