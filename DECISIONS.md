@@ -150,9 +150,9 @@ Why each part is built the way it is: the decision, the alternatives considered,
 
 - **Decision:** `nvidia/llama-nemotron-rerank-vl-1b-v2:free`, through OpenRouter's `/rerank` with the same key, reorders the ~33 vector and keyword candidates and keeps the best 6.
 - **Rule fixed before measuring:** adopt it only with at least 2 more questions at Hit@6 and under ~2 s.
-- **Result:** three rerankers passed. The free one won: related code in the top 6 for 37 questions instead of 32, for 0.6 s more per question.
+- **Result:** three rerankers passed. The free one won: related code in the top 6 for 37 questions instead of 32. The whole search takes about 0.6 s more per question, of which the reranker call is about 0.5 s.
 
-  | Reranker | Hit@6 | Added latency | Cost of the run |
+  | Reranker | Hit@6 | Reranker call (median) | Cost of the run |
   |---|---|---|---|
   | **NVIDIA nemotron 1B (free)** | **37/40** | 0.5 s | $0 |
   | Voyage rerank-2.5-lite | 35/40 | 0.4 s | $0.011 |

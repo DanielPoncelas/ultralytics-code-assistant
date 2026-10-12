@@ -339,7 +339,7 @@ The last two use free OpenRouter requests (about 160, and 92 per LLM), so they n
 ## Development
 
 ```bash
-uv run pytest           # 148 tests, no network needed
+uv run pytest           # 149 tests, no network needed
 uv run ruff check .     # lint
 uv run ruff format .    # format
 ```
@@ -359,5 +359,7 @@ src/code_assistant/
   cli.py         command line
 eval/            labelled questions and committed results
 embeddings/      precomputed chunk vectors per model
+docs/            full example answers (examples.md) and the screenshot
+EVALUATION.md    how quality was measured, what was tried, and the results
 DECISIONS.md     decision log with alternatives and measurements
 ```
