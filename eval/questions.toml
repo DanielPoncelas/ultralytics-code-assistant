@@ -24,7 +24,6 @@ question = "My training run was interrupted at epoch 63. How do I resume it from
 category = "training"
 source = "https://github.com/ultralytics/ultralytics/issues/17492"
 mentions_symbol = false
-example = true
 relevant = [
     "ultralytics/engine/trainer.py::BaseTrainer.check_resume",
     "ultralytics/engine/trainer.py::BaseTrainer.resume_training",
@@ -64,6 +63,7 @@ question = "How do the lr0 and lrf hyperparameters work? Is the learning rate de
 category = "training"
 source = "https://github.com/ultralytics/ultralytics/issues/2849"
 mentions_symbol = true
+example = true
 relevant = ["ultralytics/engine/trainer.py::BaseTrainer._setup_scheduler"]
 key_facts = [
     "lr0 is the initial learning rate and lrf the final learning rate as a fraction of lr0 (final lr = lr0 * lrf).",
@@ -135,6 +135,7 @@ question = "What does close_mosaic do, and at which point of training is mosaic 
 category = "training"
 source = "https://github.com/ultralytics/ultralytics/issues/14886"
 mentions_symbol = true
+example = true
 relevant = [
     "ultralytics/engine/trainer.py::BaseTrainer._do_train",
     "ultralytics/engine/trainer.py::BaseTrainer._close_dataloader_mosaic",
@@ -597,7 +598,6 @@ question = "Why do model.val() and model.predict() give different detections on 
 category = "validation"
 source = "https://github.com/ultralytics/ultralytics/issues/2783"
 mentions_symbol = true
-example = true
 relevant = [
     "ultralytics/engine/validator.py::BaseValidator.__init__",
     "ultralytics/engine/predictor.py::BasePredictor.__init__",
@@ -662,6 +662,7 @@ question = "How does the TensorRT export work? Does it go through ONNX first?"
 category = "export"
 source = "https://github.com/ultralytics/ultralytics/issues/1225"
 mentions_symbol = false
+example = true
 relevant = ["ultralytics/engine/exporter.py::Exporter.export_engine"]
 key_facts = [
     "Yes: export_engine first exports an ONNX model with export_onnx and then converts it into a TensorRT .engine file.",
@@ -680,7 +681,6 @@ question = "How can I export a model to ONNX with a dynamic batch size and NMS i
 category = "export"
 source = "https://github.com/ultralytics/ultralytics/issues/23339"
 mentions_symbol = false
-example = true
 relevant = [
     "ultralytics/engine/exporter.py::Exporter.export_onnx",
     "ultralytics/engine/exporter.py::NMSModel",
@@ -744,6 +744,7 @@ question = "How do I set my own class names for open-vocabulary detection with Y
 category = "models"
 source = "https://github.com/ultralytics/ultralytics/issues/10038"
 mentions_symbol = false
+example = true
 relevant = ["ultralytics/models/yolo/model.py::YOLOWorld.set_classes"]
 key_facts = [
     "Call model.set_classes([...]) on a YOLOWorld model with the list of class names.",
@@ -802,7 +803,6 @@ category = "out-of-scope"
 source = "https://github.com/ultralytics/ultralytics/issues/2849"
 mentions_symbol = false
 in_scope = false
-example = true
 notes = "Defaults live in ultralytics/cfg/default.yaml, which is not indexed."
 relevant = []
 
