@@ -164,7 +164,7 @@ The method also handles optional features like INT8 quantization, dynamic shapes
 
 ## 5. How do I set my own class names for open-vocabulary detection with YOLO-World?
 
-*Source: [issue #10038](https://github.com/ultralytics/ultralytics/issues/10038) · answered by `cohere/north-mini-code:free` in 4.1 s*
+*Source: [issue #20889](https://github.com/ultralytics/ultralytics/issues/20889) · answered by `cohere/north-mini-code:free` in 4.1 s*
 
 To set your own class names for open-vocabulary detection with YOLO-World, use the `set_classes` method:
 
