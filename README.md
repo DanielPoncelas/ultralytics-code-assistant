@@ -36,6 +36,8 @@ Built without RAG frameworks: plain `pymongo`, `httpx` and `sentence-transformer
 
 No GPU is needed. The app runs on CPU and needs about 4 GB of free disk for the environment and the models.
 
+**Supported systems:** Linux, and macOS 14 (Sonoma) or newer on Apple Silicon. Windows is covered by the locked dependencies but hasn't been tested. Intel Macs can't install it, because PyTorch no longer publishes wheels for them.
+
 <details>
 <summary>Creating the Atlas cluster (about 5 minutes)</summary>
 
