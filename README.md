@@ -22,6 +22,8 @@ A code assistant that answers questions about [Ultralytics YOLO](https://github.
 
 Built without RAG frameworks: plain `pymongo`, `httpx` and `sentence-transformers`, managed with uv.
 
+![The chat answering an example question: coloured [n] citations in the answer, and on the right the code it used, cited boxes solid and unused ones dashed](docs/screenshot.png)
+
 **Contents:** [Quick start](#quick-start) · [Using it](#using-it) · [Example questions](#example-questions) · [Design notes](#design-notes) · [Evaluation](#evaluation) · [Limitations](#limitations) · [Future work](#future-work) · [Development](#development)
 
 ## Quick start
