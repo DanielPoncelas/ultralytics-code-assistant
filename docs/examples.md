@@ -105,6 +105,8 @@ When you call `model.train()` on a detection model, the training pipeline uses t
 
 So, out‑of the box, a detection model sees **Mosaic → RandomPerspective → CopyPaste → MixUp → CutMix → RandomHSV → RandomFlip (H & V)** during each training iteration.
 
+> **Note:** this answer is wrong about the defaults. `v8_transforms` builds CopyPaste, MixUp, CutMix and the vertical flip, but their default values are `0.0`, so they are off (as are rotation, shear and perspective), and the `p=0.5` for CopyPaste is not in the code. The defaults live in `ultralytics/cfg/default.yaml`, outside the indexed folders, so "what is on by default" is a question this index can't answer.
+
 **Retrieved sources** (bold = cited in the answer):
 
 1. **[`v8_transforms`](https://github.com/ultralytics/ultralytics/blob/69c95d1add13a232382e53b3aa5094ec0c7738db/ultralytics/data/augment.py#L2831-L2912)** — `ultralytics/data/augment.py` L2831-2912
