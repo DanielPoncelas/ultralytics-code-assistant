@@ -17,7 +17,8 @@ FILTER_FIELDS = ("folder", "kind", "model_family", "task")
 
 TEXT_INDEX_NAME = "chunks_text_index"
 # Keyword index. The "code" analyzer splits identifiers into words, so a question about "nms"
-# matches `agnostic_nms`, `NMSModel` or `self.args.nms` (whitespace + wordDelimiterGraph).
+# matches `agnostic_nms` or `self.args.nms`, and "trainer" matches `DetectionTrainer` (whitespace +
+# wordDelimiterGraph).
 TEXT_INDEX_DEFINITION: dict[str, Any] = {
     "analyzers": [
         {

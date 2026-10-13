@@ -13,11 +13,11 @@ A code assistant that answers questions about [Ultralytics YOLO](https://github.
 | Chat interface | Gradio app: answers stream in, with the code they used shown next to them |
 | Code indexing | `ultralytics/models`, `engine` and `data` at release `v8.4.175`: 104 files, 1,532 chunks split along functions, methods and classes with Python's `ast` |
 | Vector search | MongoDB Atlas Vector Search over open-source embeddings (`BAAI/bge-small-en-v1.5`, run locally) |
-| Answer generation | A free OpenRouter LLM. Every statement cites its source as `[n]`, a link to the exact lines on GitHub |
+| Answer generation | A free OpenRouter LLM, asked to cite each statement as `[n]`, a link to the exact lines on GitHub |
 
 **Optional extras**, each with a switch in the chat. The first two were measured on 40 real questions:
 - **Keyword search and a reranker** (on by default): related code reaches the LLM for 37 of 40 questions instead of 32.
-- **A second embedding model, Qwen3-Embedding-8B** (served by OpenRouter): 40 of 40. It needs some OpenRouter credit, about $0.0000002 per question.
+- **A second embedding model, Qwen3-Embedding-8B** (served by OpenRouter): 40 of 40 with the reranker off, 39 with it on. It needs some OpenRouter credit, about $0.0000002 per question.
 - **A paid LLM** (`openai/gpt-5-nano`), with the free models as fallback.
 
 Built without RAG frameworks: plain `pymongo`, `httpx` and `sentence-transformers`, managed with uv.
@@ -142,13 +142,13 @@ uv run code-assistant search "close_mosaic" --task detect -k 3            # retr
 
 Five questions taken from real Ultralytics GitHub issues. They are also the example buttons in the chat.
 
-Each was answered end to end several times, with both embedding models and the default settings. 21 of the 22 answers contained every key fact, and none made a claim the code doesn't support.
+Each was answered end to end several times, with both embedding models and the default settings (these runs are not committed). 21 of the 22 answers contained every key fact, and none made a claim the code doesn't support.
 
 | Question (source issue) | What the assistant answers |
 |---|---|
 | *How do the lr0 and lrf hyperparameters work? Is the learning rate decayed linearly or with a cosine schedule?* ([#2849](https://github.com/ultralytics/ultralytics/issues/2849)) | `lr0` is the initial learning rate, and `lr0 * lrf` the final one. The decay is linear by default; a cosine (one-cycle) schedule is used only with `cos_lr=True`. It quotes `BaseTrainer._setup_scheduler`. |
 | *What does close_mosaic do, and at which point of training is mosaic augmentation switched off?* ([#14886](https://github.com/ultralytics/ultralytics/issues/14886)) | Mosaic, copy-paste, mixup and cutmix are turned off for the last `close_mosaic` epochs. Once `epoch >= epochs - close_mosaic`, `_close_dataloader_mosaic` rebuilds the dataset's transforms. |
-| *Which data augmentations are applied by default when training a detection model?* ([#2412](https://github.com/ultralytics/ultralytics/issues/2412)) | `v8_transforms`: Mosaic, RandomPerspective and CopyPaste, then MixUp, CutMix, Albumentations, HSV colour jitter and flips, each controlled by a hyperparameter. |
+| *Which data augmentations are applied by default when training a detection model?* ([#2412](https://github.com/ultralytics/ultralytics/issues/2412)) | `v8_transforms`: Mosaic, RandomPerspective and CopyPaste, then MixUp, CutMix, Albumentations, HSV colour jitter and flips, each controlled by a hyperparameter. **Limitation:** the default values live in `cfg/default.yaml`, which is not indexed, so the answer can't tell that MixUp, CutMix, CopyPaste and vertical flips are off (0.0) by default. |
 | *How do I set my own class names for open-vocabulary detection with YOLO-World?* ([#20889](https://github.com/ultralytics/ultralytics/issues/20889)) | `model.set_classes([...])`. It updates the class names (dropping the background entry) and resets the predictor, so the next prediction uses them. |
 | *How does the TensorRT export work? Does it go through ONNX first?* ([#1225](https://github.com/ultralytics/ultralytics/issues/1225)) | Yes: `export_engine` exports ONNX first, then `onnx2engine` builds the `.engine` file, passing options such as INT8 quantization, dynamic shapes and the workspace size. |
 
@@ -212,7 +212,7 @@ Result: 1,532 chunks (1,072 methods, 214 class summaries, 140 functions and 106 
 ### Retrieval
 
 1. **Vector search:** embed the question and run Atlas `$vectorSearch` with `numCandidates` = 20 × `limit`, MongoDB's guidance for near-exact recall. It matches an exact search on 99% of the top 5.
-2. **Keyword search:** an Atlas Search index whose analyzer splits identifiers, so "nms" matches `agnostic_nms` and `NMSModel`. Together, the top 20 of each list contain the right code for 38 of 40 evaluation questions.
+2. **Keyword search:** an Atlas Search index whose analyzer splits identifiers, so "nms" matches `agnostic_nms` and `self.args.nms`, and "trainer" matches `DetectionTrainer`. Together, the top 20 of each list contain the right code for 38 of 40 evaluation questions.
 3. **Reranking:** a reranker reads each (question, code) pair and keeps the best 6, deduplicated so that a long function split into parts counts once. If it fails, for example when it is rate-limited, the search falls back to vector order instead of failing.
 
 ### Model choices and rationale
@@ -223,7 +223,7 @@ Each choice was measured on the same 40 questions (see [Evaluation](#evaluation)
 - **Four local open-source models were compared:** Qwen3-Embedding-0.6B, Granite R2, GTE-ModernBERT and bge-small. The rule: best Hit@5 wins, unless a smaller model is within 3 points.
 - **bge-small won:** one question behind Qwen-0.6B, ahead on Hit@1 and MRR, 18× smaller and 6.5× faster per query on CPU.
 - **Qwen3-Embedding-8B was added later.** The brief asks for an open-source model, not a free one: its weights are Apache-2.0, and OpenRouter only hosts them. It reads 32k tokens, where bge-small truncates a third of the chunks at 512.
-  - It gets related code into the top 6 for all 40 questions (bge-small: 32, or 37 with the reranker).
+  - It gets related code into the top 6 for all 40 questions without the reranker (bge-small: 32), and for 39 with it (bge-small: 37).
   - It raises the share of key facts in the sources from 63% to 71–74%.
 - **bge-small stays the default** because it is free and runs locally, so the app works with any OpenRouter key.
 
@@ -272,7 +272,7 @@ Each decision is logged in [DECISIONS.md](DECISIONS.md), with the alternatives c
 
 The full story (what was tried, in which order, with which rule, and how the judges were checked) is in [EVALUATION.md](EVALUATION.md). In short:
 
-**Question set.** 46 questions from real GitHub issues: 40 that the indexed code can answer, and 6 that it can't. Before any run, each in-scope question was labelled with the code that answers it, its 2–3 key facts and the exact evidence lines (`eval/questions.toml`).
+**Question set.** 46 questions from real GitHub issues: 40 that the indexed code can answer, and 6 that it can't. Before any run, each in-scope question was labelled with the code that answers it. Its 2–3 key facts and exact evidence lines were added after the embedding-model run, before any answer or fact was judged (`eval/questions.toml`).
 
 **Retrieval**, from most lenient to strictest. Does the LLM get…
 - **Hit@6:** at least one relevant piece of code?
