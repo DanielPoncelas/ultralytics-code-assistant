@@ -102,9 +102,11 @@ A fourth candidate, Gemma-4-31B, was rate-limited upstream for 37 of 46 question
 |---|---|---|---|
 | Learning rate schedule (lr0, lrf) | 4 | 4 | 0 |
 | When mosaic switches off | 4 | 4 | 0 |
-| Default augmentations | 4 | 4 | 0 |
+| Default augmentations | 4 | 4 | 0\* |
 | YOLO-World custom classes | 4 | 4 | 0 |
 | TensorRT export | 6 | 5 | 0 |
+
+\* Judged against key facts that describe the pipeline. The answer shown in [docs/examples.md](docs/examples.md) presents steps that are off by default (`0.0` in `cfg/default.yaml`, which is not indexed) as applied: see the note there.
 
 Six other candidates fell short and were not used as examples: resume training, COCO-to-YOLO conversion, several RTSP streams, Albumentations, CoreML export with NMS and FastSAM prompts.
 

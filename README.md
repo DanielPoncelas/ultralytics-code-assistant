@@ -142,7 +142,7 @@ uv run code-assistant search "close_mosaic" --task detect -k 3            # retr
 
 Five questions taken from real Ultralytics GitHub issues. They are also the example buttons in the chat.
 
-Each was answered end to end several times, with both embedding models and the default settings (these runs are not committed). 21 of the 22 answers contained every key fact, and none made a claim the code doesn't support.
+Each was answered end to end several times, with both embedding models and the default settings (these runs are not committed). 21 of the 22 answers contained every key fact. The answer shown for the augmentation question presents steps that are off by default as applied; see the note in [docs/examples.md](docs/examples.md).
 
 | Question (source issue) | What the assistant answers |
 |---|---|
