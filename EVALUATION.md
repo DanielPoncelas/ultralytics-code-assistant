@@ -1,15 +1,15 @@
 # Evaluation
 
-How the assistant's quality was measured, what was tried, and what the numbers decided. Every number comes from a committed report in [`eval/results/`](eval/results/), and every design decision mentioned has its full reasoning in [DECISIONS.md](DECISIONS.md).
+How the assistant's quality was measured, what was tried, and what the numbers decided. Every number comes from a committed report in [`eval/results/`](eval/results/) unless marked otherwise, and every design decision mentioned has its full reasoning in [DECISIONS.md](DECISIONS.md).
 
 ## TL;DR
 
 | | Result |
 |---|---|
-| Related code among the 6 sources the LLM gets | **92.5%** of questions with the default setup, **100%** with Qwen3-8B |
+| Related code among the 6 sources the LLM gets | **92.5%** of questions with the default setup; with Qwen3-8B, **100%** with the reranker off and **97.5%** with it on |
 | Every key fact of the answer among those sources | **at least 42.5%** of questions by default, **53.8%** with Qwen3-8B + reranker |
 | Key facts stated by the chosen free LLM | **53.8%**, no false refusals |
-| The 5 example questions, answered end to end | **21 of 22** answers complete, none with unsupported claims |
+| The 5 example questions, answered end to end | **21 of 22** answers complete, none with unsupported claims (runs not committed) |
 
 The main lesson: "the search found related code" is not "the LLM got the answer". The strict measures below exist because the lenient one looked better than the answers were.
 
@@ -20,12 +20,12 @@ The main lesson: "the search found related code" is not "the LLM got the answer"
 - **40 in scope:** training 12, data 11, prediction 7, validation 2, export 4, specific models 4. 14 name a symbol or argument; 26 are plain language.
 - **6 out of scope:** their answers live outside the indexed folders (`utils/`, `nn/`, `cfg/`). They check that the assistant says so instead of guessing.
 
-Before any model was run, each in-scope question was labelled from the source code with:
-- the code units that answer it (`relevant`);
+Each in-scope question was labelled from the source code with:
+- the code units that answer it (`relevant`), committed before any model was run (`8ca7a9d`, 15:15; first results in `e2857dd`, 15:32);
 - 2–3 **key facts** a correct answer must contain (104 in total);
 - the exact **evidence lines** (101 `path:start-end` ranges).
 
-The labels were committed before the first run, and the loader fails if a label doesn't match a real chunk.
+The key facts and evidence lines were committed after the embedding-model run but before any answer or fact was judged (`dfc5779`). The loader fails if a label doesn't match a real chunk.
 
 ## How quality is measured
 
@@ -55,7 +55,7 @@ Each experiment had its decision rule written down **before** it ran.
 | 6 | A local reranker to fix the ranking? | Under ~2 s per question | Over a minute per question on CPU | **Stopped** ([D24](DECISIONS.md)) |
 | 7 | A hosted reranker (3 tried)? | At least +2 questions at Hit@6, under ~2 s | Hit@6 32 → **37**, +0.6 s, free | **On by default** ([D26](DECISIONS.md)) |
 | 8 | Is the answer really in the sources? | (new measure) | Hit@6 92.5%, but every key fact only for **42.5%** | **Facts@6** becomes the main measure ([D27](DECISIONS.md)) |
-| 9 | A larger open-source embedder, Qwen3-8B, served by OpenRouter? | At least +2 questions on Hit@6 or the strict measures | Hit@6 **40/40**; Facts@6 63% → 71–74% | **A switch in the chat**; bge-small stays the default because it is free and local ([D28](DECISIONS.md)) |
+| 9 | A larger open-source embedder, Qwen3-8B, served by OpenRouter? | At least +2 questions on Hit@6 or the strict measures | Hit@6 **40/40** (39/40 with the reranker); Facts@6 63% → 71–74% | **A switch in the chat**; bge-small stays the default because it is free and local ([D28](DECISIONS.md)) |
 
 ## Retrieval results
 

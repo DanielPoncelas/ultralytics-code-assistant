@@ -59,6 +59,8 @@ explicit = true
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+# Markdown in docs/ and eval/ quotes Ultralytics code and LLM answers verbatim.
+extend-exclude = ["docs", "eval"]
 
 [tool.ruff.lint]
 # E/F: pycodestyle + pyflakes, I: import sorting, B: bugbear, UP: pyupgrade, SIM: simplifications

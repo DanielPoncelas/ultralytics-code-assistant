@@ -31,7 +31,7 @@ def check() -> None:
     except ValidationError as exc:
         missing = ", ".join(str(err["loc"][0]).upper() for err in exc.errors())
         typer.echo(f"{FAIL} Invalid or missing settings: {missing}")
-        typer.echo("  Copy .env.example to .env and fill in the values (see README → Setup).")
+        typer.echo("  Copy .env.example to .env and fill in the values (see README → Quick start).")
         raise typer.Exit(code=1) from exc
     typer.echo(f"{OK} Settings loaded")
 

@@ -29,7 +29,7 @@ Why each part is built the way it is: the decision, the alternatives considered,
 | [D23](#d23-llm-cohere-north-mini-code-then-dots-3-then-laguna) | Cohere North-Mini-Code, then dots-3, then Laguna | The best key-fact coverage; three providers |
 | [D25](#d25-an-optional-paid-model) | An optional paid model | Better answers when wanted, free by default |
 | **Evaluation** | | |
-| [D17](#d17-questions-from-real-issues-labelled-before-any-run) | 46 questions from real issues, labelled before any run | Choices are measured, not guessed |
+| [D17](#d17-questions-from-real-issues-labelled-from-the-source) | 46 questions from real issues, labelled from the source | Choices are measured, not guessed |
 | [D21](#d21-answers-graded-by-key-facts-and-a-judge-from-another-family) | Answers graded by key facts and a judge from another model family | The judge is checked against a human |
 | [D22](#d22-credits-for-the-evaluation-not-for-users) | OpenRouter credits for the evaluation only | The app itself needs none |
 | [D27](#d27-stricter-measures-evidence-and-fact-recall) | Stricter measures: evidence and fact recall | Hit@6 overstated what the LLM gets |
@@ -105,7 +105,7 @@ Why each part is built the way it is: the decision, the alternatives considered,
 ### D28. Qwen3-Embedding-8B through OpenRouter, selectable
 
 - **Decision:** offer `qwen/qwen3-embedding-8b` as a second embedding model in the chat, in its own Atlas collection, with bge-small as the default.
-- **Why:** the brief asks for an open-source model, not a free one. Qwen3-8B has Apache-2.0 weights, a 32k context (nothing truncated) and is 240× larger than bge-small. On the 40 questions it puts related code in the top 6 for all of them (bge-small: 32), and fixes all 8 of bge's misses without breaking any (p ≈ 0.008).
+- **Why:** the brief asks for an open-source model, not a free one. Qwen3-8B has Apache-2.0 weights, a 32k context (nothing truncated) and is 240× larger than bge-small. On the 40 questions it puts related code in the top 6 for all of them with vector search alone (bge-small: 32), and fixes all 8 of bge's misses without breaking any (p ≈ 0.008).
 - **Why not the default:** every question needs OpenRouter credit (about $0.0000002), so a key without credit couldn't search. bge-small is free and local.
 - **How:**
   - The provider is pinned (Nebius, no fallback), so documents and questions get vectors from the same deployment.
@@ -140,7 +140,7 @@ Why each part is built the way it is: the decision, the alternatives considered,
 
 ### D24. Hybrid search tried and left off; local reranker too slow
 
-- **Hybrid:** an Atlas Search keyword index whose analyzer splits identifiers ("nms" matches `agnostic_nms`, `NMSModel`), merged with the vector results by Reciprocal Rank Fusion.
+- **Hybrid:** an Atlas Search keyword index whose analyzer splits identifiers ("nms" matches `agnostic_nms` and `self.args.nms`), merged with the vector results by Reciprocal Rank Fusion.
   - **The rule:** keep it only if Hit@6 doesn't drop.
   - **The result:** Hit@6 went from 80.0% to 77.5% (Hit@1 52.5% → 57.5%), so it stays off.
   - **Why the code stayed:** the top 20 of each list together contain the right code for 38 of 40 questions. The problem was the ordering, which makes those lists the candidates for a reranker.
@@ -214,12 +214,12 @@ Why each part is built the way it is: the decision, the alternatives considered,
 
 ## Evaluation
 
-### D17. Questions from real issues, labelled before any run
+### D17. Questions from real issues, labelled from the source
 
 - **Decision:** 46 questions, each from a real GitHub issue.
   - **40 in scope:** training 12, data 11, prediction 7, validation 2, export 4, models 4.
   - **6 out of scope.**
-- **Labelling:** the code that answers each question, its key facts and its evidence lines were written by reading the source **before** any model was run, and committed first. The loader fails if a label doesn't match a real chunk.
+- **Labelling:** the code that answers each question was written by reading the source and committed **before** any model was run. Its key facts and evidence lines were added after the embedding-model run, before any answer or fact was judged. The loader fails if a label doesn't match a real chunk.
 - **Model comparisons use exact search** over each model's saved vectors. This isolates the model from Atlas' approximate index, and a separate check confirms that Atlas agrees with it 99% of the time.
 - **Weak spots:** small (one question = 2.5 points); one labeller; labels may miss other valid code.
 
